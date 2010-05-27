@@ -16,7 +16,7 @@ using std::string;
 int main(int argc, char** argv) {
 
   int verbosity;
-  vector<string> input_files;
+  const vector<string> *input_files;
 
   try {
     po::options_description description("usage: "DECOMPRESSOR" [options] input-files\n\nOptions");
@@ -43,11 +43,13 @@ int main(int argc, char** argv) {
     // TODO: Check that the verbosity level is reasonable
  
     if (varmap.count("input-file") && verbosity) {
-      input_files = varmap["input-file"].as< vector<string> >();
+      input_files = &varmap["input-file"].as< vector<string> >();
 
       cout << "Input files: ";
-      foreach(string file, input_files)
-	cout << file << " ";
+      for(vector<string>::const_iterator it = input_files->begin();
+	  it != input_files->end(); ++it)
+	cout << *it << " ";
+
       cout << endl;
     }
 

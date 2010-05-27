@@ -1,0 +1,10 @@
+...
+
+New functionality can be added by replacing some of the trivial implementations
+of the preprocessing, bwt or entropy encoding.
+
+When one wants to add new preprocessing implementation, one needs
+to do to following things:
+ - compr.cc:
+   * update validate_preproc_opt to accept new option for preprocessing
+   * update options_description-object in int main()

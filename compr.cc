@@ -16,11 +16,11 @@ using std::vector;
 using std::string;
 
 
-// Validates preprocessing options
-void validate_preproc_opt(const char c) {
+// Notifier function for preprocessing option choice
+void ValidatePreprocOption(const char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
-  class preproc_exception : public exception {
+  class PreprocException : public exception {
     virtual const char* what() const throw() {
       return "Invalid choice for preprocessing.";
     }
@@ -29,11 +29,12 @@ void validate_preproc_opt(const char c) {
   throw exc;
 }
 
-// Validate entropy encoding option
-void validate_entropy_end(const char c) {
+
+// Notifier function for encoding option choice
+void ValidateEncodingOption(const char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
-  class entropy_exc : public exception {
+  class EncodingExc : public exception {
     virtual const char* what() const throw() {
       return "Invalid choice for entropy encoding.";
     }
@@ -44,27 +45,31 @@ void validate_entropy_end(const char c) {
 
 
 int main(int argc, char** argv) {
-
   int block_size, verbosity;
   char preproc, encoding;
   const vector<string> *input_files;
 
   try {
-    po::options_description description("usage: "COMPRESSOR" [options] input-files\n\nOptions");
+    po::options_description description(
+        "usage: "COMPRESSOR" [options] input-files\n\nOptions");
     description.add_options()
-      ("help,h", "print help message")
-      ("stdout,c", "output to standard out")
-      ("block,b", po::value<int>(&block_size)->default_value(1000),
-       "Block size for compression (in kB)")
-      ("verb,v", po::value<int>(&verbosity)->default_value(0), "verbosity level")
-      ("input-file", po::value< vector<string> >(), "files to compress, defaults to stdin")
-      ("pre,p", po::value<char>(&preproc)->default_value('n')->notifier(&validate_preproc_opt), 
-       "pre-processing algorithm, options:\n"
-       "  n -- \tdoes nothing")
-      ("enc,e", po::value<char>(&encoding)->default_value('n'),
-       "entropy encoding scheme, options:\n"
-       "  n -- \tdoes nothing")
-      ;
+        ("help,h", "print help message")
+        ("stdout,c", "output to standard out")
+        ("block,b", po::value<int>(&block_size)->default_value(1000),
+         "Block size for compression (in kB)")
+        ("verb,v", po::value<int>(&verbosity)->default_value(0),
+         "verbosity level")
+        ("input-file", po::value< vector<string> >(),
+         "files to compress, defaults to stdin")
+        ("pre,p", po::value<char>(&preproc)->default_value('n')->
+         notifier(&ValidatePreprocOption),
+         "pre-processing algorithm, options:\n"
+         "  n -- \tdoes nothing")
+        ("enc,e", po::value<char>(&encoding)->default_value('n')->
+         notifier(&ValidateEncodingOption),
+         "entropy encoding scheme, options:\n"
+         "  n -- \tdoes nothing")
+        ;
 
     // Allow input files given in user friendly form (without "--input-file")
     po::positional_options_description pos;
@@ -81,20 +86,13 @@ int main(int argc, char** argv) {
       return 0;
     }
 
-    // TODO: Check that the block-size is reasonable
-    if (verbosity < 0) verbosity = 0;
-    if (verbosity > MAXVERB) verbosity = MAXVERB; // artificial upper bound for verbosity level
-
-    cout << preproc << endl;
-
-    //if ()
+    // TODO: Check that the block-size is OK
 
 
     if (varmap.count("input-file")) {
       input_files = &varmap["input-file"].as< vector<string> >();
 
       /* Create file objects*/
-
 
       if (verbosity) {
 	cout << "Input files: ";
@@ -112,8 +110,9 @@ int main(int argc, char** argv) {
       cout << "Outputting to standard out." << endl;
     }
 
-    if (verbosity)
+    if (verbosity) {
       cout << "Block size = " << block_size <<  "kB" << endl;
+    }
 
   } // try-block
 

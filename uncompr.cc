@@ -13,18 +13,19 @@ using std::cerr;
 using std::vector;
 using std::string;
 
-int main(int argc, char** argv) {
 
+int main(int argc, char** argv) {
   int verbosity;
   const vector<string> *input_files;
 
   try {
-    po::options_description description("usage: "DECOMPRESSOR" [options] input-files\n\nOptions");
+    po::options_description description(
+        "usage: "DECOMPRESSOR" [options] input-files\n\nOptions");
     description.add_options()
-      ("help,h", "print help message")
-      ("verb,v", po::value<int>(&verbosity)->default_value(0), "verbosity level")
-      ("input-file", po::value< vector<string> >(), "files to decompress")
-      ;
+        ("help,h", "print help message")
+        ("verb,v", po::value<int>(&verbosity)->default_value(0), "verbosity level")
+        ("input-file", po::value< vector<string> >(), "files to decompress")
+        ;
 
     // Allow input files given in user friendly form (without "--input-file")
     po::positional_options_description pos;
@@ -40,19 +41,23 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    // TODO: Check that the verbosity level is reasonable
- 
-    if (varmap.count("input-file") && verbosity) {
+    if (varmap.count("input-file")) {
       input_files = &varmap["input-file"].as< vector<string> >();
 
-      cout << "Input files: ";
-      for(vector<string>::const_iterator it = input_files->begin();
-	  it != input_files->end(); ++it)
-	cout << *it << " ";
+      /* Create file objects*/
 
-      cout << endl;
+      if (verbosity) {
+	cout << "Input files: ";
+	for(vector<string>::const_iterator it = input_files->begin();
+	    it != input_files->end(); ++it)
+	  cout << *it << " ";
+	cout << endl;
+      }
+    } else {
+      // Create file object for cin
+
     }
-
+    
   } // try-block
 
   catch(exception& e) {

@@ -6,7 +6,4 @@
 // Name of the decrompressor program
 #define DECOMPRESSOR "uncompr"
 
-// Max level for verbosity
-const int MAXVERB = 2;
-
 #endif

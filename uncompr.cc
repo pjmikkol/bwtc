@@ -6,17 +6,10 @@ namespace po = boost::program_options;
 
 #include "globaldefs.h"
 
-using std::endl;
-using std::cout;
-using std::exception;
-using std::cerr;
-using std::vector;
-using std::string;
-
 
 int main(int argc, char** argv) {
   int verbosity;
-  const vector<string> *input_files;
+  const std::vector<std::string> *input_files;
 
   try {
     po::options_description description(
@@ -24,7 +17,7 @@ int main(int argc, char** argv) {
     description.add_options()
         ("help,h", "print help message")
         ("verb,v", po::value<int>(&verbosity)->default_value(0), "verbosity level")
-        ("input-file", po::value< vector<string> >(), "files to decompress")
+        ("input-file", po::value< std::vector<std::string> >(), "files to decompress")
         ;
 
     // Allow input files given in user friendly form (without "--input-file")
@@ -37,21 +30,21 @@ int main(int argc, char** argv) {
     po::notify(varmap);
 
     if (varmap.count("help")) {
-      cout << description << endl;
+      std::cout << description << std::endl;
       return 1;
     }
 
     if (varmap.count("input-file")) {
-      input_files = &varmap["input-file"].as< vector<string> >();
+      input_files = &varmap["input-file"].as< std::vector<std::string> >();
 
       /* Create file objects*/
 
       if (verbosity) {
-	cout << "Input files: ";
-	for(vector<string>::const_iterator it = input_files->begin();
+	std::cout << "Input files: ";
+	for(std::vector<std::string>::const_iterator it = input_files->begin();
 	    it != input_files->end(); ++it)
-	  cout << *it << " ";
-	cout << endl;
+	  std::cout << *it << " ";
+	std::cout << std::endl;
       }
     } else {
       // Create file object for cin
@@ -60,12 +53,12 @@ int main(int argc, char** argv) {
     
   } // try-block
 
-  catch(exception& e) {
-    cerr << "error: " << e.what() << endl;
+  catch(std::exception& e) {
+    std::cerr << "error: " << e.what() << std::endl;
     return 1;
   }
   catch(...) {
-    cerr << "Exception of unknown type!" << endl;
+    std::cerr << "Exception of unknown type!" << std::endl;
     return 1;    
   }
 

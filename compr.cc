@@ -8,19 +8,12 @@ namespace po = boost::program_options;
 
 #include "globaldefs.h"
 
-using std::endl;
-using std::cout;
-using std::exception;
-using std::cerr;
-using std::vector;
-using std::string;
-
 
 // Notifier function for preprocessing option choice
 void ValidatePreprocOption(const char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
-  class PreprocException : public exception {
+  class PreprocException : public std::exception {
     virtual const char* what() const throw() {
       return "Invalid choice for preprocessing.";
     }
@@ -34,7 +27,7 @@ void ValidatePreprocOption(const char c) {
 void ValidateEncodingOption(const char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
-  class EncodingExc : public exception {
+  class EncodingExc : public std::exception {
     virtual const char* what() const throw() {
       return "Invalid choice for entropy encoding.";
     }
@@ -47,7 +40,7 @@ void ValidateEncodingOption(const char c) {
 int main(int argc, char** argv) {
   int block_size, verbosity;
   char preproc, encoding;
-  const vector<string> *input_files;
+  const std::vector<std::string> *input_files;
 
   try {
     po::options_description description(
@@ -59,7 +52,7 @@ int main(int argc, char** argv) {
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
-        ("input-file", po::value< vector<string> >(),
+        ("input-file", po::value< std::vector<std::string> >(),
          "files to compress, defaults to stdin")
         ("pre,p", po::value<char>(&preproc)->default_value('n')->
          notifier(&ValidatePreprocOption),
@@ -82,7 +75,7 @@ int main(int argc, char** argv) {
     po::notify(varmap);
 
     if (varmap.count("help")) {
-      cout << description << endl;
+      std::cout << description << std::endl;
       return 0;
     }
 
@@ -90,16 +83,16 @@ int main(int argc, char** argv) {
 
 
     if (varmap.count("input-file")) {
-      input_files = &varmap["input-file"].as< vector<string> >();
+      input_files = &varmap["input-file"].as< std::vector<std::string> >();
 
       /* Create file objects*/
 
       if (verbosity) {
-	cout << "Input files: ";
-	for(vector<string>::const_iterator it = input_files->begin();
+	std::cout << "Input files: ";
+	for(std::vector<std::string>::const_iterator it = input_files->begin();
 	    it != input_files->end(); ++it)
-	  cout << *it << " ";
-	cout << endl;
+	  std::cout << *it << " ";
+	std::cout << std::endl;
       }
     } else {
       // Create file object for cin
@@ -107,21 +100,21 @@ int main(int argc, char** argv) {
     }
 
     if (varmap.count("stdout") && verbosity) {
-      cout << "Outputting to standard out." << endl;
+      std::cout << "Outputting to standard out." << std::endl;
     }
 
     if (verbosity) {
-      cout << "Block size = " << block_size <<  "kB" << endl;
+      std::cout << "Block size = " << block_size <<  "kB" << std::endl;
     }
 
   } // try-block
 
-  catch(exception& e) {
-    cerr << "error: " << e.what() << endl;
+  catch(std::exception& e) {
+    std::cerr << "error: " << e.what() << std::endl;
     return 1;
   }
   catch(...) {
-    cerr << "Exception of unknown type!" << endl;
+    std::cerr << "Exception of unknown type!" << std::endl;
     return 1;
   } 
 

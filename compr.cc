@@ -1,5 +1,4 @@
 #include<iostream>
-#include<vector>
 #include<string>
 #include<iterator>
 
@@ -40,11 +39,12 @@ void ValidateEncodingOption(const char c) {
 int main(int argc, char** argv) {
   int block_size, verbosity;
   char preproc, encoding;
-  const std::vector<std::string> *input_files;
+  std::string input_name, output_name;
+  bool output_stdout;
 
   try {
     po::options_description description(
-        "usage: "COMPRESSOR" [options] input-files\n\nOptions");
+        "usage: "COMPRESSOR" [options] inputfile outputfile\n\nOptions");
     description.add_options()
         ("help,h", "print help message")
         ("stdout,c", "output to standard out")
@@ -52,21 +52,24 @@ int main(int argc, char** argv) {
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
-        ("input-file", po::value< std::vector<std::string> >(),
-         "files to compress, defaults to stdin")
+        ("input-file", po::value<std::string>(&input_name),
+         "file to compress, defaults to stdin")
+        ("output-file", po::value<std::string>(&output_name),"target file")
         ("pre,p", po::value<char>(&preproc)->default_value('n')->
          notifier(&ValidatePreprocOption),
          "pre-processing algorithm, options:\n"
-         "  n -- \tdoes nothing")
+         "  n -- does nothing")
         ("enc,e", po::value<char>(&encoding)->default_value('n')->
          notifier(&ValidateEncodingOption),
          "entropy encoding scheme, options:\n"
-         "  n -- \tdoes nothing")
+         "  n -- does nothing")
         ;
 
-    // Allow input files given in user friendly form (without "--input-file")
+    // Allow input and output files given in user friendly form,
+    // depending on their positions
     po::positional_options_description pos;
-    pos.add("input-file", -1);
+    pos.add("input-file", 1);
+    pos.add("output-file", 1);
 
 
     po::variables_map varmap;
@@ -79,34 +82,8 @@ int main(int argc, char** argv) {
       return 0;
     }
 
+    output_stdout = static_cast<bool>(varmap.count("stdout"));
     // TODO: Check that the block-size is OK
-
-
-    if (varmap.count("input-file")) {
-      input_files = &varmap["input-file"].as< std::vector<std::string> >();
-
-      /* Create file objects*/
-
-      if (verbosity) {
-	std::cout << "Input files: ";
-	for(std::vector<std::string>::const_iterator it = input_files->begin();
-	    it != input_files->end(); ++it)
-	  std::cout << *it << " ";
-	std::cout << std::endl;
-      }
-    } else {
-      // Create file object for cin
-
-    }
-
-    if (varmap.count("stdout") && verbosity) {
-      std::cout << "Outputting to standard out." << std::endl;
-    }
-
-    if (verbosity) {
-      std::cout << "Block size = " << block_size <<  "kB" << std::endl;
-    }
-
   } // try-block
 
   catch(std::exception& e) {
@@ -116,7 +93,31 @@ int main(int argc, char** argv) {
   catch(...) {
     std::cerr << "Exception of unknown type!" << std::endl;
     return 1;
-  } 
+  }
+
+  if (verbosity > 0) {
+    std::clog << "Block size = " << block_size <<  "kB" << std::endl;
+  }
+
+  if (input_name != "") {
+    // TODO: Create inputfile object
+    if (verbosity > 0) 
+      std::clog << "Input: " << input_name << std::endl;
+  } else {
+    // TODO: Create outputstream for cin
+    if (verbosity > 0) 
+      std::clog << "Input: stdin" << std::endl;
+  }
+      
+  if (output_name != "" && !output_stdout) {
+    // TODO: Create outputfile object
+    if (verbosity > 0)
+      std::clog << "Output: " << output_name << std::endl;
+  } else {
+    // TODO: Create file object for cin
+    if (verbosity > 0)
+      std::clog << "Output: stdout" << std::endl;
+  }
 
   return 0;
 }

@@ -1,14 +1,14 @@
-#include<iostream>
-#include<string>
-#include<iterator>
+#include <iostream>
+#include <string>
+#include <iterator>
 
-#include<boost/program_options.hpp>
+#include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
 #include "globaldefs.h"
 
 
-// Notifier function for preprocessing option choice
+/* Notifier function for preprocessing option choice */
 void ValidatePreprocOption(const char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
@@ -22,7 +22,7 @@ void ValidatePreprocOption(const char c) {
 }
 
 
-// Notifier function for encoding option choice
+/* Notifier function for encoding option choice */
 void ValidateEncodingOption(const char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
          "  n -- does nothing")
         ;
 
-    // Allow input and output files given in user friendly form,
-    // depending on their positions
+    /* Allow input and output files given in user friendly form,
+     * depending on their positions */
     po::positional_options_description pos;
     pos.add("input-file", 1);
     pos.add("output-file", 1);
@@ -82,9 +82,9 @@ int main(int argc, char** argv) {
       return 0;
     }
 
-    output_stdout = static_cast<bool>(varmap.count("stdout"));
+    output_stdout = varmap.count("stdout") != 0;
     // TODO: Check that the block-size is OK
-  } // try-block
+  } /* try-block */
 
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << std::endl;

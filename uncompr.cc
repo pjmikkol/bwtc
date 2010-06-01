@@ -1,7 +1,7 @@
-#include<iostream>
-#include<iterator>
+#include <iostream>
+#include <iterator>
 
-#include<boost/program_options.hpp>
+#include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
 #include "globaldefs.h"
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
          "target file")
         ;
 
-    // Allow input files given in user friendly form (without "--input-file")
+    /* Allow input files given in user friendly form (without "--input-file") */
     po::positional_options_description pos;
     pos.add("input-file", 1);
     pos.add("output-file",1);
@@ -41,8 +41,8 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    output_stdout = static_cast<bool>(varmap.count("stdout"));
-  } // try-block
+    output_stdout = varmap.count("stdout") != 0;
+  } /* try-block */
 
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << std::endl;

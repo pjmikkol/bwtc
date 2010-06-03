@@ -19,9 +19,7 @@ class OutStream {
   /* Writes chars in range [begin, end) to stream */
   void WriteBlock(std::vector<char>::const_iterator begin,
                   std::vector<char>::const_iterator end);
-  void Flush();
 
-  
  private:
   std::string name_;
   std::ostream_iterator<char>* to_;

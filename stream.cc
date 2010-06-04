@@ -17,17 +17,19 @@ OutStream::OutStream(std::string file_name) :
 {
   if (name_ != "") {
     outfile_ = new std::ofstream(name_.c_str());
-    to_ = new std::ostream_iterator<char>(*outfile_);
+    to_ = dynamic_cast<std::ostream*>(outfile_);
   } else
-    to_ = new std::ostream_iterator<char>(std::cout);
+    to_ = &std::cout;
   assert(to_);
 }
 
 
 OutStream::~OutStream() {
-  if (outfile_) outfile_->close();
-  delete outfile_;
-  delete to_;
+  if (outfile_) {
+    outfile_->close();
+    delete outfile_;
+  } else 
+    delete to_;
 }
 
 
@@ -37,7 +39,7 @@ OutStream::~OutStream() {
 
 void OutStream::WriteBlock(std::vector<char>::const_iterator begin,
                            std::vector<char>::const_iterator end) {
-  std::copy(begin, end, *to_);
+  std::copy(begin, end, std::ostream_iterator<char>(*to_));
 }
 
 
@@ -46,18 +48,22 @@ InStream::InStream(std::string file_name) :
 {
   if (name_ != "") {
     infile_ = new std::ifstream(name_.c_str());
-    from_ = new std::istream_iterator<char>(*infile_);
+    from_ = dynamic_cast<std::istream*>(infile_);
   } else
-    from_ = new std::istream_iterator<char>(std::cin);
+    from_ = &std::cin;
   assert(from_);
 }
-
-
+/*
+std::istream& InStream::GetStream
+  return from_;
+  }*/
 
 InStream::~InStream() {
-  if (infile_) infile_->close();
-  delete infile_;
-  delete from_;
+  if (infile_) {
+    infile_->close();
+    delete infile_;
+  } else
+    delete from_;
 }
 
 

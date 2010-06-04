@@ -22,7 +22,7 @@ class OutStream {
 
  private:
   std::string name_;
-  std::ostream_iterator<char>* to_;
+  std::ostream* to_;
   std::ofstream* outfile_;
   std::vector<char> buffer_;
   // TODO: work out WriteBits
@@ -40,7 +40,7 @@ class InStream {
 
  private:
   std::string name_;
-  std::istream_iterator<char>* from_;
+  std::istream* from_;
   std::ifstream* infile_;
 
   InStream& operator=(const InStream& os);

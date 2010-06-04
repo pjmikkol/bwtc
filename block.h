@@ -14,6 +14,7 @@ namespace bwtc {
 class Block {
  public:
   Block(boost::int64_t max_block_size);
+  ~Block();
 
   /* Iterators are meant for reading and writing of a block.*/
   std::vector<char>::iterator begin();
@@ -23,7 +24,7 @@ class Block {
 
  private:
   /* Vector will be initialized to maximum block size given */
-  std::vector<char> block_;
+  std::vector<char>* block_;
   /* Defines range [0, filled_) in vector, which will hold the relevant data.
    * Actual size of data that block contains. */
   boost::int64_t filled_;

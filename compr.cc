@@ -2,14 +2,43 @@
 #include <string>
 #include <iterator>
 
+#include <boost/cstdint.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include "preprocessor.h"
+#include "stream.h"
 #include "globaldefs.h"
 
 
+void compress(const std::string& input_name, const std::string& output_name,
+              boost::int64_t block_size, char preproc, int verbosity)
+{
+  if (verbosity > 0) {
+    if (input_name != "") std::clog << "Input: " << input_name << std::endl;
+    else std::clog << "Input: stdin" << std::endl;
+    if (output_name != "") std::clog << "Output: " << output_name << std::endl;
+    else std::clog << "Output: stdout" << std::endl;
+  }
+  bwtc::InStream *in = new bwtc::InStream(input_name);
+  bwtc::OutStream *out = new bwtc::OutStream(output_name);
+
+  bwtc::PreProcessor* preprocessor =  bwtc::GivePreProcessor(preproc);
+  preprocessor->Connect(in);
+
+  /*
+  while(bwtc::Block* b = ) {
+
+  }
+  */
+  
+  delete preprocessor;
+  delete in;
+  delete out;
+}
+
 /* Notifier function for preprocessing option choice */
-void ValidatePreprocOption(const char c) {
+void ValidatePreprocOption(char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
   class PreprocException : public std::exception {
@@ -23,7 +52,7 @@ void ValidatePreprocOption(const char c) {
 
 
 /* Notifier function for encoding option choice */
-void ValidateEncodingOption(const char c) {
+void ValidateEncodingOption(char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
   class EncodingExc : public std::exception {
@@ -37,7 +66,8 @@ void ValidateEncodingOption(const char c) {
 
 
 int main(int argc, char** argv) {
-  int block_size, verbosity;
+  boost::int64_t block_size;
+  int verbosity;
   char preproc, encoding;
   std::string input_name, output_name;
   bool output_stdout;
@@ -48,7 +78,7 @@ int main(int argc, char** argv) {
     description.add_options()
         ("help,h", "print help message")
         ("stdout,c", "output to standard out")
-        ("block,b", po::value<int>(&block_size)->default_value(1000),
+        ("block,b", po::value<boost::int64_t>(&block_size)->default_value(1000),
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
@@ -99,25 +129,7 @@ int main(int argc, char** argv) {
     std::clog << "Block size = " << block_size <<  "kB" << std::endl;
   }
 
-  if (input_name != "") {
-    // TODO: Create inputfile object
-    if (verbosity > 0) 
-      std::clog << "Input: " << input_name << std::endl;
-  } else {
-    // TODO: Create outputstream for cin
-    if (verbosity > 0) 
-      std::clog << "Input: stdin" << std::endl;
-  }
-      
-  if (output_name != "" && !output_stdout) {
-    // TODO: Create outputfile object
-    if (verbosity > 0)
-      std::clog << "Output: " << output_name << std::endl;
-  } else {
-    // TODO: Create file object for cin
-    if (verbosity > 0)
-      std::clog << "Output: stdout" << std::endl;
-  }
+  compress(input_name, output_name, block_size, preproc, verbosity);
 
   return 0;
 }

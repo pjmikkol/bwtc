@@ -1,13 +1,18 @@
+Burrows-Wheeler Transform based compression program
+
+at the moment: in early development phase
+
 ...
 
 New functionality can be added by replacing some of the trivial implementations
 of the preprocessing, bwt or entropy encoding.
 
-
-NOTE THAT THIS DOCUMENTATION IS INCOMPLETE
 When one wants to add new preprocessing implementation, one needs
 to do to following things:
 
  - compr.cc:
    * update validate_preproc_opt to accept new option for preprocessing
    * update options_description-object in int main()
+
+ - preprocessor.cc
+   * update GivePreProcessor-function to accept new value for parameter

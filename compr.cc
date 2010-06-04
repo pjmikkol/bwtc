@@ -2,7 +2,7 @@
 #include <string>
 #include <iterator>
 
-#include <boost/cstdint.hpp>
+//#include <boost/cstdint.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -12,7 +12,7 @@ namespace po = boost::program_options;
 
 
 void compress(const std::string& input_name, const std::string& output_name,
-              boost::int64_t block_size, char preproc, int verbosity)
+              int64 block_size, char preproc, int verbosity)
 {
   if (verbosity > 0) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
@@ -23,15 +23,15 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::InStream *in = new bwtc::InStream(input_name);
   bwtc::OutStream *out = new bwtc::OutStream(output_name);
 
-  bwtc::PreProcessor* preprocessor =  bwtc::GivePreProcessor(preproc);
+  bwtc::PreProcessor* preprocessor =  bwtc::GivePreProcessor(preproc, block_size);
   preprocessor->Connect(in);
 
-  /*
-  while(bwtc::Block* b = ) {
+#if 0
+  while(bwtc::Block* b = preprocessor->ReadBlock()) {
 
   }
-  */
-  
+#endif
+
   delete preprocessor;
   delete in;
   delete out;
@@ -66,7 +66,7 @@ void ValidateEncodingOption(char c) {
 
 
 int main(int argc, char** argv) {
-  boost::int64_t block_size;
+  int64 block_size;
   int verbosity;
   char preproc, encoding;
   std::string input_name, output_name;
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
     description.add_options()
         ("help,h", "print help message")
         ("stdout,c", "output to standard out")
-        ("block,b", po::value<boost::int64_t>(&block_size)->default_value(1000),
+        ("block,b", po::value<int64>(&block_size)->default_value(1000),
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")

@@ -3,8 +3,9 @@
 #include <boost/cstdint.hpp>
 
 #include "block.h"
+#include "globaldefs.h"
 
 namespace bwtc {
 
-Block::Block(boost::int64_t max_block_size) :
+Block::Block(int64 max_block_size) :
     block_(NULL), filled_(0) {}

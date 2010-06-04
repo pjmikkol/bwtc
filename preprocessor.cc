@@ -3,18 +3,18 @@
 
 namespace bwtc {
 
-PreProcessor* GivePreProcessor(char choice) {
+PreProcessor* GivePreProcessor(char choice, int64 block_size) {
   /* Expand this to conform for different PreProcessing algorithms */
   switch (choice) {
     case 'n':
     default:
-      return new PreProcessor();
+      return new PreProcessor(block_size);
   }
 }
 
 
-PreProcessor::PreProcessor() :
-    source_(NULL) { }
+PreProcessor::PreProcessor(int64 block_size) :
+    source_(NULL), block_size_(block_size) { }
 
 PreProcessor::~PreProcessor() {}
 

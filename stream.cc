@@ -53,6 +53,7 @@ InStream::InStream(std::string file_name) :
 }
 
 
+
 InStream::~InStream() {
   if (infile_) infile_->close();
   delete infile_;

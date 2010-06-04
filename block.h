@@ -7,13 +7,15 @@
 #define BWTC_BLOCK_H_
 
 #include <vector>
-#include <boost/cstdint.hpp>
+
+#include "globaldefs.h"
 
 namespace bwtc {
 
+// TODO: If Block isn't going to be more complex then model it as a struct
 class Block {
  public:
-  Block(int64 max_block_size);
+  Block(std::vector<char>* block);
   ~Block();
 
   /* Iterators are meant for reading and writing of a block.*/
@@ -28,6 +30,9 @@ class Block {
   /* Defines range [0, filled_) in vector, which will hold the relevant data.
    * Actual size of data that block contains. */
   int64 filled_;
+
+  Block& operator=(const Block& b);
+  Block(const Block&);
   
 };
 

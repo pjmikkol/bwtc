@@ -1,3 +1,5 @@
+#include "block.h"
+#include "globaldefs.h"
 #include "preprocessor.h"
 #include "stream.h"
 
@@ -12,7 +14,6 @@ PreProcessor* GivePreProcessor(char choice, int64 block_size) {
   }
 }
 
-
 PreProcessor::PreProcessor(int64 block_size) :
     source_(NULL), block_size_(block_size) { }
 
@@ -22,5 +23,9 @@ void PreProcessor::Connect(InStream* source) {
   source_ = source;
 }
 
+Block* PreProcessor::ReadBlock() {
+  std::vector<char>* block = new std::vector<char>(block_size_);
+  
+}
 
 } //namespace bwtc

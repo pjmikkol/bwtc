@@ -3,9 +3,13 @@
 #include <boost/cstdint.hpp>
 
 #include "block.h"
-#include "globaldefs.h"
+//#include "globaldefs.h"
+
+#include <vector>
 
 namespace bwtc {
 
-Block::Block(int64 max_block_size) :
-    block_(NULL), filled_(0) {}
+Block::Block(std::vector<char>* block) :
+    block_(block), filled_(0) {}
+
+} //namespace bwtc

@@ -19,6 +19,7 @@ class OutStream {
   /* Writes chars in range [begin, end) to stream */
   void WriteBlock(std::vector<char>::const_iterator begin,
                   std::vector<char>::const_iterator end);
+  void Flush();
 
  private:
   std::string name_;
@@ -37,6 +38,10 @@ class InStream {
  public:
   explicit InStream(std::string file_name);
   ~InStream();
+  /* Copies block from stream to given char array.
+   * Returns the number of read chars. */
+  std::streamsize ReadBlock(std::vector<char>::iterator,
+                            std::streamsize max_block_size);
 
  private:
   std::string name_;

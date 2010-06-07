@@ -9,7 +9,7 @@
 
 namespace bwtc {
 
-Block::Block(std::vector<char>* block) :
-    block_(block), filled_(0) {}
+Block::Block(std::vector<char>* block, std::vector<char>::iterator filled) :
+    block_(block), filled_(filled) {}
 
 } //namespace bwtc

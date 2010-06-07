@@ -28,10 +28,12 @@ OutStream::~OutStream() {
   if (outfile_) {
     outfile_->close();
     delete outfile_;
-  } else 
-    delete to_;
+  }
 }
 
+void OutStream::Flush() {
+  to_->flush();
+}
 
 //inline void OutStream::WriteBits(char bits, int amount_of_bits) {
   // if buffer_ is full WriteBlock(buffer_.begin(), buffer_.end())
@@ -53,18 +55,18 @@ InStream::InStream(std::string file_name) :
     from_ = &std::cin;
   assert(from_);
 }
-/*
-std::istream& InStream::GetStream
-  return from_;
-  }*/
 
 InStream::~InStream() {
   if (infile_) {
     infile_->close();
     delete infile_;
-  } else
-    delete from_;
+  }
 }
 
+std::streamsize InStream::ReadBlock(std::vector<char>::iterator to,
+                                    std::streamsize max_block_size) {
+  from_->read(&*to, max_block_size);
+  return from_->gcount();
+}
 
 } //namespace bwtc

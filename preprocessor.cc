@@ -27,9 +27,13 @@ void PreProcessor::Connect(InStream* source) {
 
 Block* PreProcessor::ReadBlock() {
   std::vector<char>* block = new std::vector<char>(block_size_);
-  //  std::istream *in = **source_;
-  
-  return new Block(block);
+  /* TODO:
+   * streamsize type has as many bits as long. What if user is on 32-bit
+   * platform and wants to use too large blocks (amount of bits needed to
+   * represent block size is more than 32)?? */
+  std::streamsize read = source_->ReadBlock(
+      block->begin(), static_cast<std::streamsize>(block_size_) );
+  return new Block(block, block->begin() + read);
 }
 
 } //namespace bwtc

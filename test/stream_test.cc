@@ -17,6 +17,7 @@ void TestFileSize(const std::string& fname, unsigned characters);
 
 const std::string fname("temptest.txt");
 
+/*********** begin: BlockFileWriteTest ***********/
 void WriteToFile(const std::string& fname, unsigned int characters) {
   bwtc::OutStream f(fname);
   std::vector<char> data(characters,'a');
@@ -36,6 +37,8 @@ void BlockFileWriteTest() {
     TestFileSize(fname, characters);
   }
 }
+/*********** end: BlockFileWriteTest ***********/
+
 
 void WriteToStream() {
   bwtc::OutStream f("");
@@ -50,6 +53,27 @@ void EmptyWrite() {
   f.WriteBlock(data.begin(), data.end());  
 }
 
+void WriteAndRead(long fsize, long bsize) {  
+  bwtc::OutStream o(fname);
+  std::vector<char> data(fsize, 'b');
+  o.WriteBlock(data.begin(), data.end());
+  o.Flush();
+  bwtc::InStream f(fname);
+  std::vector<char> block(bsize);
+  long total = 0;
+  while (std::streamsize read = f.ReadBlock(&block[0], 1000)) total += read;
+  assert(total == fsize);
+}
+
+void ReadFromFile() {
+  for(int i = 0; i < 10; ++i) {
+    for(int j = 1; j <= 10; ++j) {
+      /* Numbers here are "random" */
+      WriteAndRead(i*9677L, j*j*3244L);
+    }
+  }
+}
+
 } //namespace tests
 
 
@@ -58,6 +82,8 @@ int main() {
   tests::WriteToStream();
   tests::EmptyWrite();
   std::cout << "OutStream passed all tests.\n";
+  tests::ReadFromFile();
+  std::cout << "InStream passed all tests.\n";
   return 0;
 }
 

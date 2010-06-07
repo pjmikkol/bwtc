@@ -1,5 +1,5 @@
 CC = g++
-FLAGS = -pedantic -Wextra -Wall -Weffc++
+FLAGS = -pedantic -Wextra -Wall -Weffc++ -g
 
 all: compr uncompr
 

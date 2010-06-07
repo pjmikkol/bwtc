@@ -19,10 +19,12 @@ PreProcessor* GivePreProcessor(char choice, int64 block_size) {
 PreProcessor::PreProcessor(int64 block_size) :
     source_(NULL), block_size_(block_size) { }
 
-PreProcessor::~PreProcessor() {}
+PreProcessor::~PreProcessor() {
+  delete source_;
+}
 
-void PreProcessor::Connect(InStream* source) {
-  source_ = source;
+void PreProcessor::Connect(std::string source_name) {
+  source_ = new InStream(source_name);
 }
 
 Block* PreProcessor::ReadBlock() {
@@ -33,7 +35,9 @@ Block* PreProcessor::ReadBlock() {
    * represent block size is more than 32)?? */
   std::streamsize read = source_->ReadBlock(
       block->begin(), static_cast<std::streamsize>(block_size_) );
-  return new Block(block, block->begin() + read);
+  if (read > 0) return new Block(block, block->begin() + read);
+  delete block;
+  return NULL;
 }
 
 } //namespace bwtc

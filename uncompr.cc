@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
          "target file")
         ;
 
-    /* Allow input files given in user friendly form (without "--input-file") */
+    /* Allow input files given in user friendly form (without "--*put-file") */
     po::positional_options_description pos;
     pos.add("input-file", 1);
     pos.add("output-file",1);

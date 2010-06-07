@@ -20,11 +20,10 @@ void compress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::InStream *in = new bwtc::InStream(input_name);
   bwtc::OutStream *out = new bwtc::OutStream(output_name);
 
   bwtc::PreProcessor* preprocessor =  bwtc::GivePreProcessor(preproc, block_size);
-  preprocessor->Connect(in);
+  preprocessor->Connect(input_name);
 
 #if 0
   while(bwtc::Block* b = preprocessor->ReadBlock()) {
@@ -33,7 +32,6 @@ void compress(const std::string& input_name, const std::string& output_name,
 #endif
 
   delete preprocessor;
-  delete in;
   delete out;
 }
 

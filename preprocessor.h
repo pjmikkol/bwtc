@@ -1,6 +1,8 @@
 #ifndef BWTC_PREPROCESSOR_H_
 #define BWTC_PREPROCESSOR_H_
 
+#include <string>
+
 #include "block.h"
 #include "globaldefs.h"
 #include "stream.h"
@@ -12,7 +14,7 @@ class PreProcessor {
  public:
   PreProcessor(int64 block_size);
   ~PreProcessor();
-  void Connect(InStream* source);
+  void Connect(std::string source_name);
   Block* ReadBlock();
 
  private:

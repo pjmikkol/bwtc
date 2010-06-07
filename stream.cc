@@ -35,7 +35,7 @@ void OutStream::Flush() {
   to_->flush();
 }
 
-//inline void OutStream::WriteBits(char bits, int amount_of_bits) {
+//void OutStream::WriteBits(char bits, int amount_of_bits) {
   // if buffer_ is full WriteBlock(buffer_.begin(), buffer_.end())
 //}
 
@@ -65,6 +65,7 @@ InStream::~InStream() {
 
 std::streamsize InStream::ReadBlock(std::vector<char>::iterator to,
                                     std::streamsize max_block_size) {
+  if(! *from_) return 0;
   from_->read(&*to, max_block_size);
   return from_->gcount();
 }

@@ -14,8 +14,7 @@ stream.o : stream.h stream.cc
 	$(CC) $(FLAGS) stream.cc -c -o bin/stream.o
 
 preprocessor.o : preprocessor.h preprocessor.cc stream.h block.o
-	$(CC) $(FLAGS) preprocessor.cc bin/stream.o bin/block.o \
-	-c -o bin/preprocessor.o
+	$(CC) $(FLAGS) preprocessor.cc -c -o bin/preprocessor.o
 
 block.o : block.h block.cc
 	$(CC) $(FLAGS) block.cc -c -o bin/block.o

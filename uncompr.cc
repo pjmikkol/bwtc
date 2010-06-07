@@ -6,17 +6,29 @@ namespace po = boost::program_options;
 
 #include "globaldefs.h"
 
+void decompress(const std::string& input_name, const std::string& output_name,
+                int verbosity) {
+  if (verbosity > 0) {
+    if (input_name != "") std::clog << "Input: " << input_name << std::endl;
+    else std::clog << "Input: stdin" << std::endl;
+    if (output_name != "") std::clog << "Output: " << output_name << std::endl;
+    else std::clog << "Output: stdout" << std::endl;
+  }
+
+
+}
 
 int main(int argc, char** argv) {
   int verbosity;
   std::string input_name, output_name;
-  bool output_stdout;
+  bool stdout, stdin;
 
   try {
     po::options_description description(
         "usage: "DECOMPRESSOR" [options] inputfile outputfile\n\nOptions");
     description.add_options()
         ("help,h", "print help message")
+        ("stdin,i", "input from standard in")
         ("stdout,c", "output to standard out")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
@@ -41,7 +53,8 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    output_stdout = varmap.count("stdout") != 0;
+    stdout = varmap.count("stdout") != 0;
+    stdin  = varmap.count("stdin") != 0;
   } /* try-block */
 
   catch(std::exception& e) {
@@ -53,25 +66,10 @@ int main(int argc, char** argv) {
     return 1;    
   }
 
-  if (input_name != "") {
-    // TODO: Create inputfile object
-    if (verbosity > 0) 
-      std::clog << "Input: " << input_name << std::endl;
-  } else {
-    // TODO: Create outputstream for cin
-    if (verbosity > 0) 
-      std::clog << "Input: stdin" << std::endl;
-  }
-      
-  if (output_name != "" && !output_stdout) {
-    // TODO: Create outputfile object
-    if (verbosity > 0)
-      std::clog << "Output: " << output_name << std::endl;
-  } else {
-    // TODO: Create file object for cin
-    if (verbosity > 0)
-      std::clog << "Output: stdout" << std::endl;
-  }
+  if (stdout) output_name = "";
+  if (stdin)  input_name = "";
+
+  decompress(input_name, output_name, verbosity);
   
   return 0;
 }

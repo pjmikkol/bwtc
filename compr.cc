@@ -70,15 +70,16 @@ int main(int argc, char** argv) {
   int verbosity;
   char preproc, encoding;
   std::string input_name, output_name;
-  bool output_stdout;
+  bool stdout, stdin;
 
   try {
     po::options_description description(
         "usage: "COMPRESSOR" [options] inputfile outputfile\n\nOptions");
     description.add_options()
         ("help,h", "print help message")
+        ("stdin,i", "input from standard in")
         ("stdout,c", "output to standard out")
-        ("block,b", po::value<int64>(&block_size)->default_value(1000),
+        ("block,b", po::value<int64>(&block_size)->default_value(10000),
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
@@ -112,7 +113,8 @@ int main(int argc, char** argv) {
       return 0;
     }
 
-    output_stdout = varmap.count("stdout") != 0;
+    stdout = varmap.count("stdout") != 0;
+    stdin  = varmap.count("stdin") != 0;
     // TODO: Check that the block-size is OK
   } /* try-block */
 
@@ -128,6 +130,9 @@ int main(int argc, char** argv) {
   if (verbosity > 0) {
     std::clog << "Block size = " << block_size <<  "kB" << std::endl;
   }
+
+  if (stdout) output_name = "";
+  if (stdin)  input_name = "";
 
   compress(input_name, output_name, block_size, preproc, verbosity);
 

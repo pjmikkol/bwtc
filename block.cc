@@ -9,11 +9,9 @@
 
 namespace bwtc {
 
-Block::Block(std::vector<char>* block, std::vector<char>::iterator filled) :
-    block_(block), filled_(filled) {}
+MainBlock::  MainBlock(byte* block, int64* stats, int64 filled) : 
+    block_(block), frequencies_(stats), filled_(filled) {}
 
-Block::~Block() {
-  delete block_;
-}
+MainBlock::~MainBlock() {}
 
 } //namespace bwtc

@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "globaldefs.h"
+
 namespace bwtc {
 
 class OutStream {
@@ -40,8 +42,7 @@ class InStream {
   ~InStream();
   /* Copies block from stream to given char array.
    * Returns the number of read chars. */
-  std::streamsize ReadBlock(std::vector<char>::iterator,
-                            std::streamsize max_block_size);
+  std::streamsize ReadBlock(byte* to, std::streamsize max_block_size);
 
  private:
   std::string name_;

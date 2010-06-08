@@ -6,10 +6,12 @@ tests : streamtest preproctest
 	./preproctest
 
 streamtest : stream_test.cc testdefs.h
-	$(CC) $(FLAGS) ../bin/stream.o stream_test.cc -lboost_filesystem-mt -o streamtest
+	$(CC) $(FLAGS) ../bin/stream.o stream_test.cc -lboost_filesystem-mt \
+	-o streamtest
 
 preproctest : preproc_test.cc testdefs.h
-	$(CC) $(FLAGS) ../bin/block.o ../bin/preprocessor.o ../bin/stream.o preproc_test.cc -o preproctest
+	$(CC) $(FLAGS) ../bin/block.o ../bin/preprocessor.o ../bin/stream.o \
+	../bin/block_manager.o preproc_test.cc -o preproctest
 
 clean :
 	rm streamtest

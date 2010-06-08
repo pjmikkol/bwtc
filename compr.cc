@@ -2,10 +2,10 @@
 #include <string>
 #include <iterator>
 
-//#include <boost/cstdint.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include "block_manager.h"
 #include "preprocessor.h"
 #include "stream.h"
 #include "globaldefs.h"
@@ -22,13 +22,24 @@ void compress(const std::string& input_name, const std::string& output_name,
   }
   bwtc::OutStream *out = new bwtc::OutStream(output_name);
 
-  bwtc::PreProcessor* preprocessor =  bwtc::GivePreProcessor(preproc, block_size);
+  bwtc::PreProcessor* preprocessor = bwtc::GivePreProcessor(preproc,block_size);
   preprocessor->Connect(input_name);
 
 #if 0
-  while(bwtc::Block* b = preprocessor->ReadBlock()) {
+  BlockManager block_manager(block_size);
+  preprocessor->AddBlockManager(&block_manager);
 
+
+  unsigned blocks = 0;
+
+  //  while(std::streamsize read = preprocessor->ReadBlock(buffer)) {
+  while(preprocessor->ReadBlock(buffer)) {
+    blocks++;
+    /* while (Block* b = DoTransform(buffer)) 
+       encodeBlock(b)
+     */
   }
+  delete [] buffer;
 #endif
 
   delete preprocessor;
@@ -132,7 +143,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size, preproc, verbosity);
+  compress(input_name, output_name, block_size*1000, preproc, verbosity);
 
   return 0;
 }

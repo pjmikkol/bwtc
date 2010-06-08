@@ -6,6 +6,7 @@
 #include <string>
 #include <algorithm>
 
+#include "globaldefs.h"
 #include "stream.h"
 
 namespace bwtc {
@@ -63,10 +64,9 @@ InStream::~InStream() {
   }
 }
 
-std::streamsize InStream::ReadBlock(std::vector<char>::iterator to,
-                                    std::streamsize max_block_size) {
-  if(! *from_) return 0;
-  from_->read(&*to, max_block_size);
+std::streamsize InStream::ReadBlock(byte* to, std::streamsize max_block_size) {
+  if(! *from_) return 0; /* stream has reached EOF */
+  from_->read(reinterpret_cast<char*>(to), max_block_size);
   return from_->gcount();
 }
 

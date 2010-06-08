@@ -3,6 +3,7 @@
 
 #include <boost/cstdint.hpp>
 typedef boost::int64_t int64;
+typedef unsigned char byte;
 
 // Name of the compressor program
 #define COMPRESSOR "compr"

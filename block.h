@@ -1,6 +1,14 @@
-/* 
- *
- */
+/********************************************************************
+ * MainBlock models one block of a data which can have multiple     *
+ * context blocks.                                                  *
+ *                                                                  *
+ * On a compressor pipeline the preprocessor produces MainBlocks    *
+ * which are then transformed into cotext blocks by BWT.            *
+ *                                                                  *
+ * TODO: Do we even need to use MainBlock in decompressing pipeline *
+ *       or are byte arrays enough                                  *
+ * On a decompressing pipeline ....                                 *
+ ********************************************************************/
 
 
 #ifndef BWTC_BLOCK_H_
@@ -12,30 +20,33 @@
 
 namespace bwtc {
 
-// TODO: If Block isn't going to be more complex then model it as a struct
-class Block {
+/*******************************************************************
+ * MainBlock has two  arrays: block_ and frequencies_.             *
+ * Both are allocated and deallocated by the client. BlockManager- *
+ * class exists for this task.                                     *
+ *                                                                 *
+ * block_       contains the actual data in MainBlock.             *
+ * frequencies_ contains frequencies for each byte                 *
+ *******************************************************************/
+class MainBlock {
  public:
-  Block(std::vector<char>* block, std::vector<char>::iterator filled);
-  ~Block();
-
-  /* Iterators are meant for reading and writing of a block.*/
-  std::vector<char>::iterator begin() {
-    return block_->begin();
-  }
-  /* end() returns iterator one past the valid range to a vector.
+  MainBlock(byte* block, int64* stats, int64 filled);
+  ~MainBlock();
+  int64 Size() { return filled_; }
+  /* begin and end are meant for reading and writing of a block.*/
+  byte* begin() { return &block_[0]; }
+  /* end() returns pointer one past the valid range of its array.
    * Uses filled_ for deducing the value.*/
-  std::vector<char>::iterator end() {
-    return block_->end();
-  }
+  byte* end() { return &block_[filled_]; }
 
  private:
-  /* Vector will be initialized to maximum block size given */
-  std::vector<char>* block_;
-  /* Defines range [0, filled_) in vector, which will hold the relevant data. */
-  std::vector<char>::iterator filled_;
+  byte* block_;
+  int64* frequencies_;
+  /* Defines range [0, filled_) in array, which will hold the relevant data. */
+  int64 filled_;
 
-  Block& operator=(const Block& b);
-  Block(const Block&);
+  MainBlock& operator=(const MainBlock& b);
+  MainBlock(const MainBlock&);
   
 };
 

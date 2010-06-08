@@ -7,6 +7,7 @@
 #include <boost/filesystem/operations.hpp>
 namespace fs = boost::filesystem;
 
+#include "../globaldefs.h"
 #include "../stream.h"
 #include "testdefs.h"
 
@@ -59,9 +60,9 @@ void WriteAndRead(long fsize, long bsize) {
   o.WriteBlock(data.begin(), data.end());
   o.Flush();
   bwtc::InStream f(test_fname);
-  std::vector<char> block(bsize);
+  std::vector<byte> block(bsize);
   long total = 0;
-  while (std::streamsize read = f.ReadBlock(block.begin(), 1000)) total += read;
+  while (std::streamsize read = f.ReadBlock(&block[0], 1000)) total += read;
   assert(total == fsize);
 }
 

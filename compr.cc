@@ -5,6 +5,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include "block.h"
 #include "block_manager.h"
 #include "preprocessor.h"
 #include "stream.h"
@@ -14,7 +15,7 @@ namespace po = boost::program_options;
 void compress(const std::string& input_name, const std::string& output_name,
               int64 block_size, char preproc, int verbosity)
 {
-  if (verbosity > 0) {
+  if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
     else std::clog << "Input: stdin" << std::endl;
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
@@ -25,22 +26,24 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::PreProcessor* preprocessor = bwtc::GivePreProcessor(preproc,block_size);
   preprocessor->Connect(input_name);
 
-#if 0
-  BlockManager block_manager(block_size);
+  bwtc::BlockManager block_manager(block_size);
   preprocessor->AddBlockManager(&block_manager);
 
-
   unsigned blocks = 0;
+  int64 last_s = 0;
 
-  //  while(std::streamsize read = preprocessor->ReadBlock(buffer)) {
-  while(preprocessor->ReadBlock(buffer)) {
+  while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
     blocks++;
     /* while (Block* b = DoTransform(buffer)) 
        encodeBlock(b)
      */
+    last_s = block->Size();
   }
-  delete [] buffer;
-#endif
+
+  if (verbosity > 0) {
+    std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
+    std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
+  }
 
   delete preprocessor;
   delete out;
@@ -88,7 +91,7 @@ int main(int argc, char** argv) {
         ("help,h", "print help message")
         ("stdin,i", "input from standard in")
         ("stdout,c", "output to standard out")
-        ("block,b", po::value<int64>(&block_size)->default_value(10000),
+        ("block,b", po::value<int64>(&block_size)->default_value(1000),
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
@@ -143,7 +146,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1000, preproc, verbosity);
+  compress(input_name, output_name, block_size*1024, preproc, verbosity);
 
   return 0;
 }

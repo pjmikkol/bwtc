@@ -4,7 +4,7 @@ FLAGS = -pedantic -Wextra -Wall -Weffc++ -g
 all: compr uncompr
 
 compr : compr.cc bin globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
-bin/block_manager.o
+	bin/block_manager.o
 	$(CC) $(FLAGS) -lboost_program_options-mt compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o -o bin/compr
 

@@ -32,12 +32,12 @@ class MainBlock {
  public:
   MainBlock(byte* block, int64* stats, int64 filled);
   ~MainBlock();
-  int64 Size() { return filled_; }
+  inline int64 Size() { return filled_; }
   /* begin and end are meant for reading and writing of a block.*/
-  byte* begin() { return &block_[0]; }
+  inline byte* begin()  { return &block_[0]; }
   /* end() returns pointer one past the valid range of its array.
    * Uses filled_ for deducing the value.*/
-  byte* end() { return &block_[filled_]; }
+  inline byte* end() { return &block_[filled_]; }
 
  private:
   byte* block_;

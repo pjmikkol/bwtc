@@ -23,6 +23,8 @@ bin/block.o : block.h block.cc
 bin/block_manager.o : block_manager.cc block_manager.h block.h
 	$(CC) $(FLAGS) block_manager.cc -c -o bin/block_manager.o
 
+bin/rl_compress.o : rl_compress.cc rl_compress.h globaldefs.h
+	$(CC) $(FLAGS) rl_compress.cc -c -o bin/rl_compress.o 
 bin :
 	mkdir bin
 

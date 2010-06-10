@@ -17,7 +17,7 @@ class OutStream {
   explicit OutStream(std::string file_name);
   ~OutStream();
   /* Writes rightmost amount_of_bits of char to stream */
-  void WriteBits(char bits, int amount_of_bits);
+  void WriteByte(byte b);
   /* Writes chars in range [begin, end) to stream */
   void WriteBlock(std::vector<char>::const_iterator begin,
                   std::vector<char>::const_iterator end);
@@ -43,6 +43,7 @@ class InStream {
   /* Copies block from stream to given char array.
    * Returns the number of read chars. */
   std::streamsize ReadBlock(byte* to, std::streamsize max_block_size);
+  byte ReadByte() { return from_->get(); }
 
  private:
   std::string name_;

@@ -11,9 +11,14 @@ namespace po = boost::program_options;
 #include "stream.h"
 #include "globaldefs.h"
 
+namespace bwtc {
+int verbosity;
+}
+
+using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
-              int64 block_size, char preproc, int verbosity)
+              int64 block_size, char preproc)
 {
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
@@ -79,7 +84,6 @@ void ValidateEncodingOption(char c) {
 
 int main(int argc, char** argv) {
   int64 block_size;
-  int verbosity;
   char preproc, encoding;
   std::string input_name, output_name;
   bool stdout, stdin;
@@ -146,7 +150,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preproc, verbosity);
+  compress(input_name, output_name, block_size*1024, preproc);
 
   return 0;
 }

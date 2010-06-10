@@ -11,7 +11,6 @@
 
 namespace bwtc {
 
-
 OutStream::OutStream(std::string file_name) :
     name_(file_name), to_(NULL), outfile_(NULL),
     buffer_(kDefaultBufferSize)
@@ -24,7 +23,6 @@ OutStream::OutStream(std::string file_name) :
   assert(to_);
 }
 
-
 OutStream::~OutStream() {
   if (outfile_) {
     outfile_->close();
@@ -36,9 +34,9 @@ void OutStream::Flush() {
   to_->flush();
 }
 
-//void OutStream::WriteBits(char bits, int amount_of_bits) {
-  // if buffer_ is full WriteBlock(buffer_.begin(), buffer_.end())
-//}
+void OutStream::WriteByte(byte b) {
+  to_->put(b);
+}
 
 void OutStream::WriteBlock(std::vector<char>::const_iterator begin,
                            std::vector<char>::const_iterator end) {

@@ -11,8 +11,19 @@ When one wants to add new preprocessing implementation, one needs
 to do to following things:
 
  - compr.cc:
-   * update validate_preproc_opt to accept new option for preprocessing
-   * update options_description-object in int main()
+   * update ValidatePreprocOption()-function to accept new option 
+   * update options_description-object in main()
 
  - preprocessor.cc
    * update GivePreProcessor-function to accept new value for parameter
+
+For adding new probability model used for arithmetic coding one needs
+to add new implementation which uses ProbabilityModel in base_prob_model.h
+as a base class. Then next files need to be modified:
+
+ - compr.cc:
+   * update options_description-object in main()-function
+   * update ValidateEncodingOption()-function to accept new option
+
+ - coders.cc:
+   * update GiveProbabilityModel()-function to give new model

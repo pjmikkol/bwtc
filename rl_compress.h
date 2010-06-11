@@ -22,7 +22,7 @@
 
 
 #include "stream.h"
-#include "globaldefs.h"
+#include "globaldefs.h" /* Important definitions */
 
 namespace dcsbwt {
 
@@ -30,9 +30,7 @@ using bwtc::verbosity;
 
 /* Probabilities are encoded as integers in [0,kProbabilityScale]
  * with p representing the probability p/kProbabilityScale. */
-typedef uint16 Probability;
-static const int kLogProbabilityScale = 12;
-static const Probability kProbabilityScale = (1 << kLogProbabilityScale);
+
 
 /*********************************************************************
  * Entropy compressor for a sequence of bits.                        *
@@ -47,7 +45,6 @@ class BitEncoder {
   BitEncoder(const std::string& destination);
   ~BitEncoder();
 
-  // Output is written to an OutStreamBuffer.
   void Connect(bwtc::OutStream* out) { output_ = out; }
   //TODO: Figure out what Disconnect should do if needed
   //bwtc::OutStream* Disconnect() { return output_.Disconnect(); }
@@ -78,8 +75,8 @@ class BitEncoder {
  *********************************************************************/
 class BitDecoder {
  public:
-  BitDecoder() : low_(0), high_(0xFFFFFFFF), next_(0), input_(NULL) {}
-  ~BitDecoder() { delete input_; }
+  BitDecoder(const std::string& source);
+  ~BitDecoder();
 
   /* The compressed data is read from an InStreamBuffer. */
   void Connect(bwtc::InStream* in) { input_ = in; }

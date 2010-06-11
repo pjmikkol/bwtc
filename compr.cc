@@ -7,7 +7,7 @@ namespace po = boost::program_options;
 
 #include "block.h"
 #include "block_manager.h"
-#include "encoder.h"
+#include "coders.h"
 #include "preprocessor.h"
 #include "stream.h"
 #include "globaldefs.h"
@@ -29,7 +29,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::BlockManager block_manager(block_size);
   preprocessor->AddBlockManager(&block_manager);
 
-  bwtc::Encoder* encoder = bwtc::GiveEncoder(encoding, output_name);
+  bwtc::Encoder encoder(output_name, encoding);
 
   unsigned blocks = 0;
   int64 last_s = 0;
@@ -49,7 +49,6 @@ void compress(const std::string& input_name, const std::string& output_name,
   }
 
   delete preprocessor;
-  delete encoder;
 }
 
 /* Notifier function for preprocessing option choice */

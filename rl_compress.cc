@@ -7,7 +7,7 @@
 
 #include "rl_compress.h"
 #include "stream.h"
-#include "globaldefs.h"
+#include "globaldefs.h" /* Important definitions */
 
 namespace dcsbwt {
 
@@ -77,6 +77,13 @@ void BitEncoder::Encode(bool bit, Probability probability_of_one) {
   }
   assert(low_ < high_);
 }
+
+BitDecoder::BitDecoder(const std::string& source) :
+    low_(0), high_(0xFFFFFFFF), next_(0), input_(NULL) {
+  input_ = new bwtc::InStream(source);
+}
+
+BitDecoder::~BitDecoder() { delete input_; }
 
 void BitEncoder::Finish() {
   /* Emit 4 bytes representing any value in [low_,high_]

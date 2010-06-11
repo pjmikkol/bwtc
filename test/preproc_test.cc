@@ -38,11 +38,12 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   delete prepr;
   assert(total == fsize);
   assert( blocks == (fsize / block_size) + 1 ||
+          fsize % blocks == 0 ||
          (fsize == 0 && blocks == 0) );
 }
 
 void TestDefaultPreProcBlockReads() {
-  TestDefaultPreProcBlockRead(0, 1000);
+  TestDefaultPreProcBlockRead(1000, 1000);
   srand(time(NULL));
   for (int i = 0; i < 100; ++i) {
     TestDefaultPreProcBlockRead(rand() % 100000, rand() % 100000);

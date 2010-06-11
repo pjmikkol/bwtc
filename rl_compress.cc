@@ -78,13 +78,6 @@ void BitEncoder::Encode(bool bit, Probability probability_of_one) {
   assert(low_ < high_);
 }
 
-BitDecoder::BitDecoder(const std::string& source) :
-    low_(0), high_(0xFFFFFFFF), next_(0), input_(NULL) {
-  input_ = new bwtc::InStream(source);
-}
-
-BitDecoder::~BitDecoder() { delete input_; }
-
 void BitEncoder::Finish() {
   /* Emit 4 bytes representing any value in [low_,high_]
    * These are needed for BitDecoder lookahead. */
@@ -92,10 +85,18 @@ void BitEncoder::Finish() {
   EmitByte(255);
   EmitByte(255);
   EmitByte(255);
+  output_->Flush();
   /* Prepare to encode another sequence. */
   low_ = 0;
   high_ = 0xFFFFFFFF;
 }
+
+BitDecoder::BitDecoder(const std::string& source) :
+    low_(0), high_(0xFFFFFFFF), next_(0), input_(NULL) {
+  input_ = new bwtc::InStream(source);
+}
+
+BitDecoder::~BitDecoder() { delete input_; }
 
 void BitDecoder::Start() {
   low_ = 0;

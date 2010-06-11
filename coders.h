@@ -1,3 +1,6 @@
+#ifndef BWTC_CODERS_H_
+#define BWTC_CODERS_H_
+
 #include <string>
 
 #include "globaldefs.h"
@@ -29,7 +32,8 @@ class Encoder {
   Encoder(const std::string& destination, char prob_model);
   ~Encoder();
   void EncodeByte(byte b);
-  //void EncodeBlock( TYPE? const byte*, vector<byte> OR SomeBlock);
+  void EncodeBlock(const byte* begin, const byte* end);
+  void Finish() { destination_->Finish(); }
 
  private:
   dcsbwt::BitEncoder* destination_;
@@ -39,7 +43,23 @@ class Encoder {
   Encoder& operator=(const Encoder&);
 };
 
+class Decoder {
+ public:
+  Decoder(const std::string& source, char prob_model);
+  ~Decoder();
+  byte DecodeByte();
+  void Start() { source_->Start(); }
+
+ private:
+  dcsbwt::BitDecoder* source_;
+  ProbabilityModel* pm_;
+
+  Decoder(const Decoder&);
+  Decoder& operator=(const Decoder&);
+};
+
 ProbabilityModel* GiveProbabilityModel(char choice);
-
-
+  
 } // namespace bwtc
+
+#endif

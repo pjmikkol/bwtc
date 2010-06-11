@@ -1,10 +1,8 @@
-/* Original version of this file can be found here:
- * http://code.google.com/p/dcs-bwt-compressor/ */
+/* Original implementations for BitEncoder and Decoder can be found here: *
+ * http://code.google.com/p/dcs-bwt-compressor/                           */
 
 #include <cassert>
 
-#include <iomanip>
-#include <iostream>
 #include <string>
 
 #include "rl_compress.h"
@@ -54,6 +52,13 @@ uint32 Split(uint32 low, uint32 high, uint32 probability) {
   return split;
 }
 }  // namespace
+
+BitEncoder::BitEncoder(const std::string& destination)
+    : low_(0), high_(0xFFFFFFFF), output_(NULL) {
+  output_ = new bwtc::OutStream(destination);
+}
+
+BitEncoder::~BitEncoder() { delete output_; }
 
 void BitEncoder::Encode(bool bit, Probability probability_of_one) {
   if (verbosity > 7) {
@@ -115,7 +120,7 @@ bool BitDecoder::Decode(Probability probability_of_one) {
   return bit;
 }
 
-
+#if 0
 
 //////////////////////////////////////////////////////////////////
 // BitPredictor
@@ -816,5 +821,7 @@ void RunLengthCompressor::StatisticsCollector::RecordRun(
     ++num_long_runs_by_log_length_[log_run_length - kLogLongRunLength];
   }
 }
+
+#endif
 
 }  // namespace dcsbwt

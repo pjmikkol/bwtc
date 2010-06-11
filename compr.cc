@@ -7,18 +7,16 @@ namespace po = boost::program_options;
 
 #include "block.h"
 #include "block_manager.h"
+#include "encoder.h"
 #include "preprocessor.h"
 #include "stream.h"
 #include "globaldefs.h"
 
-namespace bwtc {
-int verbosity;
-}
-
+int bwtc::verbosity;
 using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
-              int64 block_size, char preproc)
+              int64 block_size, char preproc, char encoding)
 {
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
@@ -26,23 +24,23 @@ void compress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::OutStream *out = new bwtc::OutStream(output_name);
-
-  bwtc::PreProcessor* preprocessor = bwtc::GivePreProcessor(preproc,block_size);
-  preprocessor->Connect(input_name);
-
+  bwtc::PreProcessor* preprocessor = bwtc::GivePreProcessor(
+      preproc,block_size, input_name);
   bwtc::BlockManager block_manager(block_size);
   preprocessor->AddBlockManager(&block_manager);
+
+  bwtc::Encoder* encoder = bwtc::GiveEncoder(encoding, output_name);
 
   unsigned blocks = 0;
   int64 last_s = 0;
 
   while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
     blocks++;
-    /* while (Block* b = DoTransform(buffer)) 
+    /* while (Block* b = DoTransform()) 
        encodeBlock(b)
      */
     last_s = block->Size();
+    delete block;
   }
 
   if (verbosity > 0) {
@@ -51,7 +49,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   }
 
   delete preprocessor;
-  delete out;
+  delete encoder;
 }
 
 /* Notifier function for preprocessing option choice */
@@ -146,11 +144,12 @@ int main(int argc, char** argv) {
   if (verbosity > 0) {
     std::clog << "Block size = " << block_size <<  "kB" << std::endl;
   }
+  if (block_size <= 0) block_size = 1;
 
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preproc);
+  compress(input_name, output_name, block_size*1024, preproc, encoding);
 
   return 0;
 }

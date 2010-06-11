@@ -23,9 +23,9 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   std::copy(data.begin(), data.end(), std::ostream_iterator<char>(f));
   f.flush(); f.close();
   /* Then the actual test */
-  bwtc::PreProcessor* prepr = bwtc::GivePreProcessor('n', block_size);
+  bwtc::PreProcessor* prepr = bwtc::GivePreProcessor(
+      'n', block_size, test_fname);
   bwtc::BlockManager bm(block_size);
-  prepr->Connect(test_fname);
   prepr->AddBlockManager(&bm);
   
   int blocks = 0;
@@ -33,6 +33,7 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   while (bwtc::MainBlock* b = prepr->ReadBlock()) {
     blocks++;
     total += b->Size();
+    delete b;
   }
   delete prepr;
   assert(total == fsize);

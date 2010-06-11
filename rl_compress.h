@@ -1,5 +1,5 @@
-/* Original version of this file can be found here:
- * http://code.google.com/p/dcs-bwt-compressor/ */
+/* Original implementations for BitEncoder and Decoder can be found here: *
+ * http://code.google.com/p/dcs-bwt-compressor/                           */
 
 /**********************************************************************
  * Byte stream compressor designed for compressing                    *
@@ -18,22 +18,19 @@
 #define DCSBWT_RL_COMPRESS_H__
 
 #include <string>
-#include <vector>
-#include <algorithm>
-#include <iostream>
 #include <cassert>
 
-#include "stream_compressor.h"
+
 #include "stream.h"
 #include "globaldefs.h"
 
 namespace dcsbwt {
 
-extern int verbosity;
+using bwtc::verbosity;
 
 /* Probabilities are encoded as integers in [0,kProbabilityScale]
  * with p representing the probability p/kProbabilityScale. */
-typedef int16 Probability;
+typedef uint16 Probability;
 static const int kLogProbabilityScale = 12;
 static const Probability kProbabilityScale = (1 << kLogProbabilityScale);
 
@@ -47,7 +44,8 @@ static const Probability kProbabilityScale = (1 << kLogProbabilityScale);
  *********************************************************************/
 class BitEncoder {
  public:
-  BitEncoder() : low_(0), high_(0xFFFFFFFF) {}
+  BitEncoder(const std::string& destination);
+  ~BitEncoder();
 
   // Output is written to an OutStreamBuffer.
   void Connect(bwtc::OutStream* out) { output_ = out; }
@@ -71,6 +69,8 @@ class BitEncoder {
   bwtc::OutStream* output_;
 
   void EmitByte(unsigned char byte) { output_->WriteByte(byte); }
+  BitEncoder(const BitEncoder&);
+  BitEncoder& operator=(const BitEncoder&);
 };
 
 /*********************************************************************
@@ -78,7 +78,8 @@ class BitEncoder {
  *********************************************************************/
 class BitDecoder {
  public:
-  BitDecoder() : low_(0), high_(0xFFFFFFFF) {}
+  BitDecoder() : low_(0), high_(0xFFFFFFFF), next_(0), input_(NULL) {}
+  ~BitDecoder() { delete input_; }
 
   /* The compressed data is read from an InStreamBuffer. */
   void Connect(bwtc::InStream* in) { input_ = in; }
@@ -102,9 +103,12 @@ class BitDecoder {
   bwtc::InStream* input_;
 
   byte ReadByte() { return input_->ReadByte(); }
+  BitDecoder(const BitDecoder&);
+  BitDecoder& operator=(const BitDecoder&);
 };
 
 
+#if 0
 
 //////////////////////////////////////////////////////////////////
 // BitPredictor maintains a probability distribution of a bit.
@@ -710,6 +714,8 @@ class RunLengthDecompressor : public StreamDecompressor {
   RunLengthDecompressor(const RunLengthDecompressor&);
   RunLengthDecompressor& operator=(const RunLengthDecompressor&);
 };
+
+#endif
 
 }  // namespace dcsbwt
 

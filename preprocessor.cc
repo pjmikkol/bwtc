@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream> /* for std::streamsize*/
+#include <string>
 
 #include "block_manager.h"
 #include "globaldefs.h"
@@ -10,13 +11,17 @@
 
 namespace bwtc {
 
-PreProcessor* GivePreProcessor(char choice, int64 block_size) {
+PreProcessor* GivePreProcessor(char choice, int64 block_size,
+                               const std::string& input) {
+  PreProcessor* pp;
   /* Expand this to conform for different PreProcessing algorithms */
   switch (choice) {
     case 'n':
     default:
-      return new PreProcessor(block_size);
+      pp = new PreProcessor(block_size);
   }
+  pp->Connect(input);
+  return pp;
 }
 
 PreProcessor::PreProcessor(int64 block_size) :

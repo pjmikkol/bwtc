@@ -4,7 +4,6 @@
 #include <iostream> /* for std::streamsize*/
 #include <string>
 
-//#include "block.h"
 #include "block_manager.h"
 #include "globaldefs.h"
 #include "stream.h"
@@ -33,7 +32,8 @@ class PreProcessor {
 };
 
 /* This function returns chosen preprocessor */ 
-PreProcessor* GivePreProcessor(char choice, int64 block_size);
+PreProcessor* GivePreProcessor(
+    char choice, int64 block_size, const std::string& input);
 
 } // namespace bwtc
 

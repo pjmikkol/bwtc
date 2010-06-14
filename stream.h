@@ -44,7 +44,7 @@ class InStream {
   /* Copies block from stream to given char array.
    * Returns the number of read chars. */
   std::streamsize ReadBlock(byte* to, std::streamsize max_block_size);
-  byte ReadByte() { return from_->get(); }
+  byte ReadByte() { return static_cast<byte>(from_->get()); }
 
  private:
   std::string name_;

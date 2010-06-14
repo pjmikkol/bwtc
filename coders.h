@@ -47,6 +47,8 @@ class Encoder {
   void EncodeRange(const byte* begin, const byte* end);
   void Finish() { destination_->Finish(); }
   std::streampos WriteBlockHeader(uint64* stats);
+  void WritePackedInteger(uint64 packed_integer, int bytes);
+  void FinishBlockHeader();
 
  private:
   OutStream* out_;
@@ -67,6 +69,8 @@ class Decoder {
   char ReadGlobalHeader();
   byte DecodeByte();
   void Start() { source_->Start(); }
+  /* If end symbol is encountered, then the most significant bit is activated */
+  uint64 ReadPackedInteger();
 
  private:
   InStream* in_;

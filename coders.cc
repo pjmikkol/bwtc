@@ -4,7 +4,6 @@
 #include "coders.h"
 #include "globaldefs.h"
 #include "probmodels/base_prob_model.h"
-#include "utils.h"
 
 namespace bwtc {
 
@@ -98,19 +97,32 @@ Encoder::~Encoder() {
   delete pm_;
 }
 
-/*************************************************************************
- *            Encoding and decoding single MainBlock                     *
- *-----------------------------------------------------------------------*
- * Next functions handle encoding and decoding of the main blocks.       *
- * Also block header-format is specified here.                           *
- *************************************************************************/
+/**************************************************************************
+ *            Encoding and decoding single MainBlock                      *
+ *------------------------------------------------------------------------*
+ * Next functions handle encoding and decoding of the main blocks.        *
+ * Also block header-format is specified here.                            *
+ *                                                                        *
+ * Format of the block is following:                                      *
+ *  - Block header (no fixed length)             (1)                      *
+ *  - Compressed block (no fixed length)         (2)                      *
+ *  - Block trailer (48 bits)                    (3)                      *
+ *                                                                        *
+ * Block header format is following:                                      *
+ * - Length of the compressed block + trailer in bytes (48 bits)          *
+ * - List of context block lengths in increasing order so that the stored *
+ *   value is difference of current and previous length (always > 0).     *
+ *   Lengths are compressed with PackInteger-function.                    *
+ * - Ending symbol of the block header (2 bytes = 0x8000) which is        *
+ *   invalid code for packed integer                                      *
+ **************************************************************************/
 
 // TODO: for compressing straight to the stdout we need to use
 //       temporary file or huge buffer for each mainblock, so that
 //       we can write the size of the compressed block in the beginning
 // At the moment the implementation is done only for compressing into file
 void Encoder::EncodeMainBlock(bwtc::MainBlock* block) {
-  std::streampos len_pos = WriteBlockHeader(block->Stats());
+  std::streampos position_of_length = WriteBlockHeader(block->Stats());
 }
 
 std::streampos Encoder::WriteBlockHeader(uint64* stats) {
@@ -120,10 +132,43 @@ std::streampos Encoder::WriteBlockHeader(uint64* stats) {
     int bytes;
     if(stats[i]) {
       uint64 packed_cblock_size = PackInteger(stats[i], &bytes);
+      WritePackedInteger(packed_cblock_size, bytes);
     }
   }
+
+  return header_start;
 }
 
+/* Integer is written in reversal fashion so that it can be read easier.*/
+void Encoder::WritePackedInteger(uint64 packed_integer, int bytes) {
+  do {
+    byte to_written = static_cast<byte>(packed_integer & 0xFF);
+    packed_integer >>= 8;
+    out_->WriteByte(to_written);
+  } while (--bytes);
+  assert(0 == packed_integer);
+}
+
+uint64 Decoder::ReadPackedInteger() {
+  assert(in_);
+  static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
+  static const uint64 kEndMask = static_cast<uint64>(1) << 7;
+  uint64 packed_integer = 0;
+  bool bits_left = true;
+  int i;
+  for(i = 0; bits_left; ++i) {
+    uint64 read = static_cast<uint64>(in_->ReadByte());
+    bits_left = (read & kEndMask) != 0;
+    packed_integer |= (read << i*8);
+  }
+  if (packed_integer == 0x80) return kEndSymbol;
+  return packed_integer;
+}
+
+void Encoder::FinishBlockHeader() {
+  out_->WriteByte(0x80);
+  out_->WriteByte(0x00);
+}
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
 Decoder::Decoder(const std::string& source, char prob_model) :

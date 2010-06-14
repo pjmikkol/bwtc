@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "../coders.h"
 #include "../globaldefs.h"
@@ -29,6 +30,32 @@ void TestArithmeticCoding(char prob_model) {
   assert('b' == dec.DecodeByte());
 }
 
+void TestWritingAndReadingPackedIntegerList() {
+  static const uint64 kErrorMask = static_cast<uint64>(1) << 63;
+
+  srand(time(NULL));
+  int symbols = rand() & 0x00FFFF;
+  bwtc::Encoder* enc = new bwtc::Encoder(test_fname,'n');
+  std::vector<uint64> data(symbols);
+  int bytes;
+  for(unsigned i = 0; i < data.size(); ++i) {
+    data[i] = static_cast<uint64>(rand());
+    uint64 packed_integer = bwtc::PackInteger(data[i], &bytes);
+    enc->WritePackedInteger(packed_integer, bytes);
+  }
+  enc->FinishBlockHeader();
+  delete enc;
+  bwtc::Decoder dec(test_fname,'n');
+  unsigned i = 0;
+  while (1) {
+    uint64 value = dec.ReadPackedInteger();
+    if(value & kErrorMask) break;
+    assert(i < data.size());
+    assert(data[i] == bwtc::UnpackInteger(value));
+    ++i;
+  }
+  assert(i == data.size());
+}
 
 void TestBlockArithmeticCoding(int size, char prob_model) {
   std::vector<byte> data(size);
@@ -67,6 +94,7 @@ int main() {
   tests::TestArithmeticCoding('n');
   tests::TestBlockArithmeticCoding(1000, 'n');
   tests::TestPackingIntegers(1000);
+  tests::TestWritingAndReadingPackedIntegerList();
   std::cout << "Encoder and Decoder passed all tests.\n";
 }
 

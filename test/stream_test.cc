@@ -17,6 +17,19 @@ void BlockWriteTest();
 void WriteToFile(const std::string& fname, unsigned characters);
 void TestFileSize(const std::string& fname, unsigned characters);
 
+void SimpleWriteReadTest() {
+  bwtc::OutStream out(test_fname);
+  out.WriteByte('a');
+  out.WriteByte('b');
+  out.WriteByte('c');
+  out.Flush();
+  bwtc::InStream in(test_fname);
+  assert(in.ReadByte() == 'a');
+  assert('b' == in.ReadByte());
+  assert('c' == in.ReadByte());
+}
+
+
 /*********** begin: BlockFileWriteTest ***********/
 void WriteToFile(const std::string& fname, unsigned characters) {
   bwtc::OutStream f(fname);
@@ -84,6 +97,7 @@ int main() {
   tests::BlockFileWriteTest();
   tests::WriteToStreamTest();
   tests::EmptyWriteTest();
+  tests::SimpleWriteReadTest();
   std::cout << "OutStream passed all tests.\n";
   tests::ReadFromFileTest();
   std::cout << "InStream passed all tests.\n";

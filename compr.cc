@@ -30,12 +30,12 @@ void compress(const std::string& input_name, const std::string& output_name,
   preprocessor->AddBlockManager(&block_manager);
 
   bwtc::Encoder encoder(output_name, encoding);
+  encoder.WriteGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
   int64 last_s = 0;
-
   while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
-    blocks++;
+    ++blocks;
     /* while (Block* b = DoTransform()) 
        encodeBlock(b)
      */

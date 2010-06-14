@@ -4,7 +4,11 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include "coders.h"
 #include "globaldefs.h"
+
+int bwtc::verbosity;
+using bwtc::verbosity;
 
 void decompress(const std::string& input_name, const std::string& output_name,
                 int verbosity) {
@@ -14,7 +18,8 @@ void decompress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-
+  bwtc::Decoder decoder(input_name);
+  char preproc = decoder.ReadGlobalHeader();
 
 }
 

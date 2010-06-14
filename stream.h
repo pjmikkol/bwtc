@@ -21,6 +21,7 @@ class OutStream {
   /* Writes chars in range [begin, end) to stream */
   void WriteBlock(std::vector<char>::const_iterator begin,
                   std::vector<char>::const_iterator end);
+  std::streampos GetPos() const; 
   void Flush();
 
  private:

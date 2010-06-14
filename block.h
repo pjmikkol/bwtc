@@ -38,6 +38,7 @@ class MainBlock {
   /* end() returns pointer one past the valid range of its array.
    * Uses filled_ for deducing the value.*/
   inline byte* end() { return &block_[filled_]; }
+  inline int64* Stats() { return frequencies_; }
 
  private:
   byte* block_;
@@ -47,8 +48,10 @@ class MainBlock {
 
   MainBlock& operator=(const MainBlock& b);
   MainBlock(const MainBlock&);
-  
+
 };
+
+
 
 } // namespace bwtc
 

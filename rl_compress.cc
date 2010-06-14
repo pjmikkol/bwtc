@@ -53,12 +53,10 @@ uint32 Split(uint32 low, uint32 high, uint32 probability) {
 }
 }  // namespace
 
-BitEncoder::BitEncoder(const std::string& destination)
-    : low_(0), high_(0xFFFFFFFF), output_(NULL) {
-  output_ = new bwtc::OutStream(destination);
-}
+BitEncoder::BitEncoder()
+    : low_(0), high_(0xFFFFFFFF), output_(NULL) {}
 
-BitEncoder::~BitEncoder() { delete output_; }
+BitEncoder::~BitEncoder() { }
 
 void BitEncoder::Encode(bool bit, Probability probability_of_one) {
   if (verbosity > 7) {
@@ -91,12 +89,10 @@ void BitEncoder::Finish() {
   high_ = 0xFFFFFFFF;
 }
 
-BitDecoder::BitDecoder(const std::string& source) :
-    low_(0), high_(0xFFFFFFFF), next_(0), input_(NULL) {
-  input_ = new bwtc::InStream(source);
-}
+BitDecoder::BitDecoder() :
+    low_(0), high_(0xFFFFFFFF), next_(0), input_(NULL) {}
 
-BitDecoder::~BitDecoder() { delete input_; }
+BitDecoder::~BitDecoder() { }
 
 void BitDecoder::Start() {
   low_ = 0;

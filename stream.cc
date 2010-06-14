@@ -38,6 +38,10 @@ void OutStream::WriteByte(byte b) {
   to_->put(b);
 }
 
+std::streampos OutStream::GetPos() const {
+  return to_->tellp();
+}
+
 void OutStream::WriteBlock(std::vector<char>::const_iterator begin,
                            std::vector<char>::const_iterator end) {
   std::copy(begin, end, std::ostream_iterator<char>(*to_));

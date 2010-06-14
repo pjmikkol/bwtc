@@ -42,7 +42,7 @@ using bwtc::verbosity;
  *********************************************************************/
 class BitEncoder {
  public:
-  BitEncoder(const std::string& destination);
+  BitEncoder();
   ~BitEncoder();
 
   void Connect(bwtc::OutStream* out) { output_ = out; }
@@ -75,7 +75,7 @@ class BitEncoder {
  *********************************************************************/
 class BitDecoder {
  public:
-  BitDecoder(const std::string& source);
+  BitDecoder();
   ~BitDecoder();
 
   /* The compressed data is read from an InStreamBuffer. */

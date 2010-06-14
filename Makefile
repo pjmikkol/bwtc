@@ -3,14 +3,16 @@ FLAGS = -pedantic -Wextra -Wall -Weffc++ -g
 
 all: bin/compr bin/uncompr
 
-bin/compr : compr.cc  globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
+bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o 
 	$(CC) $(FLAGS) -lboost_program_options-mt compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o bin/coders.o \
 	bin/rl_compress.o -o bin/compr
 
-bin/uncompr : uncompr.cc  globaldefs.h
-	$(CC) $(FLAGS) -lboost_program_options-mt uncompr.cc -o bin/uncompr
+bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
+	bin/stream.o
+	$(CC) $(FLAGS) -lboost_program_options-mt bin/coders.o uncompr.cc \
+	bin/rl_compress.o bin/stream.o -o bin/uncompr
 
 bin/stream.o : stream.h stream.cc 
 	$(CC) $(FLAGS) stream.cc -c -o bin/stream.o

@@ -4,7 +4,7 @@
 #include <string>
 
 namespace tests {
-const std::string test_fname("testfile.txt");
+const std::string test_fname("test/testfile.txt");
 }
 
 #endif

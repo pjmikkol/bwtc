@@ -12,9 +12,8 @@ class ProbabilityModel {
   virtual ~ProbabilityModel() {}
   virtual void Update(bool bit) { prev_ = bit; }
   virtual Probability ProbabilityOfOne() {
-    return kLogProbabilityScale/2; /*
-    if( prev_) return 1 << (kLogProbabilityScale/2 + 2);
-    else return 1 << (kLogProbabilityScale/2 - 2);*/
+    if( prev_) return 1 << (kLogProbabilityScale/2 + 3);
+    else return  1 << (kLogProbabilityScale/2 - 3);
   }
 
  private:

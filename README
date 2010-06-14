@@ -4,6 +4,11 @@ at the moment: in early development phase
 
 ...
 
+Compress the program by saying "make" in project-folder. Tests can be run
+with "make tests".
+
+...
+
 New functionality can be added by replacing some of the trivial implementations
 of the preprocessing, bwt or entropy encoding.
 

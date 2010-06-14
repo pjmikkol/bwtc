@@ -54,13 +54,14 @@ Decoder::~Decoder() {
 
 byte Decoder::DecodeByte() {
   byte b = 0x00;
-  for(int i = 0; i < 8; ++i, b <<= 2) {
+  for(int i = 0; i < 8; ++i) {
     if (source_->Decode(pm_->ProbabilityOfOne())) {
-      b += 1;
+      b |= 1;
       pm_->Update(true);
     } else {
       pm_->Update(false);
     }
+    if (i < 7) b <<= 1;
   }
   return b;
 }

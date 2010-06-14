@@ -4,6 +4,7 @@
 /* Common typedefs for different sizes of integers */
 #include <boost/cstdint.hpp>
 typedef boost::int64_t int64;
+typedef boost::uint64_t uint64;
 typedef boost::int32_t int32;
 typedef boost::uint32_t uint32;
 typedef boost::int16_t int16;

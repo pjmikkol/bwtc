@@ -16,17 +16,17 @@ namespace bwtc {
  * for maintaining memory and blocks. */
 class BlockManager {
  public:
-  BlockManager(int64 block_size);
+  BlockManager(uint64 block_size);
   ~BlockManager();
   byte* GetFreeBuffer();
-  int64* GetFreeStats();
-  MainBlock* MakeBlock(byte* buffer, int64* stats, int64 filled);
+  uint64* GetFreeStats();
+  MainBlock* MakeBlock(byte* buffer, uint64* stats, uint64 filled);
 
  private:
-  int64 block_size_;
+  uint64 block_size_;
   byte* data_buffer_; /* if multiple Block-objects will live at the same *
                        * time, then we need to transform this to array.  */
-  int64* frequency_buffer_; /* above holds also for this */
+  uint64* frequency_buffer_; /* above holds also for this */
 
   BlockManager(const BlockManager&);
   BlockManager& operator=(const BlockManager&);

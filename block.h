@@ -30,21 +30,21 @@ namespace bwtc {
  *******************************************************************/
 class MainBlock {
  public:
-  MainBlock(byte* block, int64* stats, int64 filled);
+  MainBlock(byte* block, uint64* stats, uint64 filled);
   ~MainBlock();
-  inline int64 Size() { return filled_; }
+  inline uint64 Size() { return filled_; }
   /* begin and end are meant for reading and writing of a block.*/
   inline byte* begin()  { return &block_[0]; }
   /* end() returns pointer one past the valid range of its array.
    * Uses filled_ for deducing the value.*/
   inline byte* end() { return &block_[filled_]; }
-  inline int64* Stats() { return frequencies_; }
+  inline uint64* Stats() { return frequencies_; }
 
  private:
   byte* block_;
-  int64* frequencies_;
+  uint64* frequencies_;
   /* Defines range [0, filled_) in array, which will hold the relevant data. */
-  int64 filled_;
+  uint64 filled_;
 
   MainBlock& operator=(const MainBlock& b);
   MainBlock(const MainBlock&);

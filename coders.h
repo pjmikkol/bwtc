@@ -23,9 +23,9 @@ namespace bwtc {
  *   -- no overhead here because the most significant byte had leading   *
  *      zeroes                                                           *
  *************************************************************************/
-int64 PackInteger(int64 integer, int* bytes_needed);
+uint64 PackInteger(uint64 integer, int* bytes_needed);
 
-int64 UnpackInteger(int64 packed_integer);
+uint64 UnpackInteger(uint64 packed_integer);
 
 /**********************************************************************
  * Encoder and decoder are pretty similar in structure.               *
@@ -46,7 +46,7 @@ class Encoder {
   void EncodeMainBlock(MainBlock* block);
   void EncodeRange(const byte* begin, const byte* end);
   void Finish() { destination_->Finish(); }
-  std::streampos WriteBlockHeader(int64* stats);
+  std::streampos WriteBlockHeader(uint64* stats);
 
  private:
   OutStream* out_;

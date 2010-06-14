@@ -9,7 +9,7 @@
 
 namespace bwtc {
 
-MainBlock::MainBlock(byte* block, int64* stats, int64 filled) : 
+MainBlock::MainBlock(byte* block, uint64* stats, uint64 filled) : 
     block_(block), frequencies_(stats), filled_(filled) {}
 
 MainBlock::~MainBlock() {}

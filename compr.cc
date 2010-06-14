@@ -16,7 +16,7 @@ int bwtc::verbosity;
 using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
-              int64 block_size, char preproc, char encoding)
+              uint64 block_size, char preproc, char encoding)
 {
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
@@ -33,7 +33,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   encoder.WriteGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
-  int64 last_s = 0;
+  uint64 last_s = 0;
   while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
     ++blocks;
     /* while (Block* b = DoTransform()) 
@@ -80,7 +80,7 @@ void ValidateEncodingOption(char c) {
 
 
 int main(int argc, char** argv) {
-  int64 block_size;
+  uint64 block_size;
   char preproc, encoding;
   std::string input_name, output_name;
   bool stdout, stdin;
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
         ("help,h", "print help message")
         ("stdin,i", "input from standard in")
         ("stdout,c", "output to standard out")
-        ("block,b", po::value<int64>(&block_size)->default_value(1000),
+        ("block,b", po::value<uint64>(&block_size)->default_value(1000),
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")

@@ -13,7 +13,7 @@ namespace bwtc {
 //TODO: Make this class to abstract class (interface for real implementations)
 class PreProcessor {
  public:
-  PreProcessor(int64 block_size);
+  PreProcessor(uint64 block_size);
   ~PreProcessor();
   void Connect(std::string source_name);
   void AddBlockManager(BlockManager* bm);
@@ -22,18 +22,18 @@ class PreProcessor {
 
  private:
   InStream* source_;
-  int64 block_size_;
+  uint64 block_size_;
   BlockManager* block_manager_;
 
   /* This should be done during preprocessing*/
-  void BuildStats(byte* data, int64* stats, int64 size);
+  void BuildStats(byte* data, uint64* stats, uint64 size);
   PreProcessor& operator=(const PreProcessor& p);
   PreProcessor(const PreProcessor&);
 };
 
 /* This function returns chosen preprocessor */ 
 PreProcessor* GivePreProcessor(
-    char choice, int64 block_size, const std::string& input);
+    char choice, uint64 block_size, const std::string& input);
 
 } // namespace bwtc
 

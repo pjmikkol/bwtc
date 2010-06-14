@@ -4,10 +4,10 @@
 
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "../coders.h"
 #include "../globaldefs.h"
+#include "../utils.h"
 #include "testdefs.h"
 
 namespace bwtc {
@@ -16,14 +16,6 @@ int verbosity = 7;
 
 namespace tests {
 
-void PrintBitRepresentation(byte word) {
-  for(int i = 0; i < 8; ++i) {
-    int num = (word & 0x80) ? 1 : 0;
-    std::cout << num;
-    word <<= 1;
-  }
-  std::cout << "\n";
-}
 
 void TestArithmeticCoding(char prob_model) {
   bwtc::Encoder enc(test_fname, prob_model);
@@ -51,8 +43,22 @@ void TestBlockArithmeticCoding(int size, char prob_model) {
   dec.Start();
   for(int i = 0; i < size; ++i)
     assert(dec.DecodeByte() == data[i]);
-  for (int i = 0; i < 3; ++i)
-    PrintBitRepresentation(dec.DecodeByte());
+}
+
+void TestPackingIntegers(int times) {
+  /* Constants for bit-twiddling */
+  static const uint64 kLongOne = 1;
+
+  srand(time(NULL));
+  int bytes_needed;
+  for(int i = 0; i < times; ++i) {
+    uint64 original = static_cast<uint64>(rand());
+    uint64 packed = bwtc::PackInteger(original, &bytes_needed);
+    uint64 result = bwtc::UnpackInteger(packed);
+
+    assert(result == original);
+    assert(original <= (kLongOne << (bytes_needed*8)));
+  }
 }
 
 } //namespace tests
@@ -60,6 +66,7 @@ void TestBlockArithmeticCoding(int size, char prob_model) {
 int main() {
   tests::TestArithmeticCoding('n');
   tests::TestBlockArithmeticCoding(1000, 'n');
+  tests::TestPackingIntegers(1000);
   std::cout << "Encoder and Decoder passed all tests.\n";
 }
 

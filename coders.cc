@@ -1,4 +1,6 @@
-#include <iostream> // For std::streamsize
+#include <iostream> // For std::streampos
+#include <numeric> // for std::accumulate
+#include <vector>
 
 #include "block.h"
 #include "coders.h"
@@ -18,7 +20,7 @@ uint64 PackInteger(uint64 integer, int* bytes_needed) {
     result |= ((integer & 0x7F) << i*8);
     integer >>= 7;
     assert(i < 8);
-    if (integer) result |= (kEightBit << i*8); 
+    if (integer) result |= (kEightBit << i*8);
   }
   *bytes_needed = i;
   return result;
@@ -102,7 +104,15 @@ void Encoder::EndContextBlock() {
   pm_->ResetModel();
 }
 
+void Decoder::EndContextBlock() {
+  assert(pm_);
+  pm_->ResetModel();
+  /* Leftovers of arithmetic coder */
+  for(int i = 0; i < 3; ++i) in_->ReadByte();
+}
+
 int Encoder::WriteTrailer(uint64 trailer) {
+  assert(trailer);
   int bytes;
   uint64 packed_integer = PackInteger(trailer, &bytes);
   WritePackedInteger(packed_integer, bytes);
@@ -184,10 +194,55 @@ void Encoder::WritePackedInteger(uint64 packed_integer, int bytes) {
   assert(0 == packed_integer);
 }
 
+int Encoder::FinishBlockHeader() {
+  out_->WriteByte(0x80);
+  out_->WriteByte(0x00);
+  return 2;
+}
+
+uint64 Decoder::ReadBlockHeader(std::vector<uint64>* stats) {
+  static const uint64 kErrorMask = static_cast<uint64>(1) << 63;
+
+  uint64 compressed_length = in_->Read48bits();
+  while(1) {
+    uint64 value = ReadPackedInteger();
+    if(value & kErrorMask) break;
+    stats->push_back(value);
+  }
+  return compressed_length;
+}
+
+std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
+  if(!in_->DataLeft()) return NULL;
+
+  std::vector<uint64> context_lengths;
+  uint64 compr_len = ReadBlockHeader(&context_lengths);
+
+  if (verbosity > 2)
+    std::clog << "Size of compressed block = " << compr_len << "\n"; 
+
+  uint64 block_size = std::accumulate(
+      context_lengths.begin(), context_lengths.end(), static_cast<uint64>(0));
+  source_->Start();
+  std::vector<byte>* data = new std::vector<byte>(block_size);
+  int j = 0;
+  for(std::vector<uint64>::const_iterator it = context_lengths.begin();
+      it != context_lengths.end(); ++it) {
+    for(uint64 i = 0; i < *it; ++i) {
+      (*data)[j++] = DecodeByte();
+    }
+    EndContextBlock();
+  }
+  uint64 packed_integer = ReadPackedInteger();
+  *eof_byte = UnpackInteger(packed_integer);
+  return data;
+}
+
 uint64 Decoder::ReadPackedInteger() {
   assert(in_);
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
+
   uint64 packed_integer = 0;
   bool bits_left = true;
   int i;
@@ -198,12 +253,6 @@ uint64 Decoder::ReadPackedInteger() {
   }
   if (packed_integer == 0x80) return kEndSymbol;
   return packed_integer;
-}
-
-int Encoder::FinishBlockHeader() {
-  out_->WriteByte(0x80);
-  out_->WriteByte(0x00);
-  return 2;
 }
 /*********** Encoding and decoding single MainBlock-section ends ********/
 

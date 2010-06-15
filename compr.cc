@@ -36,9 +36,9 @@ void compress(const std::string& input_name, const std::string& output_name,
   uint64 last_s = 0;
   while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
     ++blocks;
-    /* while (Block* b = DoTransform()) 
-       encodeBlock(b)
-     */
+    uint64 eof_byte = 1;
+    /* uint64 eof_byte =  (Block* b = DoTransform()) */
+    encoder.EncodeMainBlock(block, eof_byte);
     last_s = block->Size();
     delete block;
   }

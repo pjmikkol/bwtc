@@ -5,6 +5,7 @@
 namespace po = boost::program_options;
 
 #include "coders.h"
+#include "stream.h"
 #include "globaldefs.h"
 
 int bwtc::verbosity;
@@ -20,11 +21,20 @@ void decompress(const std::string& input_name, const std::string& output_name,
   }
   bwtc::Decoder decoder(input_name);
   char preproc = decoder.ReadGlobalHeader();
+  bwtc::OutStream out(output_name);
 
+  unsigned blocks = 0;
+  uint64 eof_byte; // eof_byte position in BWT
+  while (std::vector<byte>* block = decoder.DecodeBlock(&eof_byte)) {
+    // UnBWT(block, eof_byte);
+    // PostProcess
+    out.WriteBlock(block->begin(), block->end());
+    out.Flush();
+    delete block;
+  }
 }
 
 int main(int argc, char** argv) {
-  int verbosity;
   std::string input_name, output_name;
   bool stdout, stdin;
 

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "block.h"
 #include "globaldefs.h"
@@ -73,6 +74,12 @@ class Decoder {
   void Start() { source_->Start(); }
   /* If end symbol is encountered, then the most significant bit is activated */
   uint64 ReadPackedInteger();
+  /* Allocates memory for block, reads and decodes it. */
+  std::vector<byte>* DecodeBlock(uint64* eof_byte_in_bwt);
+  /* Returns length of the compressed sequence and stores lengths of the context
+   * blocks into stats-array.*/
+  uint64 ReadBlockHeader(std::vector<uint64>* stats);
+  void EndContextBlock();
 
  private:
   InStream* in_;

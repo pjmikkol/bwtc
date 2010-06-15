@@ -42,9 +42,9 @@ std::streampos OutStream::GetPos() const {
   return to_->tellp();
 }
 
-void OutStream::WriteBlock(std::vector<char>::const_iterator begin,
-                           std::vector<char>::const_iterator end) {
-  std::copy(begin, end, std::ostream_iterator<char>(*to_));
+void OutStream::WriteBlock(std::vector<byte>::const_iterator begin,
+                           std::vector<byte>::const_iterator end) {
+  std::copy(begin, end, std::ostream_iterator<byte>(*to_));
 }
 
 void OutStream::Write48bits(uint64 to_written, std::streampos position) {
@@ -57,6 +57,14 @@ void OutStream::Write48bits(uint64 to_written, std::streampos position) {
   to_->seekp(position);
 }
 
+uint64 InStream::Read48bits() {
+  uint64 result = 0;
+  for(int i = 0; i < 6; ++i) {
+    result <<= 8;
+    result |= ReadByte();
+  }
+  return result;
+}
 
 InStream::InStream(std::string file_name) :
     name_(file_name), from_(NULL), infile_(NULL)

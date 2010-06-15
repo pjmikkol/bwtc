@@ -33,7 +33,7 @@ void SimpleWriteReadTest() {
 /*********** begin: BlockFileWriteTest ***********/
 void WriteToFile(const std::string& fname, unsigned characters) {
   bwtc::OutStream f(fname);
-  std::vector<char> data(characters,'a');
+  std::vector<byte> data(characters,'a');
   f.WriteBlock(data.begin(), data.end());
 }
 
@@ -56,20 +56,20 @@ void BlockFileWriteTest() {
 void WriteToStreamTest() {
   bwtc::OutStream f("");
   std::string str = std::string("test\n");
-  std::vector<char> data(str.begin(), str.end());
+  std::vector<byte> data(str.begin(), str.end());
   f.WriteBlock(data.begin(), data.end());  
 }
 
 void EmptyWriteTest() {
   bwtc::OutStream f(test_fname);
-  std::vector<char> data(0);
+  std::vector<byte> data(0);
   f.WriteBlock(data.begin(), data.end());  
 }
 
 /*********** begin: ReadFromFileTest ***********/
 void WriteAndRead(long fsize, long bsize) {  
   bwtc::OutStream o(test_fname);
-  std::vector<char> data(fsize, 'b');
+  std::vector<byte> data(fsize, 'b');
   o.WriteBlock(data.begin(), data.end());
   o.Flush();
   bwtc::InStream f(test_fname);

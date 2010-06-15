@@ -59,10 +59,10 @@ void TestWritingAndReadingPackedIntegerList() {
 
 void TestBlockArithmeticCoding(int size, char prob_model) {
   std::vector<byte> data(size);
-  srand(time(NULL));
   for(int i = 0; i < size; ++i) {
-    data[i] = static_cast<byte>(rand() & 0xFF);
+    data[i] = 0x55;
   }
+  data[size-1] = 0x55;
   bwtc::Encoder enc(test_fname, prob_model);
   enc.EncodeRange(&data[0], &data[size]);
   enc.Finish();
@@ -92,9 +92,9 @@ void TestPackingIntegers(int times) {
 
 int main() {
   tests::TestArithmeticCoding('n');
-  tests::TestBlockArithmeticCoding(1000, 'n');
-  tests::TestPackingIntegers(1000);
   tests::TestWritingAndReadingPackedIntegerList();
+  tests::TestPackingIntegers(1000);
+  tests::TestBlockArithmeticCoding(1000, 'n');
   std::cout << "Encoder and Decoder passed all tests.\n";
 }
 

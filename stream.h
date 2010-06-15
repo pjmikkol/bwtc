@@ -19,8 +19,8 @@ class OutStream {
   /* Writes rightmost amount_of_bits of char to stream */
   void WriteByte(byte b);
   /* Writes chars in range [begin, end) to stream */
-  void WriteBlock(std::vector<char>::const_iterator begin,
-                  std::vector<char>::const_iterator end);
+  void WriteBlock(std::vector<byte>::const_iterator begin,
+                  std::vector<byte>::const_iterator end);
   std::streampos GetPos() const; 
   void Write48bits(uint64 to_written, std::streampos position);
   void Flush();
@@ -43,6 +43,8 @@ class InStream {
    * Returns the number of read chars. */
   std::streamsize ReadBlock(byte* to, std::streamsize max_block_size);
   byte ReadByte() { return static_cast<byte>(from_->get()); }
+  uint64 Read48bits();
+  bool DataLeft() { return *from_; }
 
  private:
   std::string name_;

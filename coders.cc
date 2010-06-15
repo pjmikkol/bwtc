@@ -7,6 +7,8 @@
 #include "globaldefs.h"
 #include "probmodels/base_prob_model.h"
 
+#include "utils.h"
+
 namespace bwtc {
 
 uint64 PackInteger(uint64 integer, int* bytes_needed) {
@@ -107,8 +109,6 @@ void Encoder::EndContextBlock() {
 void Decoder::EndContextBlock() {
   assert(pm_);
   pm_->ResetModel();
-  /* Leftovers of arithmetic coder */
-  for(int i = 0; i < 3; ++i) in_->ReadByte();
 }
 
 int Encoder::WriteTrailer(uint64 trailer) {
@@ -145,21 +145,27 @@ int Encoder::WriteTrailer(uint64 trailer) {
 //       we can write the size of the compressed block in the beginning (1)
 // At the moment the implementation is done only for compressing into file
 void Encoder::EncodeMainBlock(bwtc::MainBlock* block, uint64 trailer) {
-  uint64 compression_length = 0;
+  uint64 compression_length;
   std::vector<uint64>* stats = block->Stats();
   std::streampos pos_of_length = WriteBlockHeader(stats, &compression_length);
   byte* data = block->begin();
   // TODO: At the moment we are not assuming that block->Stats() is
   //       ordered in increasing order (since it isn't yet)
   destination_->ResetCounter();
-  EncodeRange(data, data + (*stats)[0]);
+  unsigned i = 0, j;
+  while((*stats)[i] == 0) ++i;
+  EncodeRange(data, data + (*stats)[i]);
   EndContextBlock();
-  for(unsigned i = 1; i < stats->size(); ++i) {
-    data += (*stats)[i-1];
+  j = i++;
+  for(; i < stats->size(); ++i) {
+    if ((*stats)[i] == 0) continue;
+    data += (*stats)[j];
+    j = i;
     EncodeRange(data, data + (*stats)[i]);
     EndContextBlock();
   }
   Finish();
+  
   compression_length += destination_->Counter();
   compression_length +=  WriteTrailer(trailer);
   out_->Write48bits(compression_length, pos_of_length);
@@ -180,7 +186,7 @@ std::streampos Encoder::WriteBlockHeader(
     }
   }
   length += FinishBlockHeader();
-  *header_length += length;
+  *header_length = length;
   return header_start;
 }
 
@@ -207,7 +213,7 @@ uint64 Decoder::ReadBlockHeader(std::vector<uint64>* stats) {
   while(1) {
     uint64 value = ReadPackedInteger();
     if(value & kErrorMask) break;
-    stats->push_back(value);
+    stats->push_back(UnpackInteger(value));
   }
   return compressed_length;
 }
@@ -239,7 +245,6 @@ std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
 }
 
 uint64 Decoder::ReadPackedInteger() {
-  assert(in_);
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
 
@@ -280,13 +285,13 @@ Decoder::~Decoder() {
 byte Decoder::DecodeByte() {
   byte b = 0x00;
   for(int i = 0; i < 8; ++i) {
+    b <<= 1;
     if (source_->Decode(pm_->ProbabilityOfOne())) {
       b |= 1;
       pm_->Update(true);
     } else {
       pm_->Update(false);
     }
-    if (i < 7) b <<= 1;
   }
   return b;
 }

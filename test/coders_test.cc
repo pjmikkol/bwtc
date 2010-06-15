@@ -1,3 +1,6 @@
+/* Probably the ugliest hack ever !!*/
+#define private public
+
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
@@ -88,10 +91,68 @@ void TestPackingIntegers(int times) {
   }
 }
 
-void TestWritingAndReadingHeaders() {
+void TestWritingAndReadingBlockHeaders() {
+  const uint64 header_num = static_cast<uint64>(0x555555555555);
+
+  srand(time(NULL));
+  bwtc::Encoder* encoder = new bwtc::Encoder(test_fname, 'n');
+  /* Generate data: */
+  std::vector<uint64> stats(256);
+  for(unsigned i = 0; i < 256; ++i)
+    stats[i] = static_cast<uint64>(rand() + 1);
+  uint64 header_length;
+  std::streampos len_pos = encoder->WriteBlockHeader(&stats, &header_length);
+  encoder->out_->Write48bits(header_num, len_pos);
+  delete encoder;
+
+  bwtc::Decoder decoder(test_fname);
+  std::vector<uint64> context_lengths;
+  uint64 compr_len = decoder.ReadBlockHeader(&context_lengths);
+  assert(compr_len == header_num);
+  assert(context_lengths.size() == 256);
+  for(unsigned i = 0; i < 256; ++i) {
+    assert(stats[i] == context_lengths[i]);
+  }
+}
+
+void TestWritingAndReadingHeadersAndSimpleData() {
+  const unsigned amount = 30000;
+
   bwtc::Encoder* encoder = new bwtc::Encoder(test_fname, 'n');
   encoder->WriteGlobalHeader('n','n');
-  std::streampos len_pos = encoder->WriteBlockHeader();
+  /* Generate data: */
+  std::vector<uint64> stats(256,static_cast<uint64>(0));
+  stats[static_cast<byte>('a')] = amount;
+  std::vector<byte> data(amount,'a');
+
+  uint64 header_length;
+  std::streampos len_pos = encoder->WriteBlockHeader(&stats, &header_length);
+  assert(header_length == 5); /* 2 bytes for sentinel and amount*/
+  byte* block = &data[0];
+  encoder->EncodeRange(block, block + amount);
+  encoder->EndContextBlock();
+  encoder->Finish();
+  encoder->out_->Write48bits(static_cast<uint64>(0xFF), len_pos);
+  delete encoder;
+
+  bwtc::Decoder decoder(test_fname);
+  char preproc = decoder.ReadGlobalHeader();
+  assert(preproc == 'n');
+  std::vector<uint64> context_lengths;
+  uint64 compr_len = decoder.ReadBlockHeader(&context_lengths);
+  assert(compr_len == static_cast<uint64>(0xFF));
+  assert(context_lengths.size() == 1);
+  decoder.source_->Start();
+  for(unsigned i = 0; i < data.size(); ++i) {
+    assert(data[i] == decoder.DecodeByte());
+  }
+  decoder.EndContextBlock();
+  int leftover = 0;
+  while(decoder.in_->DataLeft()) {
+    decoder.in_->ReadByte();
+    ++leftover;
+  }
+  std::cout << leftover << "\n";
 }
 
 } //namespace tests
@@ -101,7 +162,8 @@ int main() {
   tests::TestWritingAndReadingPackedIntegerList();
   tests::TestPackingIntegers(1000);
   tests::TestBlockArithmeticCoding(1000, 'n');
-  tests::TestWritingAndReadingHeaders();
+  tests::TestWritingAndReadingHeadersAndSimpleData();
+  tests::TestWritingAndReadingBlockHeaders();
   std::cout << "Encoder and Decoder passed all tests.\n";
 }
 

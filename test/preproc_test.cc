@@ -25,7 +25,7 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   /* Then the actual test */
   bwtc::PreProcessor* prepr = bwtc::GivePreProcessor(
       'n', block_size, test_fname);
-  bwtc::BlockManager bm(block_size);
+  bwtc::BlockManager bm(block_size, 1);
   prepr->AddBlockManager(&bm);
   
   int blocks = 0;

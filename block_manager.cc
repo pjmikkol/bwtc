@@ -16,7 +16,7 @@ BlockManager::BlockManager(uint64 block_size, int context_length) :
 
 BlockManager::~BlockManager() {
   delete [] data_buffer_;
-  delete [] frequency_buffer_;
+  delete frequency_buffer_;
 }
 
 byte* BlockManager::GetFreeBuffer() {

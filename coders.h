@@ -47,7 +47,8 @@ class Encoder {
   void EncodeMainBlock(MainBlock* block, uint64 trailer);
   void EncodeRange(const byte* begin, const byte* end);
   void Finish() { destination_->Finish(); }
-  std::streampos WriteBlockHeader(const uint64* stats, uint64* header_length);
+  std::streampos WriteBlockHeader(const std::vector<uint64>* stats,
+                                  uint64* header_length);
   void WritePackedInteger(uint64 packed_integer, int bytes);
   int FinishBlockHeader();
   void EndContextBlock();

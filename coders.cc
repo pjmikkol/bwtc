@@ -146,17 +146,17 @@ int Encoder::WriteTrailer(uint64 trailer) {
 // At the moment the implementation is done only for compressing into file
 void Encoder::EncodeMainBlock(bwtc::MainBlock* block, uint64 trailer) {
   uint64 compression_length = 0;
-  uint64* stats = block->Stats();
+  std::vector<uint64>* stats = block->Stats();
   std::streampos pos_of_length = WriteBlockHeader(stats, &compression_length);
   byte* data = block->begin();
   // TODO: At the moment we are not assuming that block->Stats() is
   //       ordered in increasing order (since it isn't yet)
   destination_->ResetCounter();
-  EncodeRange(data, data + stats[0]);
+  EncodeRange(data, data + (*stats)[0]);
   EndContextBlock();
-  for(int i = 1; i < 256; ++i) {
-    data += stats[i-1];
-    EncodeRange(data, data + stats[i]);
+  for(unsigned i = 1; i < stats->size(); ++i) {
+    data += (*stats)[i-1];
+    EncodeRange(data, data + (*stats)[i]);
     EndContextBlock();
   }
   Finish();
@@ -165,16 +165,16 @@ void Encoder::EncodeMainBlock(bwtc::MainBlock* block, uint64 trailer) {
   out_->Write48bits(compression_length, pos_of_length);
 }
 
-std::streampos
-Encoder::WriteBlockHeader(const uint64* stats, uint64* header_length) {
+std::streampos Encoder::WriteBlockHeader(
+    const std::vector<uint64>* stats, uint64* header_length) {
   uint64 length = 0;
   std::streampos header_start = out_->GetPos();
-  for (int i = 0; i < 6; ++i) out_->WriteByte(0x00); //fill 48 bits
-  for (int i = 0; i < 256; ++i) {
+  for (unsigned i = 0; i < 6; ++i) out_->WriteByte(0x00); //fill 48 bits
+  for (unsigned i = 0; i < stats->size(); ++i) {
     int bytes;
     // TODO: At the moment we are not printing numbers in increasing order
-    if(stats[i]) {
-      uint64 packed_cblock_size = PackInteger(stats[i], &bytes);
+    if((*stats)[i] > 0) {
+      uint64 packed_cblock_size = PackInteger((*stats)[i], &bytes);
       length += bytes;
       WritePackedInteger(packed_cblock_size, bytes);
     }

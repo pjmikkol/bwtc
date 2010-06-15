@@ -31,9 +31,11 @@ PreProcessor::~PreProcessor() {
   delete source_;
 }
 
-void PreProcessor::BuildStats(byte* data, uint64* stats, uint64 size) {
-  std::fill(stats, &stats[256], 0);
-  for (uint64 i = 0; i < size; ++i) stats[data[i]]++;
+void PreProcessor::BuildStats(byte* data, std::vector<uint64>* stats,
+                              uint64 size) {
+  std::fill(stats->begin(), stats->end(), 0);
+  //TODO: at the moment only contexts of length 1 are supported
+  for (uint64 i = 0; i < size; ++i) (*stats)[data[i]]++;
 }
 
 void PreProcessor::Connect(std::string source_name) {
@@ -48,7 +50,7 @@ MainBlock* PreProcessor::ReadBlock() {
   assert(source_);
   assert(block_manager_);
   byte* to = block_manager_->GetFreeBuffer();
-  uint64* stats = block_manager_->GetFreeStats();
+  std::vector<uint64>* stats = block_manager_->GetFreeStats();
   /* TODO:
    * streamsize type has as many bits as long. Since the preprocessor gets
    * blocksize as an uint64 we may end up in problems if user is on 32-bit

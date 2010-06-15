@@ -88,6 +88,12 @@ void TestPackingIntegers(int times) {
   }
 }
 
+void TestWritingAndReadingHeaders() {
+  bwtc::Encoder* encoder = new bwtc::Encoder(test_fname, 'n');
+  encoder->WriteGlobalHeader('n','n');
+  std::streampos len_pos = encoder->WriteBlockHeader();
+}
+
 } //namespace tests
 
 int main() {
@@ -95,6 +101,7 @@ int main() {
   tests::TestWritingAndReadingPackedIntegerList();
   tests::TestPackingIntegers(1000);
   tests::TestBlockArithmeticCoding(1000, 'n');
+  tests::TestWritingAndReadingHeaders();
   std::cout << "Encoder and Decoder passed all tests.\n";
 }
 

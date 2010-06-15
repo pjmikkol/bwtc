@@ -26,7 +26,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   }
   bwtc::PreProcessor* preprocessor = bwtc::GivePreProcessor(
       preproc,block_size, input_name);
-  bwtc::BlockManager block_manager(block_size);
+  bwtc::BlockManager block_manager(block_size, 1);
   preprocessor->AddBlockManager(&block_manager);
 
   bwtc::Encoder encoder(output_name, encoding);

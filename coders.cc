@@ -97,6 +97,18 @@ Encoder::~Encoder() {
   delete pm_;
 }
 
+void Encoder::EndContextBlock() {
+  assert(pm_);
+  pm_->ResetModel();
+}
+
+int Encoder::WriteTrailer(uint64 trailer) {
+  int bytes;
+  uint64 packed_integer = PackInteger(trailer, &bytes);
+  WritePackedInteger(packed_integer, bytes);
+  return bytes;
+}
+
 /**************************************************************************
  *            Encoding and decoding single MainBlock                      *
  *------------------------------------------------------------------------*
@@ -104,12 +116,13 @@ Encoder::~Encoder() {
  * Also block header-format is specified here.                            *
  *                                                                        *
  * Format of the block is following:                                      *
- *  - Block header (no fixed length)             (1)                      *
- *  - Compressed block (no fixed length)         (2)                      *
- *  - Block trailer (48 bits)                    (3)                      *
+ *  - Block header (no fixed length)                              (1)     *
+ *  - Compressed block (no fixed length)                          (2)     *
+ *  - Block trailer (coded same way as the context block lengths) (3)     *
  *                                                                        *
  * Block header format is following:                                      *
- * - Length of the compressed block + trailer in bytes (48 bits)          *
+ * - Length of the header + compressed block + trailer in bytes (48 bits) *
+ *   Note that the the length field itself isn't included                 *
  * - List of context block lengths in increasing order so that the stored *
  *   value is difference of current and previous length (always > 0).     *
  *   Lengths are compressed with PackInteger-function.                    *
@@ -119,23 +132,45 @@ Encoder::~Encoder() {
 
 // TODO: for compressing straight to the stdout we need to use
 //       temporary file or huge buffer for each mainblock, so that
-//       we can write the size of the compressed block in the beginning
+//       we can write the size of the compressed block in the beginning (1)
 // At the moment the implementation is done only for compressing into file
-void Encoder::EncodeMainBlock(bwtc::MainBlock* block) {
-  std::streampos position_of_length = WriteBlockHeader(block->Stats());
+void Encoder::EncodeMainBlock(bwtc::MainBlock* block, uint64 trailer) {
+  uint64 compression_length = 0;
+  uint64* stats = block->Stats();
+  std::streampos pos_of_length = WriteBlockHeader(stats, &compression_length);
+  byte* data = block->begin();
+  // TODO: At the moment we are not assuming that block->Stats() is
+  //       ordered in increasing order (since it isn't yet)
+  destination_->ResetCounter();
+  EncodeRange(data, data + stats[0]);
+  EndContextBlock();
+  for(int i = 1; i < 256; ++i) {
+    data += stats[i-1];
+    EncodeRange(data, data + stats[i]);
+    EndContextBlock();
+  }
+  Finish();
+  compression_length += destination_->Counter();
+  compression_length +=  WriteTrailer(trailer);
+  out_->Write48bits(compression_length, pos_of_length);
 }
 
-std::streampos Encoder::WriteBlockHeader(uint64* stats) {
+std::streampos
+Encoder::WriteBlockHeader(const uint64* stats, uint64* header_length) {
+  uint64 length = 0;
   std::streampos header_start = out_->GetPos();
   for (int i = 0; i < 6; ++i) out_->WriteByte(0x00); //fill 48 bits
   for (int i = 0; i < 256; ++i) {
     int bytes;
+    // TODO: At the moment we are not printing numbers in increasing order
     if(stats[i]) {
       uint64 packed_cblock_size = PackInteger(stats[i], &bytes);
+      length += bytes;
       WritePackedInteger(packed_cblock_size, bytes);
     }
   }
-
+  length += FinishBlockHeader();
+  *header_length += length;
   return header_start;
 }
 
@@ -165,9 +200,10 @@ uint64 Decoder::ReadPackedInteger() {
   return packed_integer;
 }
 
-void Encoder::FinishBlockHeader() {
+int Encoder::FinishBlockHeader() {
   out_->WriteByte(0x80);
   out_->WriteByte(0x00);
+  return 2;
 }
 /*********** Encoding and decoding single MainBlock-section ends ********/
 

@@ -54,7 +54,7 @@ uint32 Split(uint32 low, uint32 high, uint32 probability) {
 }  // namespace
 
 BitEncoder::BitEncoder()
-    : low_(0), high_(0xFFFFFFFF), output_(NULL) {}
+    : low_(0), high_(0xFFFFFFFF), counter_(0), output_(NULL) {}
 
 BitEncoder::~BitEncoder() { }
 

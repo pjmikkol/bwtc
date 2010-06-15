@@ -60,12 +60,20 @@ class BitEncoder {
    * After the call, BitEncoder is ready to start encoding a new sequence. */
   void Finish();
 
+  /* Measures length of compressed sequence in bytes */
+  inline void ResetCounter() { counter_ = 0; }
+  inline uint64 Counter() { return counter_; }
+
  private:
   uint32 low_;
   uint32 high_;
+  uint64 counter_;
   bwtc::OutStream* output_;
 
-  void EmitByte(unsigned char byte) { output_->WriteByte(byte); }
+  inline void EmitByte(unsigned char byte) {
+    output_->WriteByte(byte);
+    ++counter_;
+  }
   BitEncoder(const BitEncoder&);
   BitEncoder& operator=(const BitEncoder&);
 };
@@ -92,7 +100,7 @@ class BitDecoder {
    * The probability distribution must be the same as the one used
    * when encoding the same bit. */
   bool Decode(Probability probability_of_one);
-
+ 
  private:
   uint32 low_;
   uint32 high_;

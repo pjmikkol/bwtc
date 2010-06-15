@@ -38,7 +38,7 @@ class MainBlock {
   /* end() returns pointer one past the valid range of its array.
    * Uses filled_ for deducing the value.*/
   inline byte* end() { return &block_[filled_]; }
-  inline uint64* Stats() { return frequencies_; }
+  inline uint64* Stats() const { return frequencies_; }
 
  private:
   byte* block_;

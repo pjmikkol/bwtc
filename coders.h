@@ -43,12 +43,14 @@ class Encoder {
   ~Encoder();
   void WriteGlobalHeader(char preproc, char encoding);
   void EncodeByte(byte b);
-  void EncodeMainBlock(MainBlock* block);
+  void EncodeMainBlock(MainBlock* block, uint64 trailer);
   void EncodeRange(const byte* begin, const byte* end);
   void Finish() { destination_->Finish(); }
-  std::streampos WriteBlockHeader(uint64* stats);
+  std::streampos WriteBlockHeader(const uint64* stats, uint64* header_length);
   void WritePackedInteger(uint64 packed_integer, int bytes);
-  void FinishBlockHeader();
+  int FinishBlockHeader();
+  void EndContextBlock();
+  int WriteTrailer(uint64 trailer_value);
 
  private:
   OutStream* out_;

@@ -47,6 +47,16 @@ void OutStream::WriteBlock(std::vector<char>::const_iterator begin,
   std::copy(begin, end, std::ostream_iterator<char>(*to_));
 }
 
+void OutStream::Write48bits(uint64 to_written, std::streampos position) {
+  std::streampos current = to_->tellp();
+  to_->seekp(position);
+  for(int i = 5; i >= 0; --i) {
+    byte b = 0xFF & (to_written >> i*8);
+    to_->put(b);
+  }
+  to_->seekp(position);
+}
+
 
 InStream::InStream(std::string file_name) :
     name_(file_name), from_(NULL), infile_(NULL)

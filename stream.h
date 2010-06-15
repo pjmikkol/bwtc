@@ -22,6 +22,7 @@ class OutStream {
   void WriteBlock(std::vector<char>::const_iterator begin,
                   std::vector<char>::const_iterator end);
   std::streampos GetPos() const; 
+  void Write48bits(uint64 to_written, std::streampos position);
   void Flush();
 
  private:
@@ -29,9 +30,6 @@ class OutStream {
   std::ostream* to_;
   std::ofstream* outfile_;
   std::vector<char> buffer_;
-  // TODO: work out WriteBits
-  //std::vector<char>::iterator current_byte;
-  //  int bits_left_in
   
   OutStream& operator=(const OutStream& os);
   OutStream(const OutStream& os);

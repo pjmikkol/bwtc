@@ -33,7 +33,7 @@ PreProcessor::~PreProcessor() {
 
 void PreProcessor::BuildStats(byte* data, uint64* stats, uint64 size) {
   std::fill(stats, &stats[256], 0);
-  for (long i = 0; i < size; ++i) stats[data[i]]++;
+  for (uint64 i = 0; i < size; ++i) stats[data[i]]++;
 }
 
 void PreProcessor::Connect(std::string source_name) {

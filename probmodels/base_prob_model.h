@@ -15,6 +15,7 @@ class ProbabilityModel {
     if( prev_) return 1 << (kLogProbabilityScale/2 + 3);
     else return  1 << (kLogProbabilityScale/2 - 3);
   }
+  virtual void ResetModel() {}
 
  private:
   bool prev_;

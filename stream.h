@@ -44,7 +44,16 @@ class InStream {
   std::streamsize ReadBlock(byte* to, std::streamsize max_block_size);
   byte ReadByte() { return static_cast<byte>(from_->get()); }
   uint64 Read48bits();
-  bool DataLeft() { return *from_; }
+  bool CompressedDataEnding() {
+    /* Quick workaround. For some mysterious reason there is single
+     * additional byte in the end of compressed file. It seems that
+     * BitEncoder is responsible for this. */
+    if (from_->eof()) return true;
+    ReadByte();
+    if (from_->eof()) return true;
+    from_->unget();
+    return false;
+  }
 
  private:
   std::string name_;

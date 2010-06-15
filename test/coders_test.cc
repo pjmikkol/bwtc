@@ -116,7 +116,7 @@ void TestWritingAndReadingBlockHeaders() {
 }
 
 void TestWritingAndReadingHeadersAndSimpleData() {
-  const unsigned amount = 30000;
+  const unsigned amount = 300;
 
   bwtc::Encoder* encoder = new bwtc::Encoder(test_fname, 'n');
   encoder->WriteGlobalHeader('n','n');
@@ -127,12 +127,17 @@ void TestWritingAndReadingHeadersAndSimpleData() {
 
   uint64 header_length;
   std::streampos len_pos = encoder->WriteBlockHeader(&stats, &header_length);
-  assert(header_length == 5); /* 2 bytes for sentinel and amount*/
+  assert(header_length == 4); /* 2 bytes for sentinel and amount*/
   byte* block = &data[0];
   encoder->EncodeRange(block, block + amount);
   encoder->EndContextBlock();
   encoder->Finish();
-  encoder->out_->Write48bits(static_cast<uint64>(0xFF), len_pos);
+  encoder->out_->Write48bits(0xFF, len_pos);
+  
+  int bytes;
+  uint64 packed_int = bwtc::PackInteger(0x0F, &bytes);
+  assert(bytes == 1);
+  encoder->WritePackedInteger(packed_int, bytes);
   delete encoder;
 
   bwtc::Decoder decoder(test_fname);
@@ -140,19 +145,17 @@ void TestWritingAndReadingHeadersAndSimpleData() {
   assert(preproc == 'n');
   std::vector<uint64> context_lengths;
   uint64 compr_len = decoder.ReadBlockHeader(&context_lengths);
-  assert(compr_len == static_cast<uint64>(0xFF));
+  assert(compr_len == 0xFF);
   assert(context_lengths.size() == 1);
   decoder.source_->Start();
   for(unsigned i = 0; i < data.size(); ++i) {
     assert(data[i] == decoder.DecodeByte());
   }
   decoder.EndContextBlock();
-  int leftover = 0;
-  while(decoder.in_->DataLeft()) {
-    decoder.in_->ReadByte();
-    ++leftover;
-  }
-  std::cout << leftover << "\n";
+  uint64 read_int = decoder.ReadPackedInteger();
+  assert(read_int == packed_int);
+  assert(bwtc::UnpackInteger(read_int) == 0x0F);
+  assert(decoder.in_->CompressedDataEnding());
 }
 
 } //namespace tests

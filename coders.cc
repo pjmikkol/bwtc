@@ -7,8 +7,6 @@
 #include "globaldefs.h"
 #include "probmodels/base_prob_model.h"
 
-#include "utils.h"
-
 namespace bwtc {
 
 uint64 PackInteger(uint64 integer, int* bytes_needed) {
@@ -165,7 +163,7 @@ void Encoder::EncodeMainBlock(bwtc::MainBlock* block, uint64 trailer) {
     EndContextBlock();
   }
   Finish();
-  
+
   compression_length += destination_->Counter();
   compression_length +=  WriteTrailer(trailer);
   out_->Write48bits(compression_length, pos_of_length);
@@ -219,7 +217,7 @@ uint64 Decoder::ReadBlockHeader(std::vector<uint64>* stats) {
 }
 
 std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
-  if(!in_->DataLeft()) return NULL;
+  if(in_->CompressedDataEnding()) return NULL;
 
   std::vector<uint64> context_lengths;
   uint64 compr_len = ReadBlockHeader(&context_lengths);

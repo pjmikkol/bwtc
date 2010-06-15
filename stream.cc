@@ -48,13 +48,15 @@ void OutStream::WriteBlock(std::vector<byte>::const_iterator begin,
 }
 
 void OutStream::Write48bits(uint64 to_written, std::streampos position) {
+  assert((to_written & (((uint64)0xFFFF) << 48)) == 0 );
   std::streampos current = to_->tellp();
   to_->seekp(position);
   for(int i = 5; i >= 0; --i) {
     byte b = 0xFF & (to_written >> i*8);
     to_->put(b);
   }
-  to_->seekp(position);
+  to_->flush();
+  to_->seekp(current);
 }
 
 uint64 InStream::Read48bits() {

@@ -49,7 +49,10 @@ ProbabilityModel* GiveProbabilityModel(char choice) {
 }
 
 Encoder::Encoder(const std::string& destination, char prob_model)
-    : out_(NULL), destination_(NULL), pm_(NULL) {
+    : out_(NULL), destination_(NULL), pm_(NULL), header_position_(0),
+      compressed_block_length_(0), current_stat_handled_(0),
+      current_stat_index_(0)
+{
   out_ = new OutStream(destination);
   destination_ = new dcsbwt::BitEncoder();
   destination_->Connect(out_);
@@ -142,50 +145,56 @@ int Encoder::WriteTrailer(uint64 trailer) {
 //       temporary file or huge buffer for each mainblock, so that
 //       we can write the size of the compressed block in the beginning (1)
 // At the moment the implementation is done only for compressing into file
-void Encoder::EncodeMainBlock(bwtc::MainBlock* block, uint64 trailer) {
-  uint64 compression_length;
-  std::vector<uint64>* stats = block->frequencies_;
-  std::streampos pos_of_length = WriteBlockHeader(stats, &compression_length);
-  byte* data = block->begin();
+void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
+                         uint64 block_size) {
   // TODO: At the moment we are not assuming that block->frequencies_ is
   //       ordered in increasing order (since it isn't yet)
-  destination_->ResetCounter();
-  unsigned i = 0, j;
-  while((*stats)[i] == 0) ++i;
-  EncodeRange(data, data + (*stats)[i]);
-  EndContextBlock();
-  j = i++;
-  for(; i < stats->size(); ++i) {
-    if ((*stats)[i] == 0) continue;
-    data += (*stats)[j];
-    j = i;
-    EncodeRange(data, data + (*stats)[i]);
+  unsigned i = 0;
+
+  /* This loop is quite tricky since we want to prepare that context blocks
+   * can be shattered around. */
+  if (current_stat_handled_ == 0) 
+    while((*stats)[current_stat_index_] == 0) ++current_stat_index_;
+  
+  for( ; ; ++current_stat_index_) {
+    assert(current_stat_index_ < stats->size());
+    if (i == block_size) return;
+    for( ; current_stat_handled_ < (*stats)[current_stat_index_];
+         ++i, ++current_stat_handled_) {
+      if (i == block_size) return;
+      EncodeByte((*block)[i]);
+    }
+    current_stat_handled_ = 0;
     EndContextBlock();
   }
-  Finish();
-
-  compression_length += destination_->Counter();
-  compression_length +=  WriteTrailer(trailer);
-  out_->Write48bits(compression_length, pos_of_length);
 }
 
-std::streampos Encoder::WriteBlockHeader(
-    const std::vector<uint64>* stats, uint64* header_length) {
-  uint64 length = 0;
-  std::streampos header_start = out_->GetPos();
+void Encoder::FinishBlock(uint64 eob_byte) {
+  destination_->Finish();
+  compressed_block_length_ += destination_->Counter();
+  compressed_block_length_ +=  WriteTrailer(eob_byte);
+  out_->Write48bits(compressed_block_length_, header_position_);
+}
+
+void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
+  uint64 header_length = 0;
+  header_position_ = out_->GetPos();
   for (unsigned i = 0; i < 6; ++i) out_->WriteByte(0x00); //fill 48 bits
   for (unsigned i = 0; i < stats->size(); ++i) {
     int bytes;
     // TODO: At the moment we are not printing numbers in increasing order
+    //       It has to be fixed at BWTransform and here
     if((*stats)[i] > 0) {
       uint64 packed_cblock_size = PackInteger((*stats)[i], &bytes);
-      length += bytes;
+      header_length += bytes;
       WritePackedInteger(packed_cblock_size, bytes);
     }
   }
-  length += FinishBlockHeader();
-  *header_length = length;
-  return header_start;
+  header_length += FinishBlockHeader();
+  compressed_block_length_ = header_length;
+  current_stat_handled_ = current_stat_index_ = 0;
+
+  destination_->ResetCounter();
 }
 
 /* Integer is written in reversal fashion so that it can be read easier.*/

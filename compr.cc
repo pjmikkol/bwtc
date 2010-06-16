@@ -35,7 +35,7 @@ void compress(const std::string& input_name, const std::string& output_name,
 
 #if 0
   bwtc::BWTransform* transformer = bwtc::GiveTransform(...);
-  transformer->SetContextLength(...);
+  transform->SetContextLength(...);
 #endif  
 
   bwtc::Encoder encoder(output_name, encoding);
@@ -48,17 +48,17 @@ void compress(const std::string& input_name, const std::string& output_name,
     ++blocks;
 #if 0
     //Transformer could have some memory manager..
-    transformer->Connect(block->block_, block->filled_);
-    transformer->BuildStats(); 
-    encoder.WriteBHeader(block); //Maybe remember header length in encoder-class?
-    // Maybe some simple struct instead of vector<byte> (length+data)? 
-    while(std::vector<byte>* b =  transform->DoTransform(&eob_byte)) {
-      encoder.EncodeData(b); //Track the progress of contexts here
-    }
-    encoder.WriteTrailer(eob_byte);
+    transform->Connect(block);
+    transform->BuildStats(); 
 #endif
-    encoder.EncodeMainBlock(block, eob_byte);
-    last_s = block->Size();
+    encoder.WriteBlockHeader(block->frequencies_); 
+    // Maybe some simple struct instead of vector<byte> (length+data)? 
+    //    while(std::vector<byte>* b =  transform->DoTransform(&eob_byte)) {
+    //      encoder.EncodeData(b_, block->frequencies_);
+    encoder.EncodeData(block->block_, block->frequencies_, block->filled_);
+      //}
+    encoder.FinishBlock(eob_byte);
+    last_s = block->filled_;
     delete block;
   }
 

@@ -30,16 +30,17 @@ namespace bwtc {
  *******************************************************************/
 class MainBlock {
  public:
-  MainBlock(byte* block, std::vector<uint64>* stats, uint64 filled);
+  MainBlock(std::vector<byte>* block, std::vector<uint64>* stats,
+            uint64 filled);
   ~MainBlock();
   inline uint64 Size() { return filled_; }
   /* begin and end can be used for reading and writing a block.*/
-  inline byte* begin()  { return block_; }
+  inline byte* begin()  { return &(*block_)[0]; }
   /* end() returns pointer one past the valid range of its array.
    * Uses filled_ for deducing the value.*/
-  inline byte* end() { return &block_[filled_]; }
+  inline byte* end() { return &(*block_)[filled_]; }
 
-  byte* block_;
+  std::vector<byte>* block_;
   std::vector<uint64>* frequencies_;
   /* Defines range [0, filled_) in array, which will hold the relevant data. */
   uint64 filled_;

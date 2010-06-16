@@ -26,7 +26,8 @@ class PreProcessor {
   BlockManager* block_manager_;
 
   /* This should be done during preprocessing*/
-  void BuildStats(byte* data, std::vector<uint64>* stats, uint64 size);
+  void BuildStats(std::vector<byte>* data, std::vector<uint64>* stats,
+                  uint64 data_size);
   PreProcessor& operator=(const PreProcessor& p);
   PreProcessor(const PreProcessor&);
 };

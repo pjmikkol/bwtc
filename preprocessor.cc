@@ -31,11 +31,12 @@ PreProcessor::~PreProcessor() {
   delete source_;
 }
 
-void PreProcessor::BuildStats(byte* data, std::vector<uint64>* stats,
-                              uint64 size) {
+void PreProcessor::BuildStats(std::vector<byte>* data,
+                              std::vector<uint64>* stats, uint64 data_size) {
   std::fill(stats->begin(), stats->end(), 0);
   //TODO: at the moment only contexts of length 1 are supported
-  for (uint64 i = 0; i < size; ++i) (*stats)[data[i]]++;
+  for( uint64 i = 0; i < data_size; ++i)
+    (*stats)[(*data)[i]]++; 
 }
 
 void PreProcessor::Connect(std::string source_name) {
@@ -49,7 +50,7 @@ void PreProcessor::AddBlockManager(BlockManager* manager) {
 MainBlock* PreProcessor::ReadBlock() {
   assert(source_);
   assert(block_manager_);
-  byte* to = block_manager_->GetFreeBuffer();
+  std::vector<byte>* to = block_manager_->GetFreeBuffer();
   std::vector<uint64>* stats = block_manager_->GetFreeStats();
   /* TODO:
    * streamsize type has as many bits as long. Since the preprocessor gets
@@ -58,9 +59,9 @@ MainBlock* PreProcessor::ReadBlock() {
    * represent block size is more than 32)?? */
   /*** Stub implementation ***/
   std::streamsize read = source_->ReadBlock(
-      to, static_cast<std::streamsize>(block_size_) );
+      &(*to)[0], static_cast<std::streamsize>(block_size_) );
   if (!read) return NULL;
-  BuildStats(to, stats, read);
+  BuildStats(to, stats, static_cast<uint64>(read)); // This should belong to BWT
   return block_manager_->MakeBlock(to, stats, static_cast<uint64>(read));
 }
 

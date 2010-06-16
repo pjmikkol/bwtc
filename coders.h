@@ -44,20 +44,28 @@ class Encoder {
   ~Encoder();
   void WriteGlobalHeader(char preproc, char encoding);
   void EncodeByte(byte b);
-  void EncodeMainBlock(MainBlock* block, uint64 trailer);
+  void EncodeData(std::vector<byte>* data, std::vector<uint64>* stats,
+                  uint64 data_size);
+  //void EncodeMainBlock(MainBlock* block, uint64 trailer);
   void EncodeRange(const byte* begin, const byte* end);
-  void Finish() { destination_->Finish(); }
-  std::streampos WriteBlockHeader(const std::vector<uint64>* stats,
-                                  uint64* header_length);
+  void WriteBlockHeader(std::vector<uint64>* stats);
   void WritePackedInteger(uint64 packed_integer, int bytes);
   int FinishBlockHeader();
   void EndContextBlock();
   int WriteTrailer(uint64 trailer_value);
+  void FinishBlock(uint64 eob_byte); //TODO: this calls write trailer
 
  private:
   OutStream* out_;
   dcsbwt::BitEncoder* destination_;
   ProbabilityModel* pm_;
+  std::streampos header_position_;
+  uint64 compressed_block_length_;
+  /* We may have to encode result of the transformation in pieces so we
+   * have track down the progress of handling single MainBlock. */
+  uint64 current_stat_handled_;
+  unsigned current_stat_index_;
+
 
   Encoder(const Encoder&);
   Encoder& operator=(const Encoder&);

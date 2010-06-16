@@ -15,9 +15,13 @@ namespace po = boost::program_options;
 int bwtc::verbosity;
 using bwtc::verbosity;
 
+//TODO: Encoder::EncodeMainBlock NEEDS TO BE SPLITTED into header and
+//      actual encoding parts
 void compress(const std::string& input_name, const std::string& output_name,
               uint64 block_size, char preproc, char encoding)
 {
+  // TODO: If we need longer contexts than one byte then preprocessor
+  //       needs modifications
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
     else std::clog << "Input: stdin" << std::endl;
@@ -29,16 +33,31 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::BlockManager block_manager(block_size, 1);
   preprocessor->AddBlockManager(&block_manager);
 
+#if 0
+  bwtc::BWTransform* transformer = bwtc::GiveTransform(...);
+  transformer->SetContextLength(...);
+#endif  
+
   bwtc::Encoder encoder(output_name, encoding);
   encoder.WriteGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
   uint64 last_s = 0;
   while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
+    uint64 eob_byte = 0x4444; // "random" 
     ++blocks;
-    uint64 eof_byte = 20;
-    /* uint64 eof_byte =  (Block* b = DoTransform()) */
-    encoder.EncodeMainBlock(block, eof_byte);
+#if 0
+    //Transformer could have some memory manager..
+    transformer->Connect(block->block_, block->filled_);
+    transformer->BuildStats(); 
+    encoder.WriteBHeader(block); //Maybe remember header length in encoder-class?
+    // Maybe some simple struct instead of vector<byte> (length+data)? 
+    while(std::vector<byte>* b =  transform->DoTransform(&eob_byte)) {
+      encoder.EncodeData(b); //Track the progress of contexts here
+    }
+    encoder.WriteTrailer(eob_byte);
+#endif
+    encoder.EncodeMainBlock(block, eob_byte);
     last_s = block->Size();
     delete block;
   }

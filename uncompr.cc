@@ -24,9 +24,9 @@ void decompress(const std::string& input_name, const std::string& output_name,
   bwtc::OutStream out(output_name);
 
   unsigned blocks = 0;
-  uint64 eof_byte; // eof_byte position in BWT
-  while (std::vector<byte>* block = decoder.DecodeBlock(&eof_byte)) {
-    // UnBWT(block, eof_byte);
+  uint64 eob_byte; // eob_byte position in BWT
+  while (std::vector<byte>* block = decoder.DecodeBlock(&eob_byte)) {
+    // UnBWT(block, eob_byte);
     // PostProcess
     out.WriteBlock(block->begin(), block->end());
     out.Flush();

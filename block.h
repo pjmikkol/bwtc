@@ -33,19 +33,18 @@ class MainBlock {
   MainBlock(byte* block, std::vector<uint64>* stats, uint64 filled);
   ~MainBlock();
   inline uint64 Size() { return filled_; }
-  /* begin and end are meant for reading and writing of a block.*/
-  inline byte* begin()  { return &block_[0]; }
+  /* begin and end can be used for reading and writing a block.*/
+  inline byte* begin()  { return block_; }
   /* end() returns pointer one past the valid range of its array.
    * Uses filled_ for deducing the value.*/
   inline byte* end() { return &block_[filled_]; }
-  inline std::vector<uint64>* Stats() const { return frequencies_; }
 
- private:
   byte* block_;
   std::vector<uint64>* frequencies_;
   /* Defines range [0, filled_) in array, which will hold the relevant data. */
   uint64 filled_;
 
+ private:
   MainBlock& operator=(const MainBlock& b);
   MainBlock(const MainBlock&);
 

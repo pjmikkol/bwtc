@@ -144,10 +144,10 @@ int Encoder::WriteTrailer(uint64 trailer) {
 // At the moment the implementation is done only for compressing into file
 void Encoder::EncodeMainBlock(bwtc::MainBlock* block, uint64 trailer) {
   uint64 compression_length;
-  std::vector<uint64>* stats = block->Stats();
+  std::vector<uint64>* stats = block->frequencies_;
   std::streampos pos_of_length = WriteBlockHeader(stats, &compression_length);
   byte* data = block->begin();
-  // TODO: At the moment we are not assuming that block->Stats() is
+  // TODO: At the moment we are not assuming that block->frequencies_ is
   //       ordered in increasing order (since it isn't yet)
   destination_->ResetCounter();
   unsigned i = 0, j;

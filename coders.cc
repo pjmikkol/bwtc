@@ -157,8 +157,8 @@ void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
     while((*stats)[current_stat_index_] == 0) ++current_stat_index_;
   
   for( ; ; ++current_stat_index_) {
-    assert(current_stat_index_ < stats->size());
     if (i == block_size) return;
+    assert(current_stat_index_ < stats->size());
     for( ; current_stat_handled_ < (*stats)[current_stat_index_];
          ++i, ++current_stat_handled_) {
       if (i == block_size) return;

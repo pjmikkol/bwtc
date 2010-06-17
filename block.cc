@@ -11,7 +11,7 @@ namespace bwtc {
 
 MainBlock::MainBlock(std::vector<byte>* block, std::vector<uint64>* stats,
                      uint64 filled) : 
-    block_(block), frequencies_(stats), filled_(filled) {}
+    block_(block), stats_(stats), filled_(filled) {}
 
 MainBlock::~MainBlock() {}
 

@@ -21,12 +21,12 @@
 namespace bwtc {
 
 /*******************************************************************
- * MainBlock has two  arrays: block_ and frequencies_.             *
+ * MainBlock has two  arrays: block_ and stats_.                   *
  * Both are allocated and deallocated by the client. BlockManager- *
  * class exists for this task.                                     *
  *                                                                 *
  * block_       contains the actual data in MainBlock.             *
- * frequencies_ contains frequencies for each byte                 *
+ * stats_       contains frequencies for each byte                 *
  *******************************************************************/
 class MainBlock {
  public:
@@ -41,7 +41,7 @@ class MainBlock {
   inline byte* end() { return &(*block_)[filled_]; }
 
   std::vector<byte>* block_;
-  std::vector<uint64>* frequencies_;
+  std::vector<uint64>* stats_;
   /* Defines range [0, filled_) in array, which will hold the relevant data. */
   uint64 filled_;
 

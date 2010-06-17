@@ -147,7 +147,7 @@ int Encoder::WriteTrailer(uint64 trailer) {
 // At the moment the implementation is done only for compressing into file
 void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
                          uint64 block_size) {
-  // TODO: At the moment we are not assuming that block->frequencies_ is
+  // TODO: At the moment we are not assuming that block->stats_ is
   //       ordered in increasing order (since it isn't yet)
   unsigned i = 0;
 

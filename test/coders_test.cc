@@ -20,13 +20,11 @@ int verbosity = 7;
 
 namespace tests {
 
-#if 0
 void TestArithmeticCoding(char prob_model) {
   bwtc::Encoder enc(test_fname, prob_model);
   enc.EncodeByte('a');
   enc.EncodeByte('b');
-  enc.FinishBlock(0x0F);
-  delete enc;
+  enc.destination_->Finish();
   bwtc::Decoder dec(test_fname, prob_model);
   dec.Start();
   byte b = dec.DecodeByte();
@@ -61,6 +59,7 @@ void TestWritingAndReadingPackedIntegerList() {
   assert(i == data.size());
 }
 
+#if 0
 void TestBlockArithmeticCoding(int size, char prob_model) {
   std::vector<byte> data(size);
   for(int i = 0; i < size; ++i) {
@@ -164,14 +163,14 @@ void TestWritingAndReadingHeadersAndSimpleData() {
 } //namespace tests
 
 int main() {
-  /*
   tests::TestArithmeticCoding('n');
   tests::TestWritingAndReadingPackedIntegerList();
+  /*
   tests::TestPackingIntegers(1000);
   tests::TestBlockArithmeticCoding(1000, 'n');
   //tests::TestWritingAndReadingHeadersAndSimpleData();
   //tests::TestWritingAndReadingBlockHeaders();
-  std::cout << "Encoder and Decoder passed all tests.\n";
   */
+  std::cout << "Encoder and Decoder passed all tests.\n";
 }
 

@@ -51,11 +51,11 @@ void compress(const std::string& input_name, const std::string& output_name,
     transform->Connect(block);
     transform->BuildStats(); 
 #endif
-    encoder.WriteBlockHeader(block->frequencies_); 
+    encoder.WriteBlockHeader(block->stats_); 
     // Maybe some simple struct instead of vector<byte> (length+data)? 
     //    while(std::vector<byte>* b =  transform->DoTransform(&eob_byte)) {
-    //      encoder.EncodeData(b_, block->frequencies_);
-    encoder.EncodeData(block->block_, block->frequencies_, block->filled_);
+    //      encoder.EncodeData(b_, block->stats_);
+    encoder.EncodeData(block->block_, block->stats_, block->filled_);
       //}
     encoder.FinishBlock(eob_byte);
     last_s = block->filled_;

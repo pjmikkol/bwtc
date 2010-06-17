@@ -45,7 +45,7 @@ class BWTransform {
 
 /* Block size and memory budget would probably be suitable parameters... */
 BWTransform* GiveTransform() {
-  /* When there are multiple ways to do transform this is to place to add them */
+  /* When there are multiple ways to do transform this is to place to add them*/
   return new DCBWTransform();
 }
 

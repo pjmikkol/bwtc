@@ -10,6 +10,7 @@
 #include "prefix_doubling.h"
 #include "prefix_doubling-inl.h"
 #include "stringsort.h"
+#include "stringsort-inl.h"
 
 namespace bwtc {
 

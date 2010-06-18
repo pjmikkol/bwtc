@@ -18,10 +18,10 @@ class DCBWTransform : public BWTransform {
   DCBWTransform();
   virtual ~DCBWTransform();
   
-  virtual void Connect(MainBlock* block);
   virtual byte* DoTransform(uint64* eob_byte);
   virtual void SetContextLength(int length);
   virtual void BuildStats();
+  virtual void Connect(MainBlock* block);
 
   virtual uint64 MaxSizeInBytes(uint64 block_size) const;
   virtual uint64 MaxBlockSize(uint64 memory_budget) const;

@@ -17,7 +17,7 @@
 #ifndef DCSBWT_STRINGSORT_H__
 #define DCSBWT_STRINGSORT_H__
 
-#include "inttypes.h"
+#include "../globaldefs.h"
 
 namespace dcsbwt {
 

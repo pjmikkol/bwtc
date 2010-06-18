@@ -86,7 +86,7 @@
 #include "stringsort.h"
 #include "ternary_partition.h"
 
-#include "inttypes.h"
+#include "../globaldefs.h"
 
 #include <functional>  // for bind2nd, equal_to, greater_equal
 #include <algorithm>   // for copy, copy_backward, find_if, partition

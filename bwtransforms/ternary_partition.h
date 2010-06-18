@@ -27,7 +27,7 @@
 #ifndef DCSBWT_TERNARY_PARTITION_H__
 #define DCSBWT_TERNARY_PARTITION_H__
 
-#include "inttypes.h"
+#include "../globaldefs.h"
 
 #include <utility>    // for pair, make_pair
 #include <algorithm>  // for swap

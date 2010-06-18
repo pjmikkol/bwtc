@@ -10,7 +10,7 @@ byte* AllocateMemory(uint64 size) {
   return new byte[size + 1];
 }
 
-BWTransform* GiveTransform() {
+BWTransform* GiveTransformer() {
   /* When there are multiple ways to do transform this is to place to add them*/
   return new DCBWTransform();
 }

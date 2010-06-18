@@ -55,10 +55,11 @@ clean :
 	rm -f test/testfile.txt
 
 # Rest of the file is for tests:
-tests : test/streamtest test/preproctest test/coderstest
+tests : test/streamtest test/preproctest test/coderstest test/dcbwttest
 	./test/streamtest
 	./test/preproctest
 	./test/coderstest
+	./test/dcbwttest
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o
 	$(CC) $(FLAGS) bin/stream.o test/stream_test.cc -lboost_filesystem-mt \
@@ -73,3 +74,8 @@ test/coderstest : test/coders_test.cc test/testdefs.h bin/coders.o \
 	bin/stream.o bin/rl_compress.o
 	$(CC) $(FLAGS) bin/coders.o bin/rl_compress.o bin/stream.o \
 	test/coders_test.cc -o test/coderstest
+
+test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
+	bin/bw_transform.o bin/dcbwt.o bin/block.o bin/difference_cover.o
+	$(CC) $(FLAGS) bin/bw_transform.o bin/dcbwt.o test/dcbwt_test.cc \
+	bin/block.o bin/difference_cover.o -o test/dcbwttest

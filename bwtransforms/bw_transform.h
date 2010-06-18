@@ -36,7 +36,7 @@ class BWTransform {
   BWTransform() : current_block_(NULL) {}
   virtual ~BWTransform() {}
   
-  void Connect(MainBlock* block) { current_block_ = block; };
+  virtual void Connect(MainBlock* block) { current_block_ = block; };
   virtual byte* DoTransform(uint64* eob_byte) = 0;
   virtual void BuildStats() = 0;
 
@@ -55,7 +55,7 @@ class BWTransform {
 };
 
 /* Block size and memory budget would probably be suitable parameters... */
-BWTransform* GiveTransform();
+BWTransform* GiveTransformer();
 
 /* Computes BWT to output. Caller has to be sure that output is at least *
  * length of block_size + 1 */

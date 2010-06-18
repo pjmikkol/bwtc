@@ -1,7 +1,7 @@
 CC = g++
-FLAGS = -pedantic -Wextra -Wall -Weffc++ -g
+FLAGS = -pedantic -Wextra -Wall -g
 
-all: bin/compr bin/uncompr
+all: bin/compr bin/uncompr bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o 
@@ -23,8 +23,7 @@ bin/preprocessor.o : preprocessor.h preprocessor.cc stream.h bin/block.o
 bin/block.o : block.h block.cc 
 	$(CC) $(FLAGS) block.cc -c -o bin/block.o
 
-bin/coders.o : coders.cc coders.h probmodels/base_prob_model.h rl_compress.h \
-	bin/rl_compress.o 
+bin/coders.o : coders.cc coders.h probmodels/base_prob_model.h bin/rl_compress.o 
 	$(CC) $(FLAGS) coders.cc -c -o bin/coders.o
 
 bin/block_manager.o : block_manager.cc block_manager.h block.h 
@@ -32,6 +31,21 @@ bin/block_manager.o : block_manager.cc block_manager.h block.h
 
 bin/rl_compress.o : rl_compress.cc rl_compress.h globaldefs.h 
 	$(CC) $(FLAGS) rl_compress.cc -c -o bin/rl_compress.o 
+
+# Burrows-wheeler transforms
+bin/bw_transform.o : bwtransforms/bw_transform.cc bwtransforms/bw_transform.h \
+	bwtransforms/dcbwt.h
+	$(CC) $(FLAGS) bwtransforms/bw_transform.cc -c -o bin/bw_transform.o
+
+bin/dcbwt.o : bwtransforms/bw_transform.h bwtransforms/dcbwt.h \
+	bwtransforms/difference_cover.h bwtransforms/difference_cover-inl.h \
+	bwtransforms/dcbwt.cc 
+	$(CC) $(FLAGS) bwtransforms/dcbwt.cc -c -o bin/dcbwt.o
+
+bin/difference_cover.o :  bwtransforms/difference_cover-inl.h \
+	bwtransforms/difference_cover.h bwtransforms/difference_cover.cc
+	$(CC) $(FLAGS) bwtransforms/difference_cover.cc -c -o \
+	bin/difference_cover.o
 
 clean :
 	rm -f bin/*

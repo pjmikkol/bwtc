@@ -52,7 +52,8 @@ void compress(const std::string& input_name, const std::string& output_name,
     transform->BuildStats(); 
 #endif
     encoder.WriteBlockHeader(block->stats_); 
-    // Maybe some simple struct instead of vector<byte> (length+data)? 
+    // Maybe some simple struct instead of vector<byte> (length+data)?
+    // for more efficient memory handling
     //    while(std::vector<byte>* b =  transform->DoTransform(&eob_byte)) {
     //      encoder.EncodeData(b_, block->stats_);
     encoder.EncodeData(block->block_, block->stats_, block->filled_);

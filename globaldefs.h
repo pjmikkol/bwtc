@@ -9,6 +9,7 @@ typedef boost::int32_t int32;
 typedef boost::uint32_t uint32;
 typedef boost::int16_t int16;
 typedef boost::uint16_t uint16;
+typedef boost::uint8_t uint8;
 
 /* Definitions for probability models and arithmetic coding */
 typedef uint16 Probability;

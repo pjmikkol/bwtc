@@ -15,15 +15,11 @@ namespace bwtc {
 
 class DCBWTransform : public BWTransform {
  public:
-  DCBWTransform();
+  DCBWTransform(int period);
   virtual ~DCBWTransform();
   
-  virtual byte* DoTransform(uint64* eob_byte);
-  //virtual void SetContextLength(int length);
-  virtual void BuildStats();
-  //virtual void Connect(MainBlock* block);
+  virtual std::vector<byte>* DoTransform(uint64* eob_byte);
 
-  //virtual byte* AllocateMemory(uint64 block_size);
   virtual uint64 MaxSizeInBytes(uint64 block_size) const;
   virtual uint64 MaxBlockSize(uint64 memory_budget) const;
   virtual uint64 SuggestedBlockSize(uint64 memory_budget) const;

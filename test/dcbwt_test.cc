@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "../block.h"
 #include "../bwtransforms/bw_transform.h"
@@ -18,10 +19,10 @@ void SimpleBWTtest(const char* input, uint64 length) {
   bwtc::MainBlock block(&data, &dummy, length);
   bwt->Connect(&block);
   uint64 eob;
-  byte* result = bwt->DoTransform(&eob);
+  std::vector<byte>* result = bwt->DoTransform(&eob);
   for(unsigned i = 0; i < length + 1; ++i) {
     if(i == eob) std::cout << '$';
-    else std::cout << result[i];
+    else std::cout << (*result)[i];
   }
   std::cout << "\n" << "eob-byte position : " << eob << "\n";
   delete bwt;

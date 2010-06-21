@@ -9,6 +9,7 @@
 
 #include <cassert>
 
+#include <vector>
 
 #include "../block.h"
 #include "../globaldefs.h"
@@ -23,7 +24,6 @@ namespace bwtc {
  *                                                                           *
  *   BWTransform* tranform = GiveTransform(...);                             *
  *   MainBlock* data; uint64 eob_byte;                                       *
- *   transform->SetContextLength(...);                                       *
  *   transform->Connect(data);                                               *
  *   transform->BuildStats();                                                *
  *   while( std::vector<byte>* result = transform->DoTransform(&eob_byte) {  *
@@ -38,11 +38,11 @@ class BWTransform {
   virtual ~BWTransform() {}
   
   virtual void Connect(MainBlock* block) { current_block_ = block;}
-  virtual byte* DoTransform(uint64* eob_byte) = 0;
-  virtual void BuildStats() = 0;
+  virtual std::vector<byte>* DoTransform(uint64* eob_byte) = 0;
+  virtual void BuildStats();
 
   /* If some later stage we want to implement external memory manager ...*/
-  virtual byte* AllocateMemory(uint64 block_size);
+  virtual std::vector<byte>* AllocateMemory(uint64 block_size);
   virtual uint64 MaxSizeInBytes(uint64 block_size) const = 0;
   virtual uint64 MaxBlockSize(uint64 memory_budget) const = 0;
   virtual uint64 SuggestedBlockSize(uint64 memory_budget) const = 0;

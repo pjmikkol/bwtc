@@ -1,24 +1,26 @@
 /*        Part of this code was originally released at        * 
  *        http://code.google.com/p/dcs-bwt-compressor/        */
+#include <vector>
+
 #include "../globaldefs.h"
 #include "bw_transform.h"
 #include "dcbwt.h"
 
-
-#include <iostream>
-
 namespace bwtc {
+ 
+void BWTransform::BuildStats() {
+  std::fill(current_block_->stats_->begin(), current_block_->stats_->end(), 0);
+  for( uint64 i = 0; i < current_block_->Size(); ++i)
+    (*current_block_->stats_)[(*current_block_->block_)[i]]++; 
+}
 
-byte* BWTransform::AllocateMemory(uint64 size) {
-  byte* res = new byte[size + 1];
-  std::cout << res << "\n";
-  std::cout.flush();
-  return res;
+std::vector<byte>* BWTransform::AllocateMemory(uint64 size) {
+  return new std::vector<byte>(size);
 }
 
 BWTransform* GiveTransformer() {
   /* When there are multiple ways to do transform this is to place to add them*/
-  return new DCBWTransform();
+  return new DCBWTransform(10);
 }
 
 /***********************************************************************

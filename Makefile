@@ -1,14 +1,17 @@
 CC = g++
-FLAGS = -pedantic -Wextra -Wall -g
-WFLAGS = -g
+DFLAGS = -g
+FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
+TFLAGS = -Wall $(DFLAGS) # because of template assertions
 
 all: bin/compr bin/uncompr bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
-	bin/block_manager.o bin/coders.o 
+	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
+	bin/difference_cover.o
 	$(CC) $(FLAGS) -lboost_program_options-mt compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o bin/coders.o \
-	bin/rl_compress.o -o bin/compr
+	bin/rl_compress.o bin/dcbwt.o bin/bw_transform.o bin/difference_cover.o\
+	 -o bin/compr
 
 bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
 	bin/stream.o
@@ -41,7 +44,7 @@ bin/bw_transform.o : bwtransforms/bw_transform.cc bwtransforms/bw_transform.h \
 bin/dcbwt.o : bwtransforms/bw_transform.h bwtransforms/dcbwt.h \
 	bwtransforms/difference_cover.h bwtransforms/difference_cover-inl.h \
 	bwtransforms/dcbwt.cc 
-	$(CC) $(FLAGS) bwtransforms/dcbwt.cc -c -o bin/dcbwt.o
+	$(CC) $(TFLAGS) bwtransforms/dcbwt.cc -c -o bin/dcbwt.o
 
 bin/difference_cover.o :  bwtransforms/difference_cover-inl.h \
 	bwtransforms/difference_cover.h bwtransforms/difference_cover.cc

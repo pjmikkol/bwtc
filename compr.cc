@@ -11,6 +11,7 @@ namespace po = boost::program_options;
 #include "preprocessor.h"
 #include "stream.h"
 #include "globaldefs.h"
+#include "bwtransforms/bw_transform.h"
 
 int bwtc::verbosity;
 using bwtc::verbosity;
@@ -33,10 +34,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::BlockManager block_manager(block_size, 1);
   preprocessor->AddBlockManager(&block_manager);
 
-#if 0
-  bwtc::BWTransform* transformer = bwtc::GiveTransform(...);
-  transform->SetContextLength(...);
-#endif  
+  bwtc::BWTransform* transformer = bwtc::GiveTransformer();
 
   bwtc::Encoder encoder(output_name, encoding);
   encoder.WriteGlobalHeader(preproc, encoding);
@@ -46,18 +44,18 @@ void compress(const std::string& input_name, const std::string& output_name,
   while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
     uint64 eob_byte = 0x4444; // "random" 
     ++blocks;
-#if 0
     //Transformer could have some memory manager..
-    transform->Connect(block);
-    transform->BuildStats(); 
-#endif
+    transformer->Connect(block);
+    transformer->BuildStats(); 
     encoder.WriteBlockHeader(block->stats_); 
-    // Maybe some simple struct instead of vector<byte> (length+data)?
-    // for more efficient memory handling
-    //    while(std::vector<byte>* b =  transform->DoTransform(&eob_byte)) {
-    //      encoder.EncodeData(b_, block->stats_);
-    encoder.EncodeData(block->block_, block->stats_, block->filled_);
-      //}
+    /* This may be altered if we want to use some memory manager,
+     * because then it may be possible that we are havin bigger
+     * vector than there exists data. Then we may have to return pair
+     * (vector, data_length) from DoTransform. */
+    while(std::vector<byte>* b =  transformer->DoTransform(&eob_byte)) {
+      encoder.EncodeData(b, block->stats_, b->size());
+      delete b;
+    }
     encoder.FinishBlock(eob_byte);
     last_s = block->filled_;
     delete block;

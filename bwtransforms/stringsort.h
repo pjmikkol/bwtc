@@ -109,7 +109,8 @@ UnsignedInteger* StringsortSuffixes(
 template <typename UnsignedInteger>
 class NullFinishedGroupReporter {
  public:
-  void operator() (UnsignedInteger* begin, UnsignedInteger* end) const {}
+  //void operator() (UnsignedInteger* begin, UnsignedInteger* end) const {}
+  void operator() (...) const {}
 
   template <typename T>
   bool operator!=(const T&) const { return true; }

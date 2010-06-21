@@ -61,7 +61,6 @@ MainBlock* PreProcessor::ReadBlock() {
   std::streamsize read = source_->ReadBlock(
       &(*to)[0], static_cast<std::streamsize>(block_size_) );
   if (!read) return NULL;
-  BuildStats(to, stats, static_cast<uint64>(read)); // This should belong to BWT
   return block_manager_->MakeBlock(to, stats, static_cast<uint64>(read));
 }
 

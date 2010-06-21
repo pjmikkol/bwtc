@@ -19,12 +19,10 @@ namespace bwtc {
 using dcsbwt::DifferenceCover;
 using bwtc::verbosity;
 
-DCBWTransform::DCBWTransform() {}
+DCBWTransform::DCBWTransform(int log_period) :
+    log_period_(log_period), period_(1 << log_period_) {}
 
 DCBWTransform::~DCBWTransform() {}
-  
-void DCBWTransform::BuildStats() {}
-
 
 uint64 DCBWTransform::MaxSizeInBytes(uint64 block_size) const {
   uint64 period = static_cast<uint64>(1) << log_period_;
@@ -481,17 +479,21 @@ class DCSorter {
 
 
 
-byte* DCBWTransform::DoTransform(uint64* eob_byte) {
+std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   if (!current_block_) return NULL;
 
   uint64 block_size = current_block_->Size();
   byte* block = current_block_->begin();
   
+  /* The whole transformation is complete at once */
+  current_block_ = NULL;
+
   assert(block_size > 0);
   assert(block_size < 0xFFFFFFFF - period_);  // TODO: Check this
   uint32 num_suffixes = block_size + 1;
 
-  byte* result = AllocateMemory(block_size);
+  std::vector<byte>* result = AllocateMemory(block_size);
+  byte* result_begin = &((*result)[0]);
 
   // Use basic string sorting for small blocks.
   if (block_size < 1024) {
@@ -515,7 +517,7 @@ byte* DCBWTransform::DoTransform(uint64* eob_byte) {
             null_reporter);
     assert(suffixes_end == begin + num_suffixes);
 
-    *eob_byte =  BwtFromSuffixArray(block, block_size, begin, result);
+    *eob_byte =  BwtFromSuffixArray(block, block_size, begin, result_begin);
     return result;
   }
   // For short blocks and long periods, we may have to reduce the period.
@@ -681,107 +683,8 @@ byte* DCBWTransform::DoTransform(uint64* eob_byte) {
   }
 
   period_ = saved_period;
-  *eob_byte =  BwtFromSuffixArray(block, block_size, suffix_area, result);
+  *eob_byte =  BwtFromSuffixArray(block, block_size, suffix_area, result_begin);
   return result;
 }
-
-
-
-
-
-
-
-#if 0
-
-class DifferenceCoverBWTransformer : public BWTransformer {
-
-
- public:
-  class Options : public BWTransformer::AlgorithmSpecificOptions {
-   public:
-    Options() { Set(std::string("6")); }
-    virtual ~Options() {}
-
-    virtual bool Set(const std::string& options) {
-      if (0 == options.length()) return true;
-      const char* begin = options.c_str();
-      const char* end = begin + options.length();
-      char* next;
-      int64 log_period = strtoll(begin, &next, 0);
-      if (next != end) return false;
-      if (log_period < kMinLogPeriod || log_period > kMaxLogPeriod)
-        return false;
-      if (verbosity > 4) {
-        std::clog << "Setting DifferenceCoverBWTransform::Options"
-                  << " period=" << (1 << log_period) << std::endl;
-      }
-      log_period_ = log_period;
-      return true;
-    }
-    virtual std::string Get() const {
-      assert(log_period_ >= 0);
-      assert(log_period_ <= kMaxLogPeriod);
-      char buffer[4];
-      sprintf(buffer, "%d", log_period_);
-      std::string options(buffer);
-      return options;
-    }
-
-    virtual int64 MaxSizeInBytes(int64 block_size) const {
-      uint64 period = 1LL << log_period_;
-      uint64 size_per_period = sizeof(char) * period
-          + sizeof(uint32) * (period
-                              + DifferenceCover::CoverSizeForPeriod(period));
-      return kMemoryOverhead
-          + ((block_size * size_per_period) / period)
-          + DifferenceCover::SizeInBytesForPeriod(period);
-    }
-    virtual int64 MaxBlockSize(int64 memory_budget) const {
-      uint64 period = 1LL << log_period_;
-      uint64 size_per_period = sizeof(char) * period
-          + sizeof(uint32) * (period
-                              + DifferenceCover::CoverSizeForPeriod(period));
-      memory_budget -= (kMemoryOverhead
-                        + DifferenceCover::SizeInBytesForPeriod(period));
-      return (period * memory_budget) / size_per_period;
-    }
-    virtual int64 SuggestedBlockSize(int64 memory_budget) const {
-      return MaxBlockSize(memory_budget);
-    }
-
-    virtual BWTransformer* GetTransformer(int64 memory_budget) {
-      return new DifferenceCoverBWTransformer(1 << log_period_);
-    }
-   private:
-    static const int64 kMemoryOverhead = (1 << 20);
-    static const int kMinLogPeriod = 3;
-    static const int kMaxLogPeriod = 15;
-    int log_period_;
-  };
-
-  DifferenceCoverBWTransformer(uint32 period) : period_(period) {}
-  virtual ~DifferenceCoverBWTransformer() {}
-
- private:
-  uint32 period_;
-
-  virtual int64 DoTransform(char* block, size_t block_size,
-                            OutStream* output);
-
-  class DCSorter {
-   public:
-    DCSorter(const DifferenceCoverSuffixComparer::Less& dcless)
-        : dcless_(dcless) {}
-    void operator() (uint32* begin, uint32* end) const {
-      std::sort(begin, end, dcless_);
-    }
-   private:
-    DifferenceCoverSuffixComparer::Less dcless_;
-  };
-
-  DifferenceCoverBWTransformer(const DifferenceCoverBWTransformer&);
-  DifferenceCoverBWTransformer& operator=(const DifferenceCoverBWTransformer&);
-};
-#endif
 
 } //namespace bwtc

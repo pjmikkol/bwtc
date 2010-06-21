@@ -433,7 +433,7 @@ void FillCache(
     std::copy(begin, end, buffer);
     // Pack characters into a local integer in an endianness independent way.
     UnsignedInteger cache = buffer[0];
-    for (int i = 1; i < sizeof(UnsignedInteger); ++i) {
+    for (unsigned i = 1; i < sizeof(UnsignedInteger); ++i) {
       cache = (cache << 8) + buffer[i];
     }
     // Write cache to the array.
@@ -456,7 +456,7 @@ UnsignedInteger* StartCachingAndSort(
     const UnsignedInteger target_prefix_length,
     FinishedGroupReporter& report_finished_group)
 {
-  const uint64 num_suffixes = uncached_suffixes_end - uncached_suffixes;
+  const int64 num_suffixes = uncached_suffixes_end - uncached_suffixes;
   assert(num_suffixes > kMaxInsertionSortSize);
   assert(uncached_suffixes - workarea >= num_suffixes);
   CachedSuffix<UnsignedInteger>* cached_suffixes_end
@@ -517,7 +517,7 @@ UnsignedInteger* RefillCacheAndSort(
     const UnsignedInteger target_prefix_length,
     FinishedGroupReporter& report_finished_group)
 {
-  const uint64 num_suffixes = suffixes_end - suffixes;
+  const int64 num_suffixes = suffixes_end - suffixes;
   assert(num_suffixes > 0);
   assert(common_prefix_length <= target_prefix_length);
   // optimization for the case of one suffix
@@ -621,7 +621,7 @@ UnsignedInteger* StringsortDispatchWithCache(
     const UnsignedInteger target_prefix_length,
     FinishedGroupReporter& report_finished_group)
 {
-  const uint64 num_suffixes = suffixes_end - suffixes;
+  const int64 num_suffixes = suffixes_end - suffixes;
   assert(num_suffixes > 0);
   if (num_suffixes > kMaxInsertionSortSize) {
     return StringQuicksortWithCache(text, text_end,

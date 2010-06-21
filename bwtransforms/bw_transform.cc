@@ -4,10 +4,16 @@
 #include "bw_transform.h"
 #include "dcbwt.h"
 
+
+#include <iostream>
+
 namespace bwtc {
 
-byte* AllocateMemory(uint64 size) {
-  return new byte[size + 1];
+byte* BWTransform::AllocateMemory(uint64 size) {
+  byte* res = new byte[size + 1];
+  std::cout << res << "\n";
+  std::cout.flush();
+  return res;
 }
 
 BWTransform* GiveTransformer() {

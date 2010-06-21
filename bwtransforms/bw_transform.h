@@ -9,6 +9,7 @@
 
 #include <cassert>
 
+
 #include "../block.h"
 #include "../globaldefs.h"
 
@@ -36,12 +37,12 @@ class BWTransform {
   BWTransform() : current_block_(NULL) {}
   virtual ~BWTransform() {}
   
-  virtual void Connect(MainBlock* block) { current_block_ = block; };
+  virtual void Connect(MainBlock* block) { current_block_ = block;}
   virtual byte* DoTransform(uint64* eob_byte) = 0;
   virtual void BuildStats() = 0;
 
   /* If some later stage we want to implement external memory manager ...*/
-  byte* AllocateMemory(uint64 block_size);
+  virtual byte* AllocateMemory(uint64 block_size);
   virtual uint64 MaxSizeInBytes(uint64 block_size) const = 0;
   virtual uint64 MaxBlockSize(uint64 memory_budget) const = 0;
   virtual uint64 SuggestedBlockSize(uint64 memory_budget) const = 0;

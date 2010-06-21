@@ -12,6 +12,8 @@
 #include "stringsort.h"
 #include "stringsort-inl.h"
 
+
+
 namespace bwtc {
 
 using dcsbwt::DifferenceCover;
@@ -21,8 +23,6 @@ DCBWTransform::DCBWTransform() {}
 
 DCBWTransform::~DCBWTransform() {}
   
-void DCBWTransform::Connect(MainBlock* block) {}
-
 void DCBWTransform::BuildStats() {}
 
 
@@ -105,7 +105,6 @@ uint32 OptimizeAlphabetOrder(const uint32* bucket_size, uint8* char_of_rank) {
     }
     uint32 Weight(int edge) const { return weights_[edge]; }
     void ReduceWeight(int edge, uint32 weight) {
-      assert(weight >= 0);
       assert(weight <= weights_[edge]);
       weights_[edge] -= weight;
     }
@@ -483,7 +482,7 @@ class DCSorter {
 
 
 byte* DCBWTransform::DoTransform(uint64* eob_byte) {
-  if (current_block_) return NULL;
+  if (!current_block_) return NULL;
 
   uint64 block_size = current_block_->Size();
   byte* block = current_block_->begin();
@@ -506,7 +505,7 @@ byte* DCBWTransform::DoTransform(uint64* eob_byte) {
     uint32* begin = &suffix_array[0];
     uint32* end = begin + suffix_array.size();
     uint32* suffixes_in = end - num_suffixes;
-    for (int i = 0; i < num_suffixes; ++i) suffixes_in[i] = i;
+    for (uint32 i = 0; i < num_suffixes; ++i) suffixes_in[i] = i;
     dcsbwt::NullFinishedGroupReporter<uint32> null_reporter;
     uint32* suffixes_end =
         dcsbwt::StringsortSuffixes(
@@ -589,7 +588,8 @@ byte* DCBWTransform::DoTransform(uint64* eob_byte) {
   }
   assert(num_selected_suffixes == num_suffixes_to_sort);
 
-  uint32* suffixes_end = suffix_area + num_suffixes;
+  /* At the moment we don't need this
+   * uint32* suffixes_end = suffix_area + num_suffixes; */
   uint32* selected_suffixes = suffix_area_end - num_selected_suffixes;
 
   // Distribute the suffixes to the selected buckets.

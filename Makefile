@@ -1,5 +1,6 @@
 CC = g++
 FLAGS = -pedantic -Wextra -Wall -g
+WFLAGS = -g
 
 all: bin/compr bin/uncompr bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o
 

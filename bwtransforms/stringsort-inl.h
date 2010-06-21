@@ -670,7 +670,9 @@ UnsignedInteger* StringQuicksortWithCache(
   assert(equal_part_end - equal_part_begin > 0);
   workarea = RefillCacheAndSort(text, text_end,
                                 workarea, equal_part_begin, equal_part_end,
-                                common_prefix_length + sizeof(UnsignedInteger),
+                                static_cast<UnsignedInteger>(
+                                    common_prefix_length +
+                                    sizeof(UnsignedInteger)),
                                 target_prefix_length,
                                 report_finished_group);
   if (equal_part_end < suffixes_end) {

@@ -11,7 +11,8 @@ BlockManager::BlockManager(uint64 block_size, int context_length) :
     block_size_(block_size), data_buffer_(NULL), frequency_buffer_(NULL)
 {
   data_buffer_ = new std::vector<byte>(block_size_);
-  frequency_buffer_ = new std::vector<uint64>(1 << 8*context_length);
+  /* One extra-context for sentinel character */
+  frequency_buffer_ = new std::vector<uint64>((1 << 8*context_length) + 1);
 }
 
 BlockManager::~BlockManager() {

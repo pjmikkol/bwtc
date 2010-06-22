@@ -3,7 +3,7 @@ DFLAGS = -g
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # because of template assertions
 
-all: bin/compr bin/uncompr bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o
+all: bin/compr bin/uncompr 
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
@@ -14,9 +14,9 @@ bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	 -o bin/compr
 
 bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
-	bin/stream.o
+	bin/stream.o bin/inverse_bwt.o
 	$(CC) $(FLAGS) -lboost_program_options-mt bin/coders.o uncompr.cc \
-	bin/rl_compress.o bin/stream.o -o bin/uncompr
+	bin/rl_compress.o bin/stream.o bin/inverse_bwt.o -o bin/uncompr
 
 bin/stream.o : stream.h stream.cc 
 	$(CC) $(FLAGS) stream.cc -c -o bin/stream.o
@@ -50,6 +50,9 @@ bin/difference_cover.o :  bwtransforms/difference_cover-inl.h \
 	bwtransforms/difference_cover.h bwtransforms/difference_cover.cc
 	$(CC) $(FLAGS) bwtransforms/difference_cover.cc -c -o \
 	bin/difference_cover.o
+
+bin/inverse_bwt.o : bwtransforms/inverse_bwt.h bwtransforms/inverse_bwt.cc
+	$(CC) $(FLAGS) bwtransforms/inverse_bwt.cc -c -o bin/inverse_bwt.o
 
 clean :
 	rm -f bin/*

@@ -1,5 +1,7 @@
 /*        Part of this code was originally released at        * 
  *        http://code.google.com/p/dcs-bwt-compressor/        */
+#include <cassert>
+
 #include <vector>
 
 #include "../globaldefs.h"
@@ -7,11 +9,14 @@
 #include "dcbwt.h"
 
 namespace bwtc {
- 
+
+/* At the moment we assume that context-block of sentinel char *
+ * is at the front of transform. */
 void BWTransform::BuildStats() {
   std::fill(current_block_->stats_->begin(), current_block_->stats_->end(), 0);
+  (*current_block_->stats_)[0] = 1;
   for( uint64 i = 0; i < current_block_->Size(); ++i)
-    (*current_block_->stats_)[(*current_block_->block_)[i]]++; 
+    (*current_block_->stats_)[(*current_block_->block_)[i] + 1]++; 
 }
 
 std::vector<byte>* BWTransform::AllocateMemory(uint64 size) {

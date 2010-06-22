@@ -492,7 +492,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   assert(block_size < 0xFFFFFFFF - period_);  // TODO: Check this
   uint32 num_suffixes = block_size + 1;
 
-  std::vector<byte>* result = AllocateMemory(block_size);
+  std::vector<byte>* result = AllocateMemory(block_size + 1);
   byte* result_begin = &((*result)[0]);
 
   // Use basic string sorting for small blocks.

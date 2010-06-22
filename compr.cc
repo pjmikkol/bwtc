@@ -65,7 +65,7 @@ void compress(const std::string& input_name, const std::string& output_name,
     std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
     std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
   }
-
+  delete transformer;
   delete preprocessor;
 }
 

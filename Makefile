@@ -7,34 +7,43 @@ all: bin/compr bin/uncompr
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
-	bin/difference_cover.o
+	bin/difference_cover.o bin/prob_models.o
 	$(CC) $(FLAGS) -lboost_program_options-mt compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o bin/coders.o \
-	bin/rl_compress.o bin/dcbwt.o bin/bw_transform.o bin/difference_cover.o\
-	 -o bin/compr
+	bin/rl_compress.o bin/dcbwt.o bin/bw_transform.o bin/prob_models.o \
+	bin/difference_cover.o -o bin/compr
 
 bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
-	bin/stream.o bin/inverse_bwt.o
+	bin/stream.o bin/inverse_bwt.o bin/prob_models.o
 	$(CC) $(FLAGS) -lboost_program_options-mt bin/coders.o uncompr.cc \
-	bin/rl_compress.o bin/stream.o bin/inverse_bwt.o -o bin/uncompr
+	bin/rl_compress.o bin/stream.o bin/inverse_bwt.o bin/prob_models.o \
+	-o bin/uncompr
 
+# Streams
 bin/stream.o : stream.h stream.cc 
 	$(CC) $(FLAGS) stream.cc -c -o bin/stream.o
 
+# Preprocessor
 bin/preprocessor.o : preprocessor.h preprocessor.cc stream.h bin/block.o 
 	$(CC) $(FLAGS) preprocessor.cc -c -o bin/preprocessor.o
 
+# Blocks and related things
 bin/block.o : block.h block.cc 
 	$(CC) $(FLAGS) block.cc -c -o bin/block.o
-
-bin/coders.o : coders.cc coders.h probmodels/base_prob_model.h bin/rl_compress.o 
-	$(CC) $(FLAGS) coders.cc -c -o bin/coders.o
 
 bin/block_manager.o : block_manager.cc block_manager.h block.h 
 	$(CC) $(FLAGS) block_manager.cc -c -o bin/block_manager.o
 
+# Arithmetic range coding
+bin/coders.o : coders.cc coders.h bin/rl_compress.o probmodels/base_prob_model.h
+	$(CC) $(FLAGS) coders.cc -c -o bin/coders.o
+
 bin/rl_compress.o : rl_compress.cc rl_compress.h globaldefs.h 
 	$(CC) $(FLAGS) rl_compress.cc -c -o bin/rl_compress.o 
+
+# Probability models for arithmetic coding
+bin/prob_models.o : probmodels/base_prob_model.cc probmodels/base_prob_model.h
+	$(CC) $(FLAGS) probmodels/base_prob_model.cc -c -o bin/prob_models.o
 
 # Burrows-wheeler transforms
 bin/bw_transform.o : bwtransforms/bw_transform.cc bwtransforms/bw_transform.h \
@@ -78,9 +87,9 @@ test/preproctest : test/preproc_test.cc test/testdefs.h bin/block.o \
 	bin/block_manager.o test/preproc_test.cc -o test/preproctest
 
 test/coderstest : test/coders_test.cc test/testdefs.h bin/coders.o \
-	bin/stream.o bin/rl_compress.o
+	bin/stream.o bin/rl_compress.o bin/prob_models.o
 	$(CC) $(FLAGS) bin/coders.o bin/rl_compress.o bin/stream.o \
-	test/coders_test.cc -o test/coderstest
+	test/coders_test.cc bin/prob_models.o -o test/coderstest
 
 test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 	bin/bw_transform.o bin/dcbwt.o bin/block.o bin/difference_cover.o

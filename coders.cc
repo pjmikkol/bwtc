@@ -39,15 +39,6 @@ uint64 UnpackInteger(uint64 packed_integer) {
   return result;
 }
 
-
-ProbabilityModel* GiveProbabilityModel(char choice) {
-  switch(choice) {
-    case 'n':
-    default:
-        return new ProbabilityModel();
-  }
-}
-
 Encoder::Encoder(const std::string& destination, char prob_model)
     : out_(NULL), destination_(NULL), pm_(NULL), header_position_(0),
       compressed_block_length_(0), current_stat_handled_(0),

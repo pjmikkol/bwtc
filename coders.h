@@ -99,8 +99,6 @@ class Decoder {
   Decoder& operator=(const Decoder&);
 };
 
-ProbabilityModel* GiveProbabilityModel(char choice);
-  
 } // namespace bwtc
 
 #endif

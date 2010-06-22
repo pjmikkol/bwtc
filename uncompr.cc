@@ -29,6 +29,7 @@ void decompress(const std::string& input_name, const std::string& output_name,
   unsigned blocks = 0;
   uint64 eob_byte; // eob_byte position in BWT
   while (std::vector<byte>* bwt_block = decoder.DecodeBlock(&eob_byte)) {
+    ++blocks;
     std::vector<byte>* unbwt_block = transformer->DoTransform(&(*bwt_block)[0],
                                                               bwt_block->size(),
                                                               eob_byte);
@@ -37,6 +38,9 @@ void decompress(const std::string& input_name, const std::string& output_name,
     out.Flush();
     delete bwt_block;
     delete unbwt_block;
+  }
+  if (verbosity > 0) {
+    std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
   }
 
   delete transformer;

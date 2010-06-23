@@ -31,16 +31,16 @@ ProbabilityModel* GiveProbabilityModel(char choice) {
  *                                                                       * 
  * Simple template-based probability-model which remembers               *
  * 8*sizeof(Integer) previous bits. Consumes huge amount of memory       *
- * 2^(8*sizeof(Integer)) so practically this is  usable  only with bytes *
- * and short integers.                                                   *
+ * 2^(8*sizeof(Integer) bytes) so practically this is  usable  only with *
+ * bytes and short integers.                                             *
  *************************************************************************/
 template <typename UnsignedInt>
 SimpleMarkov<UnsignedInt>::SimpleMarkov() :
     prev_(static_cast<UnsignedInt>(0)), history_(NULL)
 {
   uint64 size = (static_cast<uint64>(1) << 8*sizeof(UnsignedInt)) - 1;
-  history_ = new bool[size];
-  std::fill(history_, history_ + size, true);
+  history_ = new char[size];
+  std::fill(history_, history_ + size, 0);
 }
 
 template <typename UnsignedInt>
@@ -50,24 +50,31 @@ SimpleMarkov<UnsignedInt>::~SimpleMarkov() {
 
 template <typename UnsignedInt>
 void SimpleMarkov<UnsignedInt>::Update(bool bit) {
-  history_[prev_] = bit;
+  if (bit) {
+    if (history_[prev_] < 2 )
+      ++history_[prev_];
+  }
+  else {
+    if(history_[prev_] > -2)
+      --history_[prev_];
+  }
   prev_ <<= 1;
   prev_ |= (bit)? 1 : 0;
 }
 
 template <typename UnsignedInt>
 Probability SimpleMarkov<UnsignedInt>::ProbabilityOfOne() {
-  if ( history_[prev_] ) return kProbabilityScale - 1;
-  else return 1;
+  Probability val = kProbabilityScale >> (kLogProbabilityScale/2);
+  if (history_[prev_] > 0) return val << 2*history_[prev_];
+  else return val >> 2*history_[prev_];
 }
 
 template <typename UnsignedInt>
 void SimpleMarkov<UnsignedInt>::ResetModel() {
   /* Seems to work better when not resetting the model for different
    * contexts. */
-  /* Resetting the model would be like.. :
-     uint64 size = (static_cast<uint64>(1) << 8*sizeof(UnsignedInt)) - 1;
-      std::fill(history_, history_ + size, true);*/
+  uint64 size = (static_cast<uint64>(1) << 8*sizeof(UnsignedInt)) - 1;
+  std::fill(history_, history_ + size, 0);
 }
 
 } //namespace bwtc

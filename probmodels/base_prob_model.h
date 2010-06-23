@@ -37,7 +37,7 @@ class SimpleMarkov : public ProbabilityModel {
 
  private:
   UnsignedInt prev_;
-  bool* history_;
+  char* history_;
 };
 
 ProbabilityModel* GiveProbabilityModel(char choice);

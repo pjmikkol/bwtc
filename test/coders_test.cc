@@ -15,7 +15,7 @@
 #include "testdefs.h"
 
 namespace bwtc {
-int verbosity = 7;
+int verbosity = 1;
 }
 
 namespace tests {

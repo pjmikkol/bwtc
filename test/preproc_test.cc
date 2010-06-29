@@ -10,7 +10,7 @@
 #include "../block.h"
 #include "../block_manager.h"
 #include "../globaldefs.h"
-#include "../preprocessor.h"
+#include "../preprocessors/preprocessor.h"
 #include "testdefs.h"
 
 namespace tests {

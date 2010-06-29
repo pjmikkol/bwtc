@@ -8,7 +8,7 @@ namespace po = boost::program_options;
 #include "block.h"
 #include "block_manager.h"
 #include "coders.h"
-#include "preprocessor.h"
+#include "preprocessors/preprocessor.h"
 #include "stream.h"
 #include "globaldefs.h"
 #include "bwtransforms/bw_transform.h"
@@ -16,8 +16,6 @@ namespace po = boost::program_options;
 int bwtc::verbosity;
 using bwtc::verbosity;
 
-//TODO: Encoder::EncodeMainBlock NEEDS TO BE SPLITTED into header and
-//      actual encoding parts
 void compress(const std::string& input_name, const std::string& output_name,
               uint64 block_size, char preproc, char encoding)
 {
@@ -42,7 +40,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   unsigned blocks = 0;
   uint64 last_s = 0;
   while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
-    uint64 eob_byte = 0x4444; // "random" 
+    uint64 eob_byte;
     ++blocks;
     //Transformer could have some memory manager..
     transformer->Connect(block);

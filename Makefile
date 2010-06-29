@@ -3,7 +3,7 @@ DFLAGS = -g
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # because of template assertions
 
-all: bin/compr bin/uncompr 
+all: bin/compr bin/uncompr
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
@@ -24,8 +24,15 @@ bin/stream.o : stream.h stream.cc
 	$(CC) $(FLAGS) stream.cc -c -o bin/stream.o
 
 # Preprocessor
-bin/preprocessor.o : preprocessor.h preprocessor.cc stream.h bin/block.o 
-	$(CC) $(FLAGS) preprocessor.cc -c -o bin/preprocessor.o
+bin/preprocessor.o : preprocessors/preprocessor.h preprocessors/preprocessor.cc\
+	 stream.h block.h block_manager.h
+	$(CC) $(FLAGS) preprocessors/preprocessor.cc -c -o bin/preprocessor.o
+
+bin/testpreprocessor.o : preprocessors/preprocessor.h block.h block_manager.h \
+	stream.h preprocessors/test_preprocessor.h \
+	preprocessors/test_preprocessor.cc 
+	$(CC) $(FLAGS) preprocessors/test_preprocessor.cc -c -o \
+	bin/testpreprocessor.o
 
 # Blocks and related things
 bin/block.o : block.h block.cc 
@@ -71,11 +78,13 @@ clean :
 	rm -f test/testfile.txt
 
 # Rest of the file is for tests:
-tests : test/streamtest test/preproctest test/coderstest test/dcbwttest
+tests : test/streamtest test/preproctest test/coderstest test/dcbwttest \
+	test/preprocalgotest
 	./test/streamtest
 	./test/preproctest
 	./test/coderstest
 	./test/dcbwttest
+	./test/preprocalgotest
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o
 	$(CC) $(FLAGS) bin/stream.o test/stream_test.cc -lboost_filesystem-mt \
@@ -95,3 +104,9 @@ test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 	bin/bw_transform.o bin/dcbwt.o bin/block.o bin/difference_cover.o
 	$(CC) $(FLAGS) bin/bw_transform.o bin/dcbwt.o test/dcbwt_test.cc \
 	bin/block.o bin/difference_cover.o -o test/dcbwttest
+
+test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o
+	$(CC) $(FLAGS) test/preproc_algo_test.cc bin/testpreprocessor.o \
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+	-o test/preprocalgotest

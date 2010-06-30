@@ -13,6 +13,10 @@
 #include "../preprocessors/preprocessor.h"
 #include "testdefs.h"
 
+namespace bwtc {
+int verbosity = 0;
+}
+
 namespace tests {
 
 /*********** begin: TestDefaultPreProcBlockReads() ***********/

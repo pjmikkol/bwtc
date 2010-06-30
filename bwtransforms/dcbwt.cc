@@ -551,7 +551,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   if (verbosity > 4) {
     std::clog << "Computing bucket sizes" << std::endl;
   }
-  uint32 bucket_size[0x10000];
+  uint32 bucket_size[0x10000] = {0};
   memset(bucket_size, 0, 0x10000*sizeof(uint32));
   int bucket = static_cast<byte>(block[0]) << 8;
   for (uint32 i = 1; i < block_size; ++i) {
@@ -609,7 +609,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   }
 
   // Compute the positions of all buckets.
-  uint32 bucket_begin[0x10001];
+  uint32 bucket_begin[0x10001] = {0};
   bucket_begin[0] = 0;
   uint32 sum = bucket_size[0];
   for (int bucket = 1; bucket < 0x10000; ++bucket) {
@@ -658,7 +658,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
     uint32 sub_bucket_end[256];
     for (int ch = 0; ch < 256; ++ch) {
       int bucket = (ch << 8) + chi;
-      sub_bucket_begin[ch] = bucket_begin[bucket];
+      sub_bucket_begin[ch] = bucket_size[bucket];
       sub_bucket_end[ch] = bucket_begin[bucket] + bucket_size[bucket];
     }
     if (chi == 0) ++sub_bucket_begin[0];

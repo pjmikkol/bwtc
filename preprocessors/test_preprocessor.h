@@ -25,7 +25,6 @@ class TestPreProcessor : public PreProcessor {
   /* Fills the buffer from instream. returns true if something is read*/
   uint64 FillBuffer();
 
- private:
   MainBlock *curr_block_;
 };
 

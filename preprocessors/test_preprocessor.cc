@@ -14,7 +14,9 @@ namespace bwtc {
 TestPreProcessor::TestPreProcessor(uint64 block_size) :
     PreProcessor(block_size), curr_block_(NULL) {}
 
-TestPreProcessor::~TestPreProcessor() {}
+TestPreProcessor::~TestPreProcessor() {
+  if(curr_block_) delete curr_block_;
+}
 
 uint64 TestPreProcessor::CompressPairs() {
   uint64 filled = CompressCommonPairs(&(*curr_block_->block_)[0],

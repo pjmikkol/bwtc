@@ -106,7 +106,10 @@ test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 	bin/block.o bin/difference_cover.o -o test/dcbwttest
 
 test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
-	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+	bwtransforms/dcbwt.h bin/bw_transform.o bin/dcbwt.o \
+	bin/difference_cover.o
 	$(CC) $(FLAGS) test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	-o test/preprocalgotest
+	bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o -o \
+	test/preprocalgotest

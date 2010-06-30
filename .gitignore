@@ -7,3 +7,5 @@ bin/
 /test/preproctest
 /test/coderstest
 /test/dcbwttest
+/test/preprocalgotest
+/testdata/a.out

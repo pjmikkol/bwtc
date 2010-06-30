@@ -1,14 +1,23 @@
 /* Measurement of spent clock cycles is originally from *
  * http://www.agner.org/optimize/ */
 #include <cassert>
+#include <cstdlib>
 
 #include <iostream>
 #include <string>
 
 #include "../preprocessors/test_preprocessor.h"
 #include "../globaldefs.h"
+#include "../bwtransforms/dcbwt.h"
+#include "../bwtransforms/bw_transform.h"
+
+namespace bwtc {
+int verbosity = 0;
+}
 
 namespace tests {
+
+const int kTimes = 20;
 
 namespace {
 /* Code in this namespace is from http://www.agner.org/optimize/ */
@@ -81,7 +90,8 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
   uint64 total_data, total_reduction;
 
   bwtc::BlockManager bm(block_size, 1);
-  for(int i = 0; i < 20; ++i) {
+  bwtc::BWTransform *transformer = bwtc::GiveTransformer(); 
+  for(int i = 0; i < kTimes; ++i) {
     bwtc::TestPreProcessor pp(block_size);
     pp.AddBlockManager(&bm);
     pp.Connect(source_name);
@@ -97,21 +107,39 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
     total_cycles_preproc += (endPre - beginPre);
     total_data = data_size;
     total_reduction = data_reduction;
+    uint64 eob;
+    __int64 beginBWT = ReadTSC();
+    transformer->Connect(pp.curr_block_);
+    transformer->BuildStats();
+    std::vector<byte>* result = transformer->DoTransform(&eob);
+    __int64 endBWT = ReadTSC();
+    total_cycles_bwt += (endBWT - beginBWT);
+    delete result;
+    std::cout << ".";
+    std::cout.flush();
   }
+  std::cout << "\n";
+  total_cycles_preproc /= kTimes;
+  total_cycles_bwt /= kTimes;
   std::cout << "Average CPU-cycles spent on preprocessing: "
-            << total_cycles_preproc/20 << "\n";
+            << total_cycles_preproc << "\n";
   std::cout << "Size of data was " << total_data << "B\n";
-  std::cout << "Result of preprocessing was " << total_reduction << "B\n";
-  std::cout << "Result is "
-            << (total_reduction/static_cast<double>(total_data))*100.0
-            << "% size of the original data\n";
-
-  
+  std::cout << "Result of preprocessing was " << total_data - total_reduction
+            << "B which is "
+            << (1.0 - (total_reduction/static_cast<double>(total_data)))*100.0
+            << "% of the original data\n";
+  std::cout << "Average CPU-cycles spent on Burrows-Wheerer Transform: "
+            << total_cycles_bwt << "\n";
+  std::cout << "Ratio of (bwt cycles)/(preproc cycles) is "
+            << static_cast<double>(total_cycles_bwt)/total_cycles_preproc
+            << "\n";
+  delete transformer;
 }
 
 } // namespace tests
 
 int main(int argc, char **argv) {
-  assert(argc > 1);
-  tests::TestPairCompression(std::string(argv[1]), 1, 1024*100000);
+  if(argc > 2)
+    tests::TestPairCompression(std::string(argv[1]), atoi(argv[2]),
+                               1024*100000);
 }

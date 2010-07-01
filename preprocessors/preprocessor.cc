@@ -68,8 +68,44 @@ MainBlock* PreProcessor::ReadBlock() {
   return block_manager_->MakeBlock(to, stats, static_cast<uint64>(read));
 }
 
+/*#################### Preprocessing algorithms #############################*/
+
+  /**************************************************************************
+   *    Reasoning behind finding the replaceable pairs   .                  *
+   *------------------------------------------------------------------------*
+   *(p1)                                                                    *
+   * For symbols which are not present in original data, it is required     *
+   * that the pair it will replaced appears at least 4 times in original    *
+   * data, because otherwise we won't benefit from the replacement.         *
+   *                                                                        *
+   *(p2)                                                                    *
+   * We replace some bytes which are present in original data with two      *
+   * bytes. Idea is to use these replaced bytes as coding symbols.          *
+   * Denote the frequency of symbol 'x' with f_x and denote the  frequency  *
+   * of pair 'p' with P_p. If we are going to replace 'x' with two symbols  *
+   * and use it to represent 'p' we require                                 *
+   *        2*f_x + P_p < f_x + 2*P_p    <=>     f_x < P_p                  *
+   * since otherwise we wouldn't  benefit from the replacement.             *
+   *                                                                        *
+   *(p3)                                                                    *
+   * In addition to (2) we need to satisfy the following condition:         *
+   * Let x_j, x_j+1, ..., x_k be the frequencies of freed symbols 'x_i'.    *
+   * Let P_j, P_j+1, ..., P_k be the frequencies of pairs 'P_i' which       *
+   * are going to be replaced with 'x_i'. Let 'x' be the special symbol     *
+   * which is going to be used in each replacements for 'x_i'. We need      *
+   * also use 2 symbols for representing 'x' so the following inequality    *
+   * must hold for replacements. Denote the frequency of 'x' with x.        *
+   *  sum from i = j to k : [2*x_i + P_i] + 2*x <                           *
+   *  sum from i = j to k : [x_i + 2*P_i] +   x                             *
+   *                 <=>                                                    *
+   *  sum from i = j to k : [P_i - x_i] > x                                 *
+   **************************************************************************/
+
+/* Empty namespace for implementing the common functions needed in different
+ * preprocessing algorithms. */
 namespace {
-/* In C++0x these could be implemented more naturally with the use of
+
+/* In C++0x these two could be implemented more naturally with the use of
  * lambda-functions. */
 template <typename F, typename S>
 bool ComparePairSecondAsc(std::pair<F,S> p1, std::pair<F,S> p2) {
@@ -80,18 +116,78 @@ template <typename F, typename S>
 bool ComparePairSecondDesc(std::pair<F,S> p1, std::pair<F,S> p2) {
   return (p1.second > p2.second);
 }
+
+/*****************************************************************************
+ * FindReplaceablePairs - Finds the candidates for pairs which are going to  *
+ *                        be replaced by single symbols. It is required that *
+ *                        if pair = <p1,p2> is in result, then there is no   *
+ *                        pair where p2 would be first symbol of pair or     *
+ *                        where p1 would be second symbol.                   *
+ *                                                                           *
+ * Takes the following arguments:                                            *
+ * replaceable_pairs  - empty vector where pairs are stored                  *
+ * pair_freqs         - unsorted array of <pair, frequency>-pairs, size of   *
+ *                      65536                                                *
+ * frequencies        - array of <byte, frequency>-pairs sorted by frequency *
+ *                      in descending order                                  *
+ * free_symbols       - count of pairs in above array where frequency == 0   *
+ *****************************************************************************/
+void FindReplaceablePairs(std::vector<uint16>* replaceable_pairs,
+                          std::pair<uint16, uint32>* pair_freqs,
+                          std::pair<byte, uint64>* frequencies,
+                          unsigned free_symbols)
+{
+  const unsigned kStep = 256; 
+  unsigned current_pair = 0, current_symbol = 0;
+  unsigned limit = 0;
+
+  while(replaceable_pairs->size() < 254) {
+    if(current_pair == limit) {
+      limit += kStep;
+      assert(limit < 65536);
+      std::partial_sort(pair_freqs + current_pair, pair_freqs + limit,
+                        pair_freqs + 65536,
+                        ComparePairSecondDesc<uint16, uint32>);
+    } /* Conditions (p1) and (p2) */
+    if((current_symbol < free_symbols && (pair_freqs+current_pair)->second < 4)
+       || (current_symbol >= free_symbols &&
+           ((frequencies + current_symbol)->second >=
+            (pair_freqs + current_pair)->second)))
+      break; /* We won't benefit from any changes any more*/
+
+    /* Reject pairs which have conflicting symbols
+     * This one NEEDS better heuristics. Now it uses greedy heuristic */
+    byte fst = static_cast<byte>(
+        ( (pair_freqs + current_pair)->first & 0xFF00) >> 8);
+    byte snd = static_cast<byte>((pair_freqs + current_pair)->first & 0x00FF);
+    if (fst != snd) { /* Do not mind pairs of the of the same char */
+      bool valid = true;
+      for(std::vector<uint16>::iterator it = replaceable_pairs->begin();
+          it != replaceable_pairs->end(); ++it)
+      {
+        uint16 current_fst = static_cast<byte>(((*it) & 0xFF00) >> 8);
+        uint16 current_sec = static_cast<byte>(((*it) & 0x00FF));
+        if (current_fst == snd || current_sec == fst) {
+          valid = false;
+          break;
+        }
+      }
+      if(valid) {
+        replaceable_pairs->push_back((pair_freqs + current_pair)->first);
+        ++current_symbol;
+      }
+    }
+    ++current_pair;
+  }
+  assert(current_symbol == replaceable_pairs->size());
 }
 
-/* Assumes that frequencies is already sorted and the size of frequencies is
- * 256 
-void FreeSymbols(std::pair<byte, uint64> *frequencies, byte *data,
-                 uint64 length)
-{
-  
-}*/
+} //empty namespace
 
-// TODO: What if we need more than length bytes for result
-uint64 CompressCommonPairs(byte *from, uint64 length) {
+/* Assumes that from-array has in reality length of length+2, since in the *
+ * worst case we increase the size of the input by two                     */
+uint64 CompressCommonPairs(byte *from, uint64 length)
+{
   assert(length > 0);
   assert(from);
 
@@ -118,99 +214,25 @@ uint64 CompressCommonPairs(byte *from, uint64 length) {
     index |= from[i];
     ++pair_freqs[index].second;
   }
-
   
-  /**************************************************************************
-   *    Deduce the replaceable pairs from frequency table.                  *
-   *------------------------------------------------------------------------*
-   * Reasoning behind the choices made in loop:                             *
-   *                                                                        *
-   *(1)                                                                     *
-   * For symbols which are not present in original data, it is required     *
-   * that the pair it will replaced appears at least 4 times in original    *
-   * data, because otherwise we won't benefit from the replacement.         *
-   *                                                                        *
-   *(2)                                                                     *
-   * We replace some bytes which are present in original data with two      *
-   * bytes. Idea is to use these replaced bytes as coding symbols.          *
-   * Denote the frequency of symbol 'x' with f_x and denote the  frequency  *
-   * of pair 'p' with P_p. If we are going to replace 'x' with two symbols  *
-   * and use it to represent 'p' we require                                 *
-   *        2*f_x + P_p < f_x + 2*P_p    <=>     f_x < P_p                  *
-   * since otherwise we wouldn't  benefit from the replacement.             *
-   *                                                                        *
-   *(3)                                                                     *
-   * In addition to (2) we need to satisfy the following condition:         *
-   * Let x_j, x_j+1, ..., x_k be the frequencies of freed symbols 'x_i'.    *
-   * Let P_j, P_j+1, ..., P_k be the frequencies of pairs 'P_i' which       *
-   * are going to be replaced with 'x_i'. Let 'x' be the special symbol     *
-   * which is going to be used in each replacements for 'x_i'. We need      *
-   * also use 2 symbols for representing 'x' so the following inequality    *
-   * must hold for replacements. Denote the frequency of 'x' with x.        *
-   *  sum from i = j to k : [2*x_i + P_i] + 2*x <                           *
-   *  sum from i = j to k : [x_i + 2*P_i] +   x                             *
-   *                 <=>                                                    *
-   *  sum from i = j to k : [x_i - P_i] < x                                 *
-   **************************************************************************/
-
-  /* Step size for sorting the pairs */
-  const unsigned kStep = 256; 
-
-  unsigned current_pair = 0, current_symbol = 0;
-  unsigned limit = 0;
   std::vector<uint16> replaceable_pairs;
-  /* Here some more clever heuristic would be a good idea */ 
-  while(replaceable_pairs.size() < 254) {
-    if(current_pair == limit) {
-      limit += kStep;
-      assert(limit < 65536);
-      std::partial_sort(&pair_freqs[current_pair], &pair_freqs[limit],
-                        &pair_freqs[65536],
-                        ComparePairSecondDesc<uint16, uint32>);
-    } /* Conditions (1) and (2) */
-    if((current_symbol < free_symbols && pair_freqs[current_pair].second < 4) ||
-       (current_symbol >= free_symbols && frequencies[current_symbol].second >=
-        pair_freqs[current_pair].second)) {
-      break; /* We won't benefit from any changes any more*/
-    }
-
-    byte fst = static_cast<byte>((pair_freqs[current_pair].first & 0xFF00)>> 8);
-    byte snd = static_cast<byte>(pair_freqs[current_pair].first & 0x00FF);
-    if (fst != snd) { /* Do not mind pairs of the of the same char */
-      bool valid = true;
-      for(std::vector<uint16>::iterator it = replaceable_pairs.begin();
-          it != replaceable_pairs.end(); ++it)
-      {
-        uint16 current_fst = static_cast<byte>(((*it) & 0xFF00) >> 8);
-        uint16 current_sec = static_cast<byte>(((*it) & 0x00FF));
-        if (current_fst == snd || current_sec == fst) {
-          valid = false;
-          break;
-        }
-      }
-      if(valid) {
-        replaceable_pairs.push_back(pair_freqs[current_pair].first);
-        ++current_symbol;
-      }
-    }
-    ++current_pair;
-  }
-  assert(current_symbol == replaceable_pairs.size());
+  FindReplaceablePairs(&replaceable_pairs, pair_freqs, frequencies,
+                       free_symbols);
   byte escape_char;
   unsigned new_symbols;
   if (replaceable_pairs.size() > free_symbols) {
     /* We have found at least one symbol worth of freeing. *
-     * Find the suitable symbol for 'x' in (3). */
+     * Find the suitable symbol for 'x' in (p3). */
     // TODO: Find out if this could be optimised by calculating the sum in
     //       'if valid'-step in previous loop
     int64 check_sum = 0;
     unsigned i;
     for (i = free_symbols; i < replaceable_pairs.size(); ++i) 
-      check_sum += (frequencies[i].second - pair_freqs[i].second);
-    while(check_sum >= static_cast<int64>(frequencies[i].second) &&
+      check_sum += (pair_freqs[i].second - frequencies[i].second);
+    while(check_sum <= static_cast<int64>(frequencies[i].second) &&
           i > free_symbols) {
       --i;
-      check_sum -= (frequencies[i].second - pair_freqs[i].second);
+      check_sum -= (pair_freqs[i].second - frequencies[i].second);
     }
     if (i > free_symbols) {
       escape_char = frequencies[i].first;
@@ -261,10 +283,9 @@ uint64 CompressCommonPairs(byte *from, uint64 length) {
       replacements[pair_value] = escape_char;
     }
   }
-  /* Allocate array for result */
-  byte *temp = new byte[length];
+  /* Allocate array for result. Prepare for the worst */
+  byte *temp = new byte[length+2];
 
-  /* WHAT IF: there won't be any replacements */
   /* Write result to temporary-array */
   uint64 result_index = 0;
   /* First write replacements */

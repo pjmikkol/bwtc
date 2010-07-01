@@ -12,7 +12,7 @@
 #include "../bwtransforms/bw_transform.h"
 
 namespace bwtc {
-int verbosity = 0;
+int verbosity = 2;
 }
 
 namespace tests {
@@ -90,7 +90,7 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
   uint64 total_data, total_reduction;
 
   bwtc::BlockManager bm(block_size, 1);
-  bwtc::BWTransform *transformer = bwtc::GiveTransformer(); 
+  //bwtc::BWTransform *transformer = bwtc::GiveTransformer(); 
   for(int i = 0; i < kTimes; ++i) {
     bwtc::TestPreProcessor pp(block_size);
     pp.AddBlockManager(&bm);
@@ -107,14 +107,14 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
     total_cycles_preproc += (endPre - beginPre);
     total_data = data_size;
     total_reduction = data_reduction;
-    uint64 eob;
+    /*    uint64 eob;
     __int64 beginBWT = ReadTSC();
     transformer->Connect(pp.curr_block_);
     transformer->BuildStats();
     std::vector<byte>* result = transformer->DoTransform(&eob);
     __int64 endBWT = ReadTSC();
     total_cycles_bwt += (endBWT - beginBWT);
-    delete result;
+    delete result;*/
     std::cout << ".";
     std::cout.flush();
   }
@@ -128,12 +128,12 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
             << "B which is "
             << (1.0 - (total_reduction/static_cast<double>(total_data)))*100.0
             << "% of the original data\n";
-  std::cout << "Average CPU-cycles spent on Burrows-Wheerer Transform: "
+  /*  std::cout << "Average CPU-cycles spent on Burrows-Wheerer Transform: "
             << total_cycles_bwt << "\n";
   std::cout << "Ratio of (bwt cycles)/(preproc cycles) is "
             << static_cast<double>(total_cycles_bwt)/total_cycles_preproc
             << "\n";
-  delete transformer;
+            delete transformer;*/
 }
 
 } // namespace tests
@@ -141,5 +141,5 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
 int main(int argc, char **argv) {
   if(argc > 2)
     tests::TestPairCompression(std::string(argv[1]), atoi(argv[2]),
-                               1024*100000);
+                               209715200);
 }

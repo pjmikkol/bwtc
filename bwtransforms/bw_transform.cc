@@ -25,7 +25,7 @@ std::vector<byte>* BWTransform::AllocateMemory(uint64 size) {
 
 BWTransform* GiveTransformer() {
   /* When there are multiple ways to do transform this is to place to add them*/
-  return new DCBWTransform(3);
+  return new DCBWTransform(10);
 }
 
 /***********************************************************************

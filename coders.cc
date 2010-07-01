@@ -104,7 +104,6 @@ void Decoder::EndContextBlock() {
 }
 
 int Encoder::WriteTrailer(uint64 trailer) {
-  assert(trailer);
   int bytes;
   uint64 packed_integer = PackInteger(trailer, &bytes);
   WritePackedInteger(packed_integer, bytes);

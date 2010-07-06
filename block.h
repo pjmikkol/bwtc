@@ -40,8 +40,8 @@ class MainBlock {
    * Uses filled_ for deducing the value.*/
   inline byte* end() { return &(*block_)[filled_]; }
 
-  std::vector<byte>* block_;
-  std::vector<uint64>* stats_;
+  std::vector<byte> *block_;
+  std::vector<uint64> *stats_;
   /* Defines range [0, filled_) in array, which will hold the relevant data. */
   uint64 filled_;
 

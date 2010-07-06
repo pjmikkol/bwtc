@@ -29,6 +29,7 @@ uint64 TestPreProcessor::CompressPairs() {
 void TestPreProcessor::InitializeTarget() {
   assert(block_manager_);
   std::vector<byte>* target = block_manager_->GetFreeBuffer();
+  target->resize(block_size_);
   std::vector<uint64>* stats = block_manager_->GetFreeStats();
   curr_block_ = block_manager_->MakeBlock(target, stats, 0UL);
 }
@@ -37,7 +38,7 @@ uint64 TestPreProcessor::FillBuffer() {
   // TODO: Check the types
   assert(source_);
   assert(curr_block_);
-  assert(block_size_ == curr_block_->block_->size());
+  assert(block_size_ <= curr_block_->block_->size());
   if (curr_block_->filled_ == block_size_) return 0;
   std::streamsize read = source_->ReadBlock(
       curr_block_->begin() + curr_block_->Size(),

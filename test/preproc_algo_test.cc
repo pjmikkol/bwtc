@@ -5,8 +5,10 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "../preprocessors/test_preprocessor.h"
+#include "../preprocessors/postprocessor.h"
 #include "../globaldefs.h"
 #include "../bwtransforms/dcbwt.h"
 #include "../bwtransforms/bw_transform.h"
@@ -17,7 +19,7 @@ int verbosity = 2;
 
 namespace tests {
 
-const int kTimes = 20;
+const int kTimes = 1;
 
 namespace {
 /* Code in this namespace is from http://www.agner.org/optimize/ */
@@ -83,6 +85,59 @@ __int64 ReadTSC() {
 #endif   // USE_ALIB
 }
 
+void TestPairUncompression(std::string source, int times, uint64 block_size)
+{
+  uint64 total_cycles_postproc = 0;
+  bwtc::BlockManager bm(block_size, 1);
+  //bwtc::BWTransform *transformer = bwtc::GiveTransformer(); 
+  for(int i = 0; i < kTimes; ++i) {
+    bwtc::TestPreProcessor pp(block_size);
+    pp.AddBlockManager(&bm);
+    pp.Connect(source);
+    pp.InitializeTarget();
+    uint64 data_size = 0;
+    data_size = pp.FillBuffer();
+    std::vector<byte> original(pp.curr_block_->filled_);
+    std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
+    assert(data_size == pp.curr_block_->filled_);
+    assert(data_size == original.size());
+    uint64 compressed = 0;
+    for(int j = 0; j < times; ++j) {
+      compressed += pp.CompressPairs();
+    }
+    assert(compressed == data_size - pp.curr_block_->filled_);
+    uint64 uncompressed_size;
+    /* Make sure that we can also uncompress the thing */
+    std::cout << pp.curr_block_->filled_ << "\n";
+    __int64 beginPost = ReadTSC();
+    for(int j = 0; j < times; ++j) {
+      uncompressed_size = bwtc::UncompressCommonPairs(pp.curr_block_->block_,
+                                                      pp.curr_block_->filled_);
+      /* This one should be done in same kind of wrapper than
+       * Preprocessor::CompressPairs*/
+      pp.curr_block_->filled_ = uncompressed_size; 
+    }
+    __int64 endPost = ReadTSC();
+    total_cycles_postproc += (endPost - beginPost);
+    std::vector<byte>& uncompressed = *pp.curr_block_->block_;
+
+    std::cout << uncompressed_size << " " << original.size() << "\n";
+
+    assert(uncompressed_size == original.size());
+    for(uint64 j = 0; j < data_size; ++j) {
+      assert(uncompressed[j] == original[j]);
+    }
+    if (bwtc::verbosity < 2) {
+      std::cout << ".";
+      std::cout.flush();
+    }
+  }
+  if (bwtc::verbosity < 2) std::cout << "\n";
+  total_cycles_postproc /= kTimes;
+  std::cout << "Average CPU-cycles spent on postprocessing: "
+            << total_cycles_postproc << "\n";
+}
+
 void TestPairCompression(std::string source_name, int times, uint64 block_size)
 {
   uint64 total_cycles_preproc = 0;
@@ -115,10 +170,13 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
     __int64 endBWT = ReadTSC();
     total_cycles_bwt += (endBWT - beginBWT);
     delete result;*/
-    std::cout << ".";
-    std::cout.flush();
+    /* Make sure that we can also uncompress the thing */
+    if (bwtc::verbosity < 2) {
+      std::cout << ".";
+      std::cout.flush();
+    }
   }
-  std::cout << "\n";
+  if (bwtc::verbosity < 2) std::cout << "\n";
   total_cycles_preproc /= kTimes;
   total_cycles_bwt /= kTimes;
   std::cout << "Average CPU-cycles spent on preprocessing: "
@@ -139,7 +197,11 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
 } // namespace tests
 
 int main(int argc, char **argv) {
-  if(argc > 2)
-    tests::TestPairCompression(std::string(argv[1]), atoi(argv[2]),
-                               209715200);
+  int times = 1;
+  uint64 block_size = 209715200;
+  if(argc > 2) times =  atoi(argv[2]);
+  if (argc > 3) block_size = atoi(argv[3]);
+  if(argc == 1) return 0;
+  tests::TestPairCompression(std::string(argv[1]), times, block_size);
+  tests::TestPairUncompression(std::string(argv[1]), times, block_size);
 }

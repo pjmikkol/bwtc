@@ -23,7 +23,7 @@ bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
 bin/stream.o : stream.h stream.cc 
 	$(CC) $(FLAGS) stream.cc -c -o bin/stream.o
 
-# Preprocessor
+# Pre- and postprocessors
 bin/preprocessor.o : preprocessors/preprocessor.h preprocessors/preprocessor.cc\
 	 stream.h block.h block_manager.h
 	$(CC) $(FLAGS) preprocessors/preprocessor.cc -c -o bin/preprocessor.o
@@ -33,6 +33,10 @@ bin/testpreprocessor.o : preprocessors/preprocessor.h block.h block_manager.h \
 	preprocessors/test_preprocessor.cc 
 	$(CC) $(FLAGS) preprocessors/test_preprocessor.cc -c -o \
 	bin/testpreprocessor.o
+
+bin/postprocessor.o : preprocessors/postprocessor.cc \
+	preprocessors/postprocessor.h
+	$(CC) $(FLAGS) preprocessors/postprocessor.cc -c -o bin/postprocessor.o
 
 # Blocks and related things
 bin/block.o : block.h block.cc 
@@ -75,6 +79,8 @@ clean :
 	rm -f test/coderstest
 	rm -f test/streamtest
 	rm -f test/preproctest
+	rm -f test/dcbwttest
+	rm -f test/preprocalgotest
 	rm -f test/testfile.txt
 
 # Rest of the file is for tests:
@@ -108,8 +114,13 @@ test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
 	bwtransforms/dcbwt.h bin/bw_transform.o bin/dcbwt.o \
-	bin/difference_cover.o
+	bin/difference_cover.o bin/postprocessor.o
 	$(CC) $(FLAGS) test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o -o \
-	test/preprocalgotest
+	bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o \
+	bin/postprocessor.o -o test/preprocalgotest
+
+test/pair_repl : test/pair_repl_test.cc preprocessors/preproc_algos.cc
+	$(CC) $(FLAGS) test/pair_repl_test.cc -o test/pair_repl
+
+

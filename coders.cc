@@ -166,6 +166,10 @@ void Encoder::FinishBlock(uint64 eob_byte) {
   out_->Write48bits(compressed_block_length_, header_position_);
 }
 
+/*********************************************************************
+ * The format of header is the following:                            *
+ * TODO:WRITE FORMAT                                                 *
+ *********************************************************************/
 void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
   uint64 header_length = 0;
   header_position_ = out_->GetPos();

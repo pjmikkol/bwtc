@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include <iostream>
 #include <vector>
 
 #include "../globaldefs.h"
@@ -32,6 +33,9 @@ uint64 UncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
       escape_symbol = data[i+1];
     }
     j = i + 2;
+  }
+  if (verbosity) {
+    std::clog << ((j - 2)/3) << " pair replacements.\n";
   }
   for( ; j < length; ++j) {
     byte current = data[j];

@@ -111,6 +111,10 @@ class FreqTable {
     return freq_[location_[i]];
   }
 
+  void ChangeValue(unsigned i, uint64 value) {
+    if (freq_[location_[i]] > value) Decrease(i, value);
+    else if (freq_[location_[i]] < value) Increase(i, value);
+  }
 
  private:
   uint64 freq_[256];
@@ -133,7 +137,7 @@ class FreqTable {
     Heapify(location_[i]);
   }
 
-  void Decrease(unsigned i, uint64 value) {
+  void Decrease(int i, uint64 value) {
     assert(i <= 255);
     assert(freq_[location_[i]] >= value);
     while (i < 0) {
@@ -161,8 +165,7 @@ class FreqTable {
         std::swap(freq_[i], freq_[l]);
         std::swap(location_[i], location_[l]);
     }
-  }
-  
+  } 
 };
 
 /*##################### Replacing the most common pairs ######################*/
@@ -398,7 +401,7 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   byte *temp = new byte[length + 2];
 
   /* Initialize replacement table and write header */
-  unsigned symbols_in_use = 0;
+  int symbols_in_use = 0;
   uint64 position = 0;
   unsigned candidates = static_cast<unsigned>(replaceable_pairs.size());
   unsigned k;
@@ -408,7 +411,7 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
     WriteBytes(replaceable_pairs[k].first, temp + position);
     position += 2;
   }
-  if (k > 0) symbols_in_use = k - 1;
+  if (k > 0) symbols_in_use = k;
   else symbols_in_use = 0;
 
   if ( free_symbols < escape_index) {
@@ -418,23 +421,28 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
       WriteBytes(replaceable_pairs[i].first, temp + position);
       position += 2;
       uint16 pair_value = freq[i].first << 8;
-      for(unsigned j = 0; j < 256; ++j, ++pair_value)
-        replacements[pair_value] = escape_byte;
+      for(unsigned j = 0; j < 256; ++j, ++pair_value) {
+        if (replacements[pair_value] == common_byte)
+          replacements[pair_value] = escape_byte;
+      }
     }
     symbols_in_use += escape_index - free_symbols + 1;
     uint16 pair_value = escape_byte << 8;
-    for(unsigned j = 0; j < 256; ++j, ++pair_value)
-      replacements[pair_value] = escape_byte;
+    for(unsigned j = 0; j < 256; ++j, ++pair_value) {
+        if (replacements[pair_value] == common_byte)
+          replacements[pair_value] = escape_byte;
+    }
   }
+  unsigned new_symbols = (free_symbols == escape_index)?
+      0 : symbols_in_use - free_symbols;
   /* Find the dummy byte for header and write the end of header */
-  byte dummy = escape_byte + 0;
-  if (escape_index > free_symbols) dummy = freq[escape_index - 1].first;
-  else if (symbols_in_use) dummy = freq[symbols_in_use - 1].first;
+  byte dummy = escape_byte + 1;
+  if (new_symbols > 0) dummy = freq[escape_index - 1].first;
+  else if (symbols_in_use > 0) dummy = freq[symbols_in_use - 1].first;
   temp[position++] = dummy;
   if (free_symbols < escape_index) temp[position++] = escape_byte;
   else temp[position++] = dummy;
 
-  unsigned new_symbols = std::max(0U, symbols_in_use - free_symbols);
   if (verbosity > 1) {
     std::clog << "Replacing " << ((symbols_in_use)?(symbols_in_use - 1):0)
               << " pairs. ";
@@ -444,6 +452,14 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
       std::clog << "No symbols made free.\n";
   }
 
+  #if 0
+  for(std::vector<std::pair<uint16, uint32> >::iterator it =
+          replaceable_pairs.begin(); it != replaceable_pairs.end(); ++it)
+  {
+    std::cout << ((it->first & 0xff00) >> 8) << " " << (it->first&0xff) << "\n";
+  }
+  #endif
+
   uint64 total_size = position;
   total_size += WriteReplacements(replacements, temp + position, from, length,
                                   common_byte, escape_byte);
@@ -452,6 +468,9 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   delete [] temp;
   return total_size;
 }
+
+
+
 
 /*##################### Replacing the runs of same byte ######################*/
 namespace longruns {

@@ -21,7 +21,7 @@ uint64 UncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   uint64 j = 0;
   bool escaping = false;
   byte escape_symbol;
-  if (data[0] == data[1]) j = 2;
+  if (data[0] == data[1] && data[1] == data[2]) j = 3;
   else {
     unsigned i = 0;
     do {

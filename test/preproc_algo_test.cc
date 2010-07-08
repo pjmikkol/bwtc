@@ -108,7 +108,6 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
     assert(compressed == data_size - pp.curr_block_->filled_);
     uint64 uncompressed_size;
     /* Make sure that we can also uncompress the thing */
-    std::cout << pp.curr_block_->filled_ << "\n";
     __int64 beginPost = ReadTSC();
     for(int j = 0; j < times; ++j) {
       uncompressed_size = bwtc::UncompressCommonPairs(pp.curr_block_->block_,
@@ -121,7 +120,6 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
     total_cycles_postproc += (endPost - beginPost);
     std::vector<byte>& uncompressed = *pp.curr_block_->block_;
 
-    std::cout << uncompressed_size << " " << original.size() << "\n";
 
     assert(uncompressed_size == original.size());
     for(uint64 j = 0; j < data_size; ++j) {

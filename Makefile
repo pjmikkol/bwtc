@@ -84,8 +84,8 @@ clean :
 	rm -f test/testfile.txt
 
 # Rest of the file is for tests:
-tests : test/streamtest test/preproctest test/coderstest test/dcbwttest \
-	test/preprocalgotest
+tests : test/preproctest test/coderstest test/dcbwttest \
+	test/preprocalgotest test/streamtest
 	./test/streamtest
 	./test/preproctest
 	./test/coderstest
@@ -122,5 +122,3 @@ test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 
 test/pair_repl : test/pair_repl_test.cc preprocessors/preproc_algos.cc
 	$(CC) $(FLAGS) test/pair_repl_test.cc -o test/pair_repl
-
-

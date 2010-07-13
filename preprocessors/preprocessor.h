@@ -39,6 +39,7 @@ PreProcessor* GivePreProcessor(
     char choice, uint64 block_size, const std::string& input);
 
 uint64 CompressCommonPairs(byte *from, uint64 length);
+uint64 CompressLongRuns(byte *from, uint64 length);
 
 } // namespace bwtc
 

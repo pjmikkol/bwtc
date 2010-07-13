@@ -93,8 +93,6 @@ void InitPairsWithValue(std::pair<Key, Value> *pairs, Value v, uint64 length)
     pairs[i] = std::make_pair(static_cast<Key>(i), v);
 }
 
-#define FREQUPDATE 1
-
 class FreqTable {
  public:
   FreqTable() {
@@ -126,10 +124,8 @@ class FreqTable {
 
   //  void Decrease(unsigned freq_index, uint64 value) {
   bool Decrease(unsigned key, uint64 value) {
-    //assert(freq_index <= 255);
     assert(key <= 255);
     unsigned freq_index = location_[key];
-    //assert(freq_[freq_index].second >= value);
     if(freq_[freq_index].second < value) return false;
     uint64 new_value = freq_[freq_index].second - value;
     std::pair<byte, uint64> new_pair =
@@ -260,21 +256,17 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
     }
     byte fst = static_cast<byte>((pair_freqs[current_pair].first & 0xFF00) >> 8);
     byte snd = static_cast<byte>(pair_freqs[current_pair].first & 0x00FF);
-#ifdef FREQUPDATE
     if (!freqs->Decrease(fst, pair_freqs[current_pair].second)) {
       ++current_pair;
       continue;
     }
     if(fst != snd) freqs->Decrease(snd, pair_freqs[current_pair].second);
-#endif
     // TODO: make the control flow more reasonable 
     
     /* Condition (p1) */
     if((*freqs)[current_symbol] + 3 >= pair_freqs[current_pair].second) {
-#ifdef FREQUPDATE
       freqs->Increase(fst, pair_freqs[current_pair].second);
       freqs->Increase(snd, pair_freqs[current_pair].second);
-#endif      
       break; /* We won't benefit from any changes any more*/
     }
     /* Reject pairs which have conflicting symbols
@@ -289,26 +281,18 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
         uint16 current_sec = static_cast<byte>((it->first & 0x00FF));
         if (current_fst == snd || current_sec == fst) {
           valid = false;
-#ifdef FREQUPDATE
           freqs->Increase(fst, pair_freqs[current_pair].second);
           freqs->Increase(snd, pair_freqs[current_pair].second);
-#endif
           break;
         }
       }
       if(valid) {
         replaceable_pairs->push_back(pair_freqs[current_pair]);
-#ifdef LAZYFREQ
-        freqs->Decrease(fst, pair_freqs[current_pair].second);
-        freqs->Decrease(snd, pair_freqs[current_pair].second);
-#endif
         ++current_symbol;
       }
     }
     else {
-#ifdef FREQUPDATE
       freqs->Increase(fst, pair_freqs[current_pair].second);
-#endif
     }
     ++current_pair;
   }
@@ -335,10 +319,8 @@ unsigned EscapeCharIndex(FreqTable* freqs,
     --i;
     byte fst = static_cast<byte>((suitable_pairs[i].first & 0xFF00) >> 8);
     byte snd = static_cast<byte>(suitable_pairs[i].first & 0x00FF);
-#ifdef FREQUPDATE
     freqs->Increase(fst, suitable_pairs[i].second);
     freqs->Increase(snd, suitable_pairs[i].second);
-#endif
     utility -= (suitable_pairs[i].second - (*freqs)[i] - 3);
   }
   return i;
@@ -454,6 +436,7 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   std::fill(replacements, replacements + 65536, common_byte);
   byte *temp = new byte[length + 3];
 
+  // TODO: Change this to also store the replacements to map etc
   /* Initialize replacement table and write header */
   int symbols_in_use = 0;
   uint64 position = 0;
@@ -501,7 +484,8 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   }
 
   if (verbosity > 1) {
-    std::clog << "Replacing " << ((symbols_in_use)?(symbols_in_use - 1):0)
+    std::clog << "Replacing " << ((new_symbols > 0)?
+                                  (symbols_in_use - 1):symbols_in_use)
               << " pairs. ";
     if (new_symbols > 0)
       std::clog << "Made " << new_symbols << " symbols free.\n";
@@ -522,14 +506,140 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
 
 
 /*##################### Replacing the runs of same byte ######################*/
+
 namespace longruns {
 
 const unsigned kMaxLenOfSeq = 1 << 15;
 
+struct triple {
+  triple(byte sym, unsigned len, uint32 freq) :
+      symbol(sym), length(len), frequency(freq) {}
+  byte symbol;
+  unsigned length;
+  uint32 frequency;
+};
+
+/* Answers the question: which one of the sequences is more profitable *
+ * to replace with single symbol */
+bool CompareTripleDesc(triple t1, triple t2) {
+  return (t1.length - 1)*t1.frequency > (t2.length - 1)*t2.frequency;
+}
+
+bool operator>(triple t1, triple t2) {
+  return CompareTripleDesc(t1, t2);
+}
+
+bool operator<(triple t1, triple t2) {
+  return CompareTripleDesc(t2, t1);
+}
+
+class SequenceHeap {
+  /* Class for storing the counts of runs, picking the most profitable run and *
+   * updating the frequencies of runs. Essentially this is heap with additional*
+   * keys, which provide fast search. This class doesn't do any memory since   *
+   * the idea is to use this only during the CompressLongRuns. */
+
+#define parent(x) (((x)-1)/2)
+#define left(x) (2*(x) + 1)
+#define right(x) (2*(x) + 2)
+
+ public:
+  SequenceHeap(std::vector<triple> &sequences) : seqs_(sequences)
+  {
+    InitLocations();
+    last_ = seqs_.size() - 1;
+    BuildMaxHeap();
+  }
+
+  triple DeleteMax() {
+    triple max = seqs_[0];
+    /* Update or delete the sequences of same byte */
+    for(std::map<unsigned, unsigned>::iterator it =
+            locations_[max.symbol].begin();
+        it != locations_[max.symbol].end();
+        ++it)
+    {
+      if(it->first >= max.length) {
+        Delete(it->second);
+
+      }
+      else {
+        triple target = seqs_[it->second];
+        Decrease(it->second, (max.length/target.length)*max.frequency);
+      }
+    }
+    return max;
+  }
+
+ private:
+  std::vector<triple> &seqs_;
+  /* Pairs in maps are <length of sequence, location in seqs_ >. They
+   * are indexed by their byte-value */
+  std::map<unsigned, unsigned> locations_[256];
+  int last_;
+
+  void Decrease(unsigned index, unsigned value) {
+    if (static_cast<int>(index) <= last_) return;
+    assert(seqs_[index].frequency >= value);
+    seqs_[index].frequency -= value;
+    Heapify(index);
+  }
+
+  void Delete(unsigned index) {
+    if (static_cast<int>(index) > last_) return;
+    locations_[seqs_[index].symbol][seqs_[index].length] = last_;
+    locations_[seqs_[last_].symbol][seqs_[last_].length] = index;    
+    std::swap(seqs_[index], seqs_[last_]);
+    --last_;
+    Heapify(index);
+  }
+
+  void InitLocations() {
+    for(unsigned i = 0; i < seqs_.size(); ++i) {
+      locations_[seqs_[i].symbol].insert(
+          std::pair<unsigned, unsigned>(seqs_[i].length, i));
+      assert(seqs_[i].length > 0);
+    }
+  }
+
+  void Heapify(int i) {
+    int l = left(i), r = right(i);
+    while(r <= last_) {
+      int largest = (seqs_[l] > seqs_[r]) ? l : r;
+      if(seqs_[i] < seqs_[largest]) {
+        assert(locations_[seqs_[largest].symbol].count(seqs_[largest].length) > 0);
+        assert(locations_[seqs_[i].symbol].count(seqs_[i].length) > 0);
+        std::swap(locations_[seqs_[i].symbol][seqs_[i].length],
+                  locations_[seqs_[largest].symbol][seqs_[largest].length]);
+        std::swap(seqs_[i], seqs_[largest]);
+        i = largest;
+        l = left(i), r = right(i);
+      } else return;
+    }
+    if( l == last_ && seqs_[i] < seqs_[l]) {
+        std::swap(locations_[seqs_[i].symbol][seqs_[i].length],
+                  locations_[seqs_[l].symbol][seqs_[l].length]);
+        std::swap(seqs_[i], seqs_[l]);
+    }
+  } 
+
+
+  void BuildMaxHeap() {
+    for(int i = parent(last_); i >= 0; --i) {
+      Heapify(i);
+    }
+  }
+
+#undef parent
+#undef left
+#undef right
+};
+
+
 /* Floor of logarithm of base two */
-unsigned LogFloor(unsigned n) {
+byte LogFloor(unsigned n) {
   assert(n > 0);
-  unsigned log = 0;
+  byte log = 0;
   while(n > 1) {
     n >>= 1;
     ++log;
@@ -546,13 +656,14 @@ unsigned MostSignificantBit(unsigned n) {
   return n & (~(n >> 1));
 }
 
-void UpdateFreqs(std::map<unsigned, uint32> *run_freq, byte symbol, unsigned length)
+void UpdateFreqs(std::map<unsigned, uint32> *run_freq, byte symbol,
+                 unsigned length)
 {
   assert(length <= kMaxLenOfSeq);
   assert(length > 1);
   length -= (length % 2);
   unsigned original = length;
-  while(length) {
+  while(length) { /* Compute the number of sequences of length 2^k for some k */
     unsigned longest = MostSignificantBit(length);
     if (run_freq[symbol].count(longest))
       run_freq[symbol][longest] += original/longest;
@@ -561,12 +672,12 @@ void UpdateFreqs(std::map<unsigned, uint32> *run_freq, byte symbol, unsigned len
   }
 }
 
-void ComputeRunFrequencies(byte *from, std::pair<byte, uint64> *freq,
+void ComputeRunFrequencies(byte *from, uint64 *freq,
                            std::map<unsigned, uint32> *run_freq, uint64 length)
 {
   byte prev = from[0];
   unsigned run_length = 1;
-  ++freq[prev].second;
+  ++freq[prev];
   for(uint64 i = 1; i < length; ++i) {
     if (from[i] == prev && run_length < kMaxLenOfSeq)
       ++run_length;
@@ -576,68 +687,92 @@ void ComputeRunFrequencies(byte *from, std::pair<byte, uint64> *freq,
       prev = from[i];
       run_length = 1;
     }
-    ++freq[prev].second;
+    ++freq[prev];
   }
 }
 
-struct triple {
-  triple(byte sym, byte len, uint32 freq) :
-      symbol(sym), length(len), frequency(freq) {}
-  byte symbol;
-  unsigned length;
-  uint32 frequency;
-};
+void FindReplaceableRuns(std::vector<triple> *runs,
+                         std::vector<triple> *longest_runs,
+                         FreqTable *freqs)
+{
+  SequenceHeap seq_heap(*runs);
+  assert(longest_runs->size() == 0);
 
-/* Answers the question: which one of the sequences is more profitable *
- * to replace with single symbol */
-bool CompareTripleDesc(triple t1, triple t2) {
-  return (t1.length - 1)*t1.frequency > (t2.length - 1)*t2.frequency;
+  unsigned current_symbol = 0;
+  while(longest_runs->size() < 254 && longest_runs->size() < runs->size()) {
+    triple best = seq_heap.DeleteMax();
+    freqs->Decrease(best.symbol, best.length*best.frequency);
+    if((*freqs)[current_symbol] + 3 >= (best.length - 1)*(best.frequency))
+      break;
+    longest_runs->push_back(best);
+    ++current_symbol;
+  }
+  assert(current_symbol == longest_runs->size());
 }
 
-triple ProfitableSequence(const std::map<unsigned, uint32>& seq_freqs,
-                          unsigned bval)
+unsigned EscapeCharIndex(FreqTable *freqs, const std::vector<triple>& runs,
+                         unsigned free_symbols)
 {
-  unsigned max_length = 1;
-  uint32 max_freq = 0;
-  for(std::map<unsigned, uint32>::const_iterator it = seq_freqs.begin();
-      it != seq_freqs.end(); ++it)
+  if(runs.size() <= free_symbols) return free_symbols;
+  int64 utility = 0;
+  unsigned i;
+  for(i = free_symbols; i < runs.size(); ++i) {
+    utility += ((runs[i].length - 1)*runs[i].frequency - (*freqs)[i] - 3);
+  }
+  while(utility <= static_cast<int64>((*freqs)[i]) &&
+        i > free_symbols)
   {
-    if ((max_length - 1)*max_freq < (it->first - 1)*it->second) {
-      max_length = it->first;
-      max_freq = it->second;
+    --i;
+    freqs->Increase(runs[i].symbol, (runs[i].length - 1)*runs[i].frequency);
+    utility -= ((runs[i].length - 1)*runs[i].frequency - (*freqs)[i]- 3);
+  }
+  return i;
+}
+
+unsigned WriteRunReplacement(const std::map<unsigned, byte> &repl,
+                             unsigned run_length, bool escaping, byte escape,
+                             byte symbol, byte *to)
+{
+  std::map<unsigned, byte>::const_reverse_iterator it = repl.rbegin();
+  assert(repl.size() > 0);
+  unsigned j = 0;
+  while(run_length > 0) {
+    assert(it != repl.rend());
+    unsigned times = run_length/ (it->first);
+    if(it->first == 1 && escaping && it->second == escape) {
+      for(unsigned k = 0; k < times; ++k) {
+        to[j++] = escape; to[j++] = symbol;
+      }
+      break;
+    } else {
+      if(times > 0) std::fill(to + j, to + j + times, it->second);
+      j += times;
+    }
+    run_length -= times*it->first;
+    ++it;
+  }
+  return j;
+}
+
+uint64 WriteReplacements(const std::map<unsigned,byte> *replacements, byte *to,
+                         byte *from, uint64 length, byte escape, bool escaping)
+{
+  uint64 j = 0; /* Index of target */
+  byte prev = from[0];
+  unsigned run_length = 1;
+  for(uint64 i = 1; i < length; ++i) {
+    if(prev == from[i] && run_length < kMaxLenOfSeq)
+      ++run_length;
+    else {
+      j += WriteRunReplacement(replacements[prev], run_length, escaping,
+                               escape, prev, to + j);
+      prev = from[i];
+      run_length = 1;
     }
   }
-  return triple(static_cast<byte>(bval), max_length, max_freq);
-}
-
-void FindReplaceableRuns(std::vector<triple> *longest_runs,
-                         const std::map<unsigned,uint32> *run_freq,
-                         const std::pair<byte, uint64> *freq)
-{
-  /* We choose only one run for each different character */
-  std::vector<triple> &runs = *longest_runs;
-  assert(runs.size() == 0);
-
-  for(unsigned i = 0; i < 256; ++i) {
-    if(run_freq[i].size() > 0)
-      runs.push_back(ProfitableSequence(run_freq[i], i));
-  }
-  std::sort(runs.begin(), runs.end(), CompareTripleDesc);
-  /* Remove the */
-  unsigned i = runs.size() - 1;
-  while(freq[i].second >= (runs[i].length-1)*runs[i].frequency - 3) {
-    runs.pop_back();
-    --i;
-  }
-
-  /*
-  while(runs.size() < 254) {
-    if()
-      break;
-    runs.push_back(sequences[i]);
-    ++i;
-    }*/
-  assert(i == runs.size());
+  j += WriteRunReplacement(replacements[prev], run_length, escaping,
+                           escape, prev, to + j);
+  return j;
 }
 
 } // namespace longruns
@@ -648,19 +783,112 @@ uint64 CompressLongRuns(byte *from, uint64 length)
 
   assert(length > 0);
   assert(from);
-  std::pair<byte, uint64> freq[256];
+  uint64 freq[256] = { 0 };
   std::map<unsigned, uint32> run_freq[256];
-  InitPairsWithValue<byte, uint64>(freq, 0, 256);
   ComputeRunFrequencies(from, freq, run_freq, length);
 
-  std::sort(&freq[0], &freq[0] + 256, ComparePairSecondAsc<byte, uint64>);
+  FreqTable freqs(freq);
 
   unsigned free_symbols = 0;
-  while(freq[free_symbols].second == 0) ++free_symbols;
+  while(freqs[free_symbols] == 0) ++free_symbols;
 
-  std::vector<triple> longest_runs;
-  FindReplaceableRuns(&longest_runs, run_freq, freq);
+  std::vector<triple> runs, longest_runs;
+  runs.reserve(256);
+  for(unsigned i = 0; i < 256; ++i) {
+    for(std::map<unsigned, uint32>::const_iterator it = run_freq[i].begin();
+        it != run_freq[i].end(); ++it)
+    {
+      assert(it->second > 0);
+      assert(it->first > 1);
+      runs.push_back(triple(static_cast<byte>(i), it->first, it->second));
+    }
+  }
+  FindReplaceableRuns(&runs,&longest_runs, &freqs);
+
+  unsigned escape_index = free_symbols;
+  if(longest_runs.size() > free_symbols) {
+    escape_index = EscapeCharIndex(&freqs, longest_runs, free_symbols);
+  }
+  unsigned symbols_in_use = (longest_runs.size() > free_symbols) ?
+      (escape_index + 1) : longest_runs.size();
+
+  unsigned new_symbols =  (escape_index == free_symbols)?
+      0 : escape_index - free_symbols + 1;
+
+  if (verbosity > 1) {
+    std::clog << "Replacing " << ((new_symbols > 0)?
+                                  (symbols_in_use - 1):symbols_in_use)
+              << " runs. ";
+    if (new_symbols > 0)
+      std::clog << "Made " << new_symbols << " symbols free.\n";
+    else
+      std::clog << "No symbols made free.\n";
+  }
+
+  byte *temp = new byte[length + 2];
+  uint64 position = 0;
+  byte escape_byte = freqs.Key(escape_index);
+
+  if(symbols_in_use > 0) {
+    //TODO: Store replacement in somewhere so they can be merged with other
+    unsigned limit;
+    if (new_symbols > 0) limit = (symbols_in_use-1) - ((symbols_in_use-1) % 2);
+    else limit = symbols_in_use - (symbols_in_use % 2);
+
+    for(unsigned i = 0; i < limit; i += 2) {
+      temp[position++] = freqs.Key(i);
+      assert(longest_runs[i].length <= kMaxLenOfSeq);
+      assert(longest_runs[i+1].length <= kMaxLenOfSeq);
+      byte lengths = (LogFloor(longest_runs[i].length) << 4) |
+          LogFloor(longest_runs[i+1].length);
+      temp[position++] = lengths;
+      temp[position++] = longest_runs[i].symbol;
+      temp[position++] = freqs.Key(i+1);
+      temp[position++] = longest_runs[i+1].symbol;
+    }
+    byte sentinel = (escape_index != free_symbols) ?
+        escape_byte : freqs.Key(symbols_in_use - 1);
+    
+    if( (new_symbols > 0 && (symbols_in_use - 1) != limit) ||
+        (new_symbols == 0 && symbols_in_use != limit) )
+    {
+      assert(limit == symbols_in_use - 1 || limit == symbols_in_use - 2 );
+      temp[position++] = freqs.Key(limit);
+      temp[position++] = (LogFloor(longest_runs[limit].length) << 4);
+      temp[position++] = longest_runs[limit].symbol;
+      temp[position++] = sentinel;
+    } else {
+      temp[position++] = sentinel;
+      temp[position++] = 0;
+    }
+  } else {
+    /* No replacements being made */
+    temp[position++] = 0;
+    temp[position++] = 0;
+  }
+
+  /* Replacement table */
+  std::map<unsigned, byte> replacements[256];
+  for(unsigned i = 0; i < 256; ++i) {
+    replacements[i][1] = static_cast<byte>(i);
+  }
+  /* Escaped characters*/
+  if( new_symbols > 0) {
+    for(unsigned i = free_symbols; i <= escape_index; ++i) {
+      replacements[freqs.Key(i)][1] = escape_byte;
+    }
+  }
+  for (unsigned i = 0; i < symbols_in_use; ++i) {
+    replacements[longest_runs[i].symbol][longest_runs[i].length] = freqs.Key(i);
+  }
+  uint64 total_size = position;
+  total_size += WriteReplacements(replacements, temp + position, from, length,
+                                  escape_byte, new_symbols > 0);
   
+  std::copy(temp, temp + total_size, from);
+  delete [] temp;
+  assert(total_size <= length + 2);
+  return total_size;
 }
 
 } //namespace bwtc

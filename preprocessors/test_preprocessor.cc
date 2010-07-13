@@ -26,6 +26,14 @@ uint64 TestPreProcessor::CompressPairs() {
   return result;
 }
 
+uint64 TestPreProcessor::CompressRuns() {
+  uint64 filled = CompressLongRuns(&(*curr_block_->block_)[0],
+                                   curr_block_->filled_);
+  uint64 result = curr_block_->filled_ - filled;
+  curr_block_->filled_ = filled;
+  return result;
+}
+
 void TestPreProcessor::InitializeTarget() {
   assert(block_manager_);
   std::vector<byte>* target = block_manager_->GetFreeBuffer();

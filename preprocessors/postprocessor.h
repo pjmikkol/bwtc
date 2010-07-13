@@ -8,5 +8,6 @@
 namespace bwtc {
   
 uint64 UncompressCommonPairs(std::vector<byte> *from, uint64 length);
+uint64 UncompressLongRuns(std::vector<byte> *from, uint64 length);
 
 }

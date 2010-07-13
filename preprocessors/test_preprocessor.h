@@ -20,6 +20,8 @@ class TestPreProcessor : public PreProcessor {
   virtual ~TestPreProcessor();
   /* Reads and preprocesses data to byte array provided by block_manager_*/
   uint64 CompressPairs();
+  /* Same as above, but different compression algorithm */
+  uint64 CompressRuns();
   /* Initialize target-array for reading */
   void InitializeTarget();
   /* Fills the buffer from instream. returns true if something is read*/

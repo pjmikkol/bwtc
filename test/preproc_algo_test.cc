@@ -112,7 +112,6 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     total_reduction = reduction;
     total_cycles_preproc += (endPre - beginPre);
     assert(total_reduction == total_data - pp.curr_block_->filled_);
-
     uint64 uncompressed_size;
     /* Make sure that we can also uncompress the thing */
     __int64 beginPost = ReadTSC();
@@ -127,6 +126,7 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     total_cycles_postproc += (endPost - beginPost);
     std::vector<byte>& uncompressed = *pp.curr_block_->block_;
 
+    std::cout << uncompressed_size << " " << original.size() << "\n";
     assert(uncompressed_size == original.size());
     for(uint64 j = 0; j < uncompressed_size; ++j) {
       assert(uncompressed[j] == original[j]);
@@ -264,7 +264,6 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
   uint64 total_data, total_reduction;
 
   bwtc::BlockManager bm(block_size, 1);
-  //bwtc::BWTransform *transformer = bwtc::GiveTransformer(); 
   for(int i = 0; i < kTimes; ++i) {
     bwtc::TestPreProcessor pp(block_size);
     pp.AddBlockManager(&bm);
@@ -298,6 +297,7 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
     __int64 endPost = ReadTSC();
     total_cycles_postproc += (endPost - beginPost);
     std::vector<byte>& uncompressed = *pp.curr_block_->block_;
+    std::cout << uncompressed_size << " " << original.size() << "\n";
     assert(uncompressed_size == original.size());
     for(uint64 j = 0; j < data_size; ++j) {
       assert(uncompressed[j] == original[j]);
@@ -331,8 +331,8 @@ int main(int argc, char **argv) {
   if(argc > 2) times =  atoi(argv[2]);
   if (argc > 3) block_size = atoi(argv[3]);
   if(argc == 1) return 0;
-  tests::TestComboCompression(std::string(argv[1]), times, block_size);
   tests::TestRunUncompression(std::string(argv[1]), times, block_size);
+  tests::TestComboCompression(std::string(argv[1]), times, block_size);
   tests::TestPairCompression(std::string(argv[1]), times, block_size);
   tests::TestPairUncompression(std::string(argv[1]), times, block_size);
 }

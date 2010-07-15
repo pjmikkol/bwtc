@@ -122,7 +122,6 @@ class FreqTable {
     return freq_[i].first;
   }
 
-  //  void Decrease(unsigned freq_index, uint64 value) {
   bool Decrease(unsigned key, uint64 value) {
     assert(key <= 255);
     unsigned freq_index = location_[key];
@@ -144,7 +143,6 @@ class FreqTable {
   }
 
   void Increase(unsigned key, uint64 value) {
-    //    assert(freq_index <= 255);
     assert(key <= 255);
     unsigned freq_index = location_[key];
 
@@ -247,7 +245,7 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
   unsigned limit = 0;
 
   while(replaceable_pairs->size() < 254) {
-    if(current_pair == limit) {
+    if(current_pair + 1 >= limit) {
       limit += kStep;
       assert(limit < 65536);
       std::partial_sort(pair_freqs + current_pair, pair_freqs + limit,
@@ -256,12 +254,20 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
     }
     byte fst = static_cast<byte>((pair_freqs[current_pair].first & 0xFF00) >> 8);
     byte snd = static_cast<byte>(pair_freqs[current_pair].first & 0x00FF);
+    if(fst == snd) {
+      ++current_pair;
+      continue;
+    }
     if (!freqs->Decrease(fst, pair_freqs[current_pair].second)) {
       ++current_pair;
       continue;
     }
-    if(fst != snd) freqs->Decrease(snd, pair_freqs[current_pair].second);
-    // TODO: make the control flow more reasonable 
+    if(!freqs->Decrease(snd, pair_freqs[current_pair].second)) {
+      freqs->Increase(fst, pair_freqs[current_pair].second);      
+      ++current_pair;
+      continue;
+    }
+    // TODO: make the control flow more readable 
     
     /* Condition (p1) */
     if((*freqs)[current_symbol] + 3 >= pair_freqs[current_pair].second) {
@@ -271,32 +277,27 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
     }
     /* Reject pairs which have conflicting symbols
      * This one NEEDS better heuristics. Now it uses greedy heuristic */
-    if (fst != snd) { /* Do not approve pairs of the same char */
-      bool valid = true;
-      for(std::vector<std::pair<uint16, uint32> >::iterator it =
-              replaceable_pairs->begin();
-          it != replaceable_pairs->end(); ++it)
-      {
-        uint16 current_fst = static_cast<byte>((it->first & 0xFF00) >> 8);
-        uint16 current_sec = static_cast<byte>((it->first & 0x00FF));
-        if (current_fst == snd || current_sec == fst) {
-          valid = false;
-          freqs->Increase(fst, pair_freqs[current_pair].second);
-          freqs->Increase(snd, pair_freqs[current_pair].second);
-          break;
-        }
-      }
-      if(valid) {
-        replaceable_pairs->push_back(pair_freqs[current_pair]);
-        ++current_symbol;
+    bool valid = true;
+    for(std::vector<std::pair<uint16, uint32> >::iterator it =
+            replaceable_pairs->begin();
+        it != replaceable_pairs->end(); ++it)
+    {
+      uint16 current_fst = static_cast<byte>((it->first & 0xFF00) >> 8);
+      uint16 current_sec = static_cast<byte>((it->first & 0x00FF));
+      if (current_fst == snd || current_sec == fst) {
+        valid = false;
+        freqs->Increase(fst, pair_freqs[current_pair].second);
+        freqs->Increase(snd, pair_freqs[current_pair].second);
+        break;
       }
     }
-    else {
-      freqs->Increase(fst, pair_freqs[current_pair].second);
+    if(valid) {
+      replaceable_pairs->push_back(pair_freqs[current_pair]);
+      ++current_symbol;
     }
     ++current_pair;
   }
-  assert(current_symbol == replaceable_pairs->size());
+  assert((size_t)current_symbol == replaceable_pairs->size());
 }
 
 /* Returns the index for the 'escape_char' in freqs-array or value of
@@ -352,8 +353,6 @@ void WriteBytes(uint16 value, byte *address) {
 uint64 WriteReplacements(byte *replacements, byte *to, byte *from, uint64 length,
                          byte common_byte, byte escape_byte)
 {
-  unsigned escapes = 0, pairs = 0;
-
   uint64 result_index = 0;
   uint16 pair = from[0];
   uint64 i = 1;
@@ -366,19 +365,17 @@ uint64 WriteReplacements(byte *replacements, byte *to, byte *from, uint64 length
     else if (replacements[pair] == escape_byte) {
       to[result_index++] = escape_byte;
       to[result_index++] = from[i-1];
-      escapes++;
     }
     else { // pair will be replaced
       to[result_index++] = replacements[pair];
-      pairs++;
       if( i == length - 1) break;
       pair = static_cast<byte>(from[++i]);
     }
 
     if ( i >= length - 1) {
       assert(i == length - 1);
-      if(from[i] == escape_byte && escape_byte != common_byte) {
-        to[result_index++] = escape_byte; escapes++;}
+      if(from[i] == escape_byte && escape_byte != common_byte) 
+        to[result_index++] = escape_byte;
       to[result_index++] = from[i];
       break;
     }
@@ -404,19 +401,13 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   assert(length > 0);
   assert(from);
   uint64 freq[256] = {0U};
-  //std::pair<byte, uint64> freq[256];
   std::pair<uint16, uint32> pair_freq[65536];
-  //  InitPairsWithValue<byte, uint64>(freq, 0, 256);
   InitPairsWithValue<uint16, uint32>(pair_freq, 0, 65536);
   ComputePairFrequencies(from, freq, pair_freq, length);
-
-  //std::sort(freq, freq + 256);
-  //std::sort(&freq[0], &freq[0] + 256, ComparePairSecondAsc<byte, uint64>);
 
   FreqTable freqs(freq);
   unsigned free_symbols = 0;
   while(freqs[free_symbols] == 0) ++free_symbols;
-  //while(freq[free_symbols].second == 0) ++free_symbols;
 
   std::vector<std::pair<uint16, uint32> > replaceable_pairs;
   FindReplaceablePairs(&replaceable_pairs, pair_freq, &freqs);
@@ -425,9 +416,7 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   if(replaceable_pairs.size() > free_symbols) {
     escape_index = EscapeCharIndex(&freqs, replaceable_pairs, free_symbols);
   }
-
-  byte common_byte = (replaceable_pairs.size() > 0) ?
-      static_cast<byte>(replaceable_pairs[0].first >> 8) : 0;
+  byte common_byte = freqs.Key(255);
   byte escape_byte;
   if(escape_index > free_symbols) escape_byte = freqs.Key(escape_index);
   else escape_byte = common_byte;
@@ -444,6 +433,8 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   unsigned k;
   for(k = 0; k < std::min(free_symbols, candidates); ++k) {
     replacements[replaceable_pairs[k].first] = freqs.Key(k);
+    assert(freqs.Key(k) != common_byte);
+    assert(freqs.Key(k) != escape_byte);
     temp[position++] = freqs.Key(k);
     WriteBytes(replaceable_pairs[k].first, temp + position);
     position += 2;
@@ -452,23 +443,23 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   else symbols_in_use = 0;
 
   if ( free_symbols < escape_index) {
-    for(unsigned i = free_symbols; i < escape_index; ++i) {
-      replacements[replaceable_pairs[i].first] = freqs.Key(i);
-      temp[position++] = freqs.Key(i);
-      WriteBytes(replaceable_pairs[i].first, temp + position);
-      position += 2;
+    /* Prepare escaped characters for writing of the replacements */
+    for(unsigned i = free_symbols; i <= escape_index; ++i) {
+
       uint16 pair_value = freqs.Key(i) << 8;
-      for(unsigned j = 0; j < 256; ++j, ++pair_value) {
-        if (replacements[pair_value] == common_byte)
+      for(unsigned j = 0; j < 256; ++j, ++pair_value)
+        if(replacements[pair_value] == common_byte)
           replacements[pair_value] = escape_byte;
+      if(i < escape_index) {
+        replacements[replaceable_pairs[i].first] = freqs.Key(i);
+        assert(freqs.Key(i) != common_byte);
+        assert(freqs.Key(i) != escape_byte);
+        temp[position++] = freqs.Key(i);
+        WriteBytes(replaceable_pairs[i].first, temp + position);
+        position += 2;
       }
     }
     symbols_in_use += escape_index - free_symbols + 1;
-    uint16 pair_value = escape_byte << 8;
-    for(unsigned j = 0; j < 256; ++j, ++pair_value) {
-        if (replacements[pair_value] == common_byte)
-          replacements[pair_value] = escape_byte;
-    }
   }
   unsigned new_symbols = (free_symbols == escape_index)?
       0 : symbols_in_use - free_symbols;
@@ -514,6 +505,13 @@ const unsigned kMaxLenOfSeq = 1 << 15;
 struct triple {
   triple(byte sym, unsigned len, uint32 freq) :
       symbol(sym), length(len), frequency(freq) {}
+
+  triple(const triple& t) {
+    symbol = t.symbol;
+    length = t.length;
+    frequency = t.frequency;
+  }
+
   byte symbol;
   unsigned length;
   uint32 frequency;
@@ -699,7 +697,8 @@ void FindReplaceableRuns(std::vector<triple> *runs,
   assert(longest_runs->size() == 0);
 
   unsigned current_symbol = 0;
-  while(longest_runs->size() < 254 && longest_runs->size() < runs->size()) {
+  while(longest_runs->size() < std::min(static_cast<size_t>(254),runs->size()))
+  {
     triple best = seq_heap.DeleteMax();
     freqs->Decrease(best.symbol, best.length*best.frequency);
     if((*freqs)[current_symbol] + 3 >= (best.length - 1)*(best.frequency))
@@ -809,16 +808,16 @@ uint64 CompressLongRuns(byte *from, uint64 length)
   if(longest_runs.size() > free_symbols) {
     escape_index = EscapeCharIndex(&freqs, longest_runs, free_symbols);
   }
-  unsigned symbols_in_use = (longest_runs.size() > free_symbols) ?
-      (escape_index + 1) : longest_runs.size();
-
   unsigned new_symbols =  (escape_index == free_symbols)?
       0 : escape_index - free_symbols + 1;
+  unsigned symbols_in_use = (new_symbols > 0) ?
+      (escape_index + 1) : std::min((size_t)free_symbols, longest_runs.size());
+
+  unsigned run_replacements = (new_symbols > 0)?
+      (symbols_in_use - 1) : symbols_in_use;
 
   if (verbosity > 1) {
-    std::clog << "Replacing " << ((new_symbols > 0)?
-                                  (symbols_in_use - 1):symbols_in_use)
-              << " runs. ";
+    std::clog << "Replacing " << run_replacements << " runs. ";
     if (new_symbols > 0)
       std::clog << "Made " << new_symbols << " symbols free.\n";
     else
@@ -831,9 +830,7 @@ uint64 CompressLongRuns(byte *from, uint64 length)
 
   if(symbols_in_use > 0) {
     //TODO: Store replacement in somewhere so they can be merged with other
-    unsigned limit;
-    if (new_symbols > 0) limit = (symbols_in_use-1) - ((symbols_in_use-1) % 2);
-    else limit = symbols_in_use - (symbols_in_use % 2);
+    unsigned limit = run_replacements - (run_replacements % 2);
 
     for(unsigned i = 0; i < limit; i += 2) {
       temp[position++] = freqs.Key(i);
@@ -849,8 +846,7 @@ uint64 CompressLongRuns(byte *from, uint64 length)
     byte sentinel = (escape_index != free_symbols) ?
         escape_byte : freqs.Key(symbols_in_use - 1);
     
-    if( (new_symbols > 0 && (symbols_in_use - 1) != limit) ||
-        (new_symbols == 0 && symbols_in_use != limit) )
+    if( run_replacements != limit )
     {
       assert(limit == symbols_in_use - 1 || limit == symbols_in_use - 2 );
       temp[position++] = freqs.Key(limit);
@@ -878,8 +874,10 @@ uint64 CompressLongRuns(byte *from, uint64 length)
       replacements[freqs.Key(i)][1] = escape_byte;
     }
   }
-  for (unsigned i = 0; i < symbols_in_use; ++i) {
-    replacements[longest_runs[i].symbol][longest_runs[i].length] = freqs.Key(i);
+  for (unsigned i = 0; i < run_replacements; ++i) {
+    assert( i < longest_runs.size() );
+    replacements[longest_runs[i].symbol].insert(
+        std::pair<unsigned, byte>(longest_runs[i].length, freqs.Key(i)) );
   }
   uint64 total_size = position;
   total_size += WriteReplacements(replacements, temp + position, from, length,

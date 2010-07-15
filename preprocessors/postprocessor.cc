@@ -37,7 +37,9 @@ uint64 UncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
     j = i + 2;
   }
   if (verbosity) {
-    std::clog << ((j - 2)/3) << " pair replacements.\n";
+    std::clog << ((j - 2)/3) << " pair replacements.";
+    if(escaping) std::clog << " Escaping in use.";
+    std::clog << "\n";
   }
   for( ; j < length; ++j) {
     byte current = data[j];
@@ -102,7 +104,9 @@ uint64 UncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
     /* Compute the number of replacements from j */
     if ( (2*j-3) % 5 == 0 ) repls = (2*j-3) / 5;
     else repls = (2*j - 4) / 5;
-    std::clog << repls << " run replacements.\n"; 
+    std::clog << repls << " run replacements. ";
+    if(escaping) std::clog << "Escaping in use\n";
+    else std::clog << "\n";
   }
   for(; j < length; ++j) {
     byte current = data[j];

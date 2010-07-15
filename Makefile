@@ -85,8 +85,8 @@ clean :
 
 # Rest of the file is for tests:
 tests : test/preproctest test/coderstest test/dcbwttest \
-	test/preprocalgotest test/streamtest
-	./test/streamtest
+	test/preprocalgotest #test/streamtest
+	#./test/streamtest
 	./test/preproctest
 	./test/coderstest
 	./test/dcbwttest

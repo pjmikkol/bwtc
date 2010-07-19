@@ -16,7 +16,7 @@ void ValidateBorder(int border, const std::vector<byte>& data) {
   for(int i = 0; i < border; ++i) {
     assert(data[i] == data[data.size() - border + i]);
   }
-  for(int i = border + 1; i < data.size() - 1; ++i) {
+  for(int i = border + 1; static_cast<unsigned>(i) < data.size() - 1; ++i) {
     bool is_border = true;
     for(int j = 0; j < i; ++j) {
       if(data[j] != data[data.size() - i + j]) {

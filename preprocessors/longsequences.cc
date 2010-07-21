@@ -3,7 +3,10 @@
 
 #include <vector>
 
+#include "longsequences.h"
 #include "../globaldefs.h"
+
+namespace bwtc {
 
 namespace long_sequences {
 
@@ -59,8 +62,12 @@ int FindPrimeGeq(int n) {
 }
 
 /* Hashtable based structure for holding the frequency information about the *
- * substrings encountered. */
+ * substrings encountered. Calculating the hash values is based on Karp-Rabin*
+ * pattern-matching algorithm.                                               *
+ *                                                                           *
+ * */
 class SequenceTable {
+
   struct seq {
     seq() : count(0), overflow(0), position(0) {}
     seq(unsigned c, int o, uint64 p) : count(c), overflow(o), position(p) {}
@@ -71,44 +78,141 @@ class SequenceTable {
   };
 
  public:
-  explicit SequenceTable(unsigned size, byte *data) : data_(data)
+  explicit SequenceTable(unsigned size, unsigned block_length, byte *data)
+      : data_(data), block_length_(block_length), prev_hash_(0),
+        prev_position_(0)
   {
     size_ = FindPrimeGeq(size);
     table_ = new seq[size_];
+    c_ = 1;
+    for(unsigned i = 0; i < block_length_ - 1; ++i) {
+      c_ <<= 8;
+      c_ %= size_;
+    }
   }
 
   ~SequenceTable() {
     delete [] table_;
   }
 
+  /* Initializes the structure and read*/
+  void Initialize() {
+    prev_hash_ = 0;
+    for(unsigned i = 0; i < block_length_; ++i) {
+      prev_hash_ <<= 8;
+      prev_hash_ += data_[i];
+      prev_hash_ %= size_;
+    }
+    prev_position_ = 0;
+    table_[prev_hash_] = seq(1, -1, 0);
+  }
+
+  int64 Search(uint64 pos) {
+    UpdateHashValue(pos);
+    seq *candidate = &table_[prev_hash_];
+    while(candidate->count > 0 && candidate->overflow >= 0) {
+      if (StrEq(pos, candidate->position)) {
+        return candidate->position;
+      }
+      else {
+        candidate = &over_[candidate->overflow];
+      }
+    }
+    return pos;    
+  }
+
+  int64 Insert(uint64 pos) {
+    UpdateHashValue(pos);
+    seq *candidate = &table_[prev_hash_];
+    while(candidate->count > 0 && candidate->overflow >= 0) {
+      if (StrEq(pos, candidate->position)) {
+        ++candidate->count;
+        return candidate->position;
+      }
+      else {
+        candidate = &over_[candidate->overflow];
+      }
+    }
+    candidate->overflow = over_.size();
+    over_.push_back(seq(1, -1, pos));
+    return pos;
+  }
+
  private:
+  bool StrEq(uint64 i, uint64 j) {
+    for(unsigned k = 0; k < block_length_; ++k) {
+      if(data_[i++] != data_[j++]) return false;
+    }
+    return true;
+  }
+  
+  void UpdateHashValue(uint64 pos) {
+    assert(pos > 0);
+    prev_hash_ -= c_*data_[pos - 1];
+    prev_hash_ <<= 8;
+    prev_hash_ += data_[pos + block_length_ - 1];
+    prev_hash_ %= size_;
+    if (prev_hash_ < 0) prev_hash_ += size_;
+    assert(prev_hash_ >= 0);
+  }
+  
   byte *data_; /* Source of strings stored to table */
+  unsigned block_length_; /* Length of stored strings */
+  int64 prev_hash_; /* Previous value of the hash function */
+  uint64 prev_position_; /* Position of the previous value in data_ */
+  int64 c_; /* parameter used in updating the hash values */ 
   unsigned size_; /* Size of actual hashtable */
   seq *table_; /* hashtable */
   std::vector<seq> over_; /* overflow- lists*/
 };
 
-template <typename T>
-int Border(T *source, unsigned length) {
-  std::vector<int> border(length + 1);
-  border[0] = -1;
-  int t = -1;
-  for(unsigned j = 1; j <= length; ++j) {
-    while(t >= 0 && source[t] != source[j-1]) t = border[t];
-    border[j] = ++t;
-  }
-  return border[length];
-}
-
 } //namespace long_sequences
 
-
-uint64 CompressSequences(byte *from, uint64 length)
+/* Uses modification of Bentley-McIlroy algorithm which is based on Karp-Rabin *
+ * pattern-matching algorithm.  */
+uint64 CompressSequences(byte *from, uint64 length, int memory_constraint)
 {
   using namespace long_sequences;
 
   assert(length > 0);
   assert(from);
-  
+  /****************************************************************************
+   * We have to store at most length/block_size values to SequenceTable. Each *
+   * entry needs 16 bytes of memory.                                          *
+   * Let 'a' = (length/block_size)/size_of_table and let c be the coefficient *
+   * for memory usage (we can use c*length bytes). Then we can be sure that   *
+   *               'a' >= 16/(c*m)                                            *
+   * It also holds that given the memory requirements                         *
+   *               'a' <= 16/(c*m - 16)                                       *
+   ****************************************************************************/
+  /* m = 16, c = memory_constraint */
+  unsigned block_length = 16;
+  assert(length > block_length);
+  assert(memory_constraint > 1);
+  /* At the moment ensures that the max memory SequenceTable uses is
+   * memory_constraint*length bytes */
+  SequenceTable seq_table((length/(16*block_length))*
+                          (memory_constraint*block_length - 16),
+                          block_length, from);
+  seq_table.Initialize();
+  for(uint64 i = 1; i <= length - block_length; ++i) {
+    uint64 prev_occ;
+    if( i % block_length == 0) {
+      prev_occ = seq_table.Insert(i);
+      if(prev_occ != i) {
+        /* Check the long sequence */
+      }
+    }
+    else {
+      prev_occ = seq_table.Search(i);
+      if(prev_occ != i) {
+        /* Check the long sequence */        
+      }
+    }
+  }
 
+  return length;
 }
+
+
+} // namespace bwtc

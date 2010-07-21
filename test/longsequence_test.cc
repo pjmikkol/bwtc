@@ -1,5 +1,3 @@
-#include "../preprocessors/longsequences.cc"
-
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
@@ -8,6 +6,14 @@
 #include <string>
 #include <vector>
 
+#include "../preprocessors/test_preprocessor.h"
+#include "../preprocessors/longsequences.h"
+#include "../globaldefs.h"
+#include "../block_manager.h"
+
+namespace bwtc {
+int verbosity = 2;
+}
 
 namespace tests {
 
@@ -29,7 +35,7 @@ void ValidateBorder(int border, const std::vector<byte>& data) {
 }
 
 void TestBorderWithRandom(int times, unsigned size_of_alphabet) {
-  using long_sequences::Border;
+  using bwtc::long_sequences::Border;
   if (size_of_alphabet > 256) size_of_alphabet = 256;
   srand(time(NULL));
   for(int j = 0; j < times; ++j) {
@@ -44,7 +50,7 @@ void TestBorderWithRandom(int times, unsigned size_of_alphabet) {
 }
 
 void TestWithGivenString(const std::string& str, int border) {
-  using long_sequences::Border;
+  using bwtc::long_sequences::Border;
   assert(Border(str.c_str(), str.size()) == border);
 }
 
@@ -60,9 +66,30 @@ void TestBorder() {
   TestWithGivenString(std::string("abbabaaabba"), 4);
 }
 
+void TestSequenceCompression(const std::string& source_name, int times,
+                             uint64 block_size)
+{
+  bwtc::BlockManager bm(block_size, 1);
+  bwtc::TestPreProcessor pp(block_size);
+  pp.AddBlockManager(&bm);
+  pp.Connect(source_name);
+  pp.InitializeTarget();
+  uint64 data_size = pp.FillBuffer();
+  //for(int j = 0; j < times; ++j) {
+  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_,2);
+  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_,5);
+    //}
+}
+
 } //namespace tests
 
-int main() {
+int main(int argc, char **argv) {
   using namespace tests;
   TestBorder();
+  uint64 block_size = 209715200;
+  int times = 1;
+  if(argc > 2) times =  atoi(argv[2]);
+  if (argc > 3) block_size = atoi(argv[3]);
+  if(argc == 1) return 0;
+  TestSequenceCompression(std::string(argv[1]), times, block_size);
 }

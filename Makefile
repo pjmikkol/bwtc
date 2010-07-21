@@ -1,5 +1,5 @@
 CC = g++
-DFLAGS = -g
+DFLAGS = -g -pg
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # because of template assertions
 
@@ -37,6 +37,10 @@ bin/testpreprocessor.o : preprocessors/preprocessor.h block.h block_manager.h \
 bin/postprocessor.o : preprocessors/postprocessor.cc \
 	preprocessors/postprocessor.h
 	$(CC) $(FLAGS) preprocessors/postprocessor.cc -c -o bin/postprocessor.o
+
+bin/longsequences.o : preprocessors/longsequences.cc \
+	preprocessors/longsequences.h
+	$(CC) $(FLAGS) preprocessors/longsequences.cc -c -o bin/longsequences.o
 
 # Blocks and related things
 bin/block.o : block.h block.cc 
@@ -76,21 +80,18 @@ bin/inverse_bwt.o : bwtransforms/inverse_bwt.h bwtransforms/inverse_bwt.cc
 
 clean :
 	rm -f bin/*
-	rm -f test/coderstest
-	rm -f test/streamtest
-	rm -f test/preproctest
-	rm -f test/dcbwttest
-	rm -f test/preprocalgotest
+	rm -f test/*test
 	rm -f test/testfile.txt
 
 # Rest of the file is for tests:
 tests : test/preproctest test/coderstest test/dcbwttest \
-	test/preprocalgotest #test/streamtest
-	#./test/streamtest
+	test/preprocalgotest test/longsequencetest test/streamtest
+	./test/streamtest
 	./test/preproctest
 	./test/coderstest
 	./test/dcbwttest
 	./test/preprocalgotest
+	./test/longsequencetest
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o
 	$(CC) $(FLAGS) bin/stream.o test/stream_test.cc -lboost_filesystem-mt \
@@ -120,5 +121,9 @@ test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o \
 	bin/postprocessor.o -o test/preprocalgotest
 
-test/pair_repl : test/pair_repl_test.cc preprocessors/preproc_algos.cc
-	$(CC) $(FLAGS) test/pair_repl_test.cc -o test/pair_repl
+test/longsequencetest : test/longsequence_test.cc bin/testpreprocessor.o \
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+	bin/longsequences.o
+	$(CC) $(FLAGS) test/longsequence_test.cc bin/testpreprocessor.o \
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+	bin/longsequences.o -o test/longsequencetest

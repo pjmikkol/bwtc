@@ -9,3 +9,4 @@ bin/
 /test/dcbwttest
 /test/preprocalgotest
 /testdata/a.out
+/test/longsequencetest

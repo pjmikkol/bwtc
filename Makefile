@@ -1,5 +1,5 @@
 CC = g++
-DFLAGS = -g -pg
+DFLAGS = -g
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # because of template assertions
 

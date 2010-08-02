@@ -8,14 +8,14 @@ all: bin/compr bin/uncompr
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
 	bin/difference_cover.o bin/prob_models.o
-	$(CC) $(FLAGS) -lboost_program_options-mt compr.cc bin/stream.o \
+	$(CC) $(FLAGS) -I/usr/lib -lboost_program_options compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o bin/coders.o \
 	bin/rl_compress.o bin/dcbwt.o bin/bw_transform.o bin/prob_models.o \
 	bin/difference_cover.o -o bin/compr
 
 bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
 	bin/stream.o bin/inverse_bwt.o bin/prob_models.o
-	$(CC) $(FLAGS) -lboost_program_options-mt bin/coders.o uncompr.cc \
+	$(CC) $(FLAGS) -lboost_program_options bin/coders.o uncompr.cc \
 	bin/rl_compress.o bin/stream.o bin/inverse_bwt.o bin/prob_models.o \
 	-o bin/uncompr
 
@@ -94,7 +94,7 @@ tests : test/preproctest test/coderstest test/dcbwttest \
 	./test/longsequencetest
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o
-	$(CC) $(FLAGS) bin/stream.o test/stream_test.cc -lboost_filesystem-mt \
+	$(CC) $(FLAGS) bin/stream.o test/stream_test.cc -lboost_filesystem \
 	-o test/streamtest
 
 test/preproctest : test/preproc_test.cc test/testdefs.h bin/block.o \

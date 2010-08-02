@@ -67,7 +67,8 @@ void TestBorder() {
 }
 
 void TestSequenceCompression(const std::string& source_name, int times,
-                             uint64 block_size)
+                             uint64 block_size, unsigned window_size,
+                             int threshold)
 {
   bwtc::BlockManager bm(block_size, 1);
   bwtc::TestPreProcessor pp(block_size);
@@ -76,8 +77,10 @@ void TestSequenceCompression(const std::string& source_name, int times,
   pp.InitializeTarget();
   uint64 data_size = pp.FillBuffer();
   //for(int j = 0; j < times; ++j) {
-  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_,2);
-  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_,5);
+  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_, 5,
+                          window_size, threshold);
+  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_, 2,
+                          window_size, threshold);
     //}
 }
 
@@ -88,8 +91,13 @@ int main(int argc, char **argv) {
   TestBorder();
   uint64 block_size = 209715200;
   int times = 1;
-  if(argc > 2) times =  atoi(argv[2]);
-  if (argc > 3) block_size = atoi(argv[3]);
+  unsigned window_size = 16;
+  int threshold = 128;
+  if(argc > 2) window_size = atoi(argv[2]);
+  if (argc > 3) threshold = atoi(argv[3]);
+  if(argc > 4) times =  atoi(argv[4]);
+  if (argc > 5) block_size = atoi(argv[5]);
   if(argc == 1) return 0;
-  TestSequenceCompression(std::string(argv[1]), times, block_size);
+  TestSequenceCompression(std::string(argv[1]), times, block_size, window_size,
+                          threshold);
 }

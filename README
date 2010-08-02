@@ -4,7 +4,7 @@ at the moment: in early development phase
 
 ...
 
-Compress the program by saying "make" in project-folder. Tests can be run
+Compile the program by saying "make" in project-folder. Tests can be run
 with "make tests".
 
 ...

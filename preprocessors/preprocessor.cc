@@ -93,91 +93,84 @@ void InitPairsWithValue(std::pair<Key, Value> *pairs, Value v, uint64 length)
     pairs[i] = std::make_pair(static_cast<Key>(i), v);
 }
 
-class FreqTable {
- public:
-  FreqTable() {
-    for(int i = 0; i < 256; ++i) {
-      freq_[i] = std::make_pair(static_cast<byte>(i), 0U);
-    }
-    InitLocations();
-    assert(Test());
+FreqTable::FreqTable() {
+  for(int i = 0; i < 256; ++i) {
+    freq_[i] = std::make_pair(static_cast<byte>(i), 0U);
   }
+  InitLocations();
+  assert(Test());
+}
 
-  FreqTable(uint64* frequencies) {
-    /* Assumes that frequencies has length of 256 */
-    for(int i = 0; i < 256; ++i) {
-      freq_[i] = std::make_pair(static_cast<byte>(i), frequencies[i]);
-    }
-    std::sort(freq_, freq_ + 256, ComparePairSecondAsc<byte, uint64>);
-    InitLocations();
+FreqTable::FreqTable(uint64* frequencies) {
+  /* Assumes that frequencies has length of 256 */
+  for(int i = 0; i < 256; ++i) {
+    freq_[i] = std::make_pair(static_cast<byte>(i), frequencies[i]);
   }
+  std::sort(freq_, freq_ + 256, ComparePairSecondAsc<byte, uint64>);
+  InitLocations();
+}
 
-  const uint64& operator[](unsigned i) {
-    assert(i <= 255);
-    return freq_[i].second;
+const uint64& FreqTable::operator[](unsigned i) {
+  assert(i <= 255);
+  return freq_[i].second;
+}
+
+byte FreqTable::Key(unsigned i) {
+  assert(i < 256);
+  return freq_[i].first;
+}
+
+bool FreqTable::Decrease(unsigned key, uint64 value) {
+  assert(key <= 255);
+  unsigned freq_index = location_[key];
+  if(freq_[freq_index].second < value) return false;
+  uint64 new_value = freq_[freq_index].second - value;
+  std::pair<byte, uint64> new_pair =
+      std::make_pair(freq_[freq_index].first, new_value);
+  
+  while (freq_index > 0 && new_value < freq_[freq_index - 1].second)
+  {
+    ++location_[freq_[freq_index - 1].first];
+    freq_[freq_index] = freq_[freq_index - 1];
+    --freq_index;
   }
+  freq_[freq_index] = new_pair;
+  location_[new_pair.first]= freq_index;
+  assert(freq_[location_[new_pair.first]].first == new_pair.first);
+  return true;
+}
 
-  byte Key(unsigned i) {
-    assert(i < 256);
-    return freq_[i].first;
+void FreqTable::Increase(unsigned key, uint64 value) {
+  assert(key <= 255);
+  unsigned freq_index = location_[key];
+  
+  uint64 new_value = freq_[freq_index].second + value;
+  std::pair<byte, uint64> new_pair = 
+      std::make_pair(freq_[freq_index].first, new_value);
+  
+  while (freq_index < 255 && new_value > freq_[freq_index + 1].second)
+  {
+    --location_[freq_[freq_index + 1].first];
+    freq_[freq_index] = freq_[freq_index + 1];
+    ++freq_index;
   }
+  freq_[freq_index] = new_pair;
+  location_[new_pair.first]= freq_index;
+  assert(freq_[location_[new_pair.first]].first == new_pair.first);
+}
 
-  bool Decrease(unsigned key, uint64 value) {
-    assert(key <= 255);
-    unsigned freq_index = location_[key];
-    if(freq_[freq_index].second < value) return false;
-    uint64 new_value = freq_[freq_index].second - value;
-    std::pair<byte, uint64> new_pair =
-        std::make_pair(freq_[freq_index].first, new_value);
-
-    while (freq_index > 0 && new_value < freq_[freq_index - 1].second)
-    {
-      ++location_[freq_[freq_index - 1].first];
-      freq_[freq_index] = freq_[freq_index - 1];
-      --freq_index;
-    }
-    freq_[freq_index] = new_pair;
-    location_[new_pair.first]= freq_index;
-    assert(freq_[location_[new_pair.first]].first == new_pair.first);
-    return true;
+void FreqTable::InitLocations() {
+  for(unsigned i = 0; i < 256; ++i) {
+    location_[freq_[i].first] = i;
   }
+}
 
-  void Increase(unsigned key, uint64 value) {
-    assert(key <= 255);
-    unsigned freq_index = location_[key];
-
-    uint64 new_value = freq_[freq_index].second + value;
-    std::pair<byte, uint64> new_pair = 
-        std::make_pair(freq_[freq_index].first, new_value);
-
-    while (freq_index < 255 && new_value > freq_[freq_index + 1].second)
-    {
-      --location_[freq_[freq_index + 1].first];
-      freq_[freq_index] = freq_[freq_index + 1];
-      ++freq_index;
-    }
-    freq_[freq_index] = new_pair;
-    location_[new_pair.first]= freq_index;
-    assert(freq_[location_[new_pair.first]].first == new_pair.first);
- }
-
- private:
-  std::pair<byte, uint64> freq_[256];
-  byte location_[256];
-
-  void InitLocations() {
-    for(unsigned i = 0; i < 256; ++i) {
-      location_[freq_[i].first] = i;
-    }
+bool FreqTable::Test() {
+  for(int i = 0; i < 256; ++i) {
+    assert(freq_[location_[i]].first == i );
   }
-
-  bool Test() {
-    for(int i = 0; i < 256; ++i) {
-      assert(freq_[location_[i]].first == i );
-    }
-    return true;
-  }
-};
+  return true;
+}
 
 /*##################### Replacing the most common pairs ######################*/
   /**************************************************************************

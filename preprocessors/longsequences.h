@@ -23,7 +23,8 @@ int Border(T *source, unsigned length) {
 
 } //namespace long_sequences
 
-uint64 CompressSequences(byte *from, uint64 length, int memory_constraint);
+uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
+                         unsigned window_size, int threshold);
 
 } 
 

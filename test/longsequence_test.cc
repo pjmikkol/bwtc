@@ -12,7 +12,7 @@
 #include "../block_manager.h"
 
 namespace bwtc {
-int verbosity = 2;
+int verbosity = 3;
 }
 
 namespace tests {
@@ -44,14 +44,16 @@ void TestBorderWithRandom(int times, unsigned size_of_alphabet) {
     for(int i = 0; i < size_of_test; ++i) {
       data[i] = rand() % size_of_alphabet;
     }
-    int border = Border(&data[0], data.size());
+    Border<byte> b(data.size());
+    int border = b(&data[0]);
     ValidateBorder(border, data);
   }
 }
 
 void TestWithGivenString(const std::string& str, int border) {
   using bwtc::long_sequences::Border;
-  assert(Border(str.c_str(), str.size()) == border);
+  Border<char> b(str.size());
+  assert(b(str.c_str()) == border);
 }
 
 void TestBorder() {

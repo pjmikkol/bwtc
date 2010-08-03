@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstdlib>
 
+#include <algorithm>
 #include <list>
 #include <utility>
 #include <vector>
@@ -197,6 +198,23 @@ class SequenceTable {
     }
   }
 
+  void Periods(std::vector<long_seq> *periods) {
+    Border<byte> b(block_length_);
+    for(unsigned i = 0; i < h_size_; ++i) {
+      if(table_[i].count > 0) {
+        unsigned border = b(data_ + table_[i].position);
+        if (border >= block_length_ - 1) {
+          periods->push_back(
+              long_seq(table_[i].count, 2, table_[i].position));
+        } else {
+          periods->push_back(
+              long_seq(table_[i].count, block_length_ - border,
+                       table_[i].position));
+        }
+      }
+    }
+  }
+  
  private:
   void FindNextOverflowPos() {
     while(table_[next_overflow_].count > 0 ) --next_overflow_;
@@ -211,10 +229,8 @@ class SequenceTable {
   
   void UpdateHashValue(uint64 pos) {
     assert(pos > 0);
-    prev_hash_ -= c_*data_[pos - 1];
-    prev_hash_ <<= 8; /* Multiply with the size of alphabet */
-    prev_hash_ += data_[pos + block_length_ - 1];
-    prev_hash_ %= size_;
+    prev_hash_ = (((prev_hash_ - c_*data_[pos - 1]) << 8) +
+                  data_[pos + block_length_ - 1]) % size_;
     if (prev_hash_ < 0) prev_hash_ += size_;
     assert(prev_hash_ >= 0);
   }
@@ -237,11 +253,17 @@ class SequenceTable {
 template <typename T>
 class CircularBuffer {
  public:
-  CircularBuffer(unsigned size) : buffer_(size), head_(size-1), size_(size) {}
+  CircularBuffer(unsigned size) : head_(size-1), size_(size) {
+    buffer_ = new T[size_];
+  }
+
+  ~CircularBuffer() {
+    delete [] buffer_;
+  }
 
   void Insert(T elem) {
     buffer_[head_++] = elem;
-    head_ %= size_;
+    if(size_ == head_) head_ = 0;
   }
 
   T Head() const {
@@ -253,81 +275,132 @@ class CircularBuffer {
   }
 
   void Fill(T value) {
-    std::fill(buffer_.begin(), buffer_.end(), value);
+    std::fill(buffer_, buffer_ + size_, value);
   }
 
   void SetHeadAndRest(T head, T rest) {
-    std::fill(buffer_.begin(), buffer_.end(), rest);
+    std::fill(buffer_, buffer_ + size_, rest);
     buffer_[head_] = head;
   }
 
  private:
-  std::vector<T> buffer_;
   unsigned head_;
   unsigned size_;
+  T *buffer_;
 };
 
 /* Data structure for holding long sequences. At the moment searching is *
  * done in simple brute-force style. */
 class LongSequences {
-  struct long_seq {
-    long_seq() : position(0), length(0), count(0) {}
-    long_seq(unsigned c, int l, uint64 p) :
-        position(p), length(l), count(c) {}
+  struct match {
+    match() : match_pos(0), orig_pos(0), length(0) {}
+    match(uint64 m_pos, uint64 o_pos, unsigned l) :
+        match_pos(m_pos), orig_pos(o_pos), length(l) {}
+    uint64 match_pos;
+    uint64 orig_pos;
+    unsigned length;
+  };
 
-    bool operator<(const long_seq& ll) const {
-      return position < ll.position;
+  struct cmp_long_seq {
+    cmp_long_seq(byte *s) : source(s) {}
+
+    bool operator()(const long_seq& s1, const long_seq& s2) const {
+      int min_len = std::min(s1.length, s2.length);
+      for(int j = 0; j < min_len; ++j) {
+        if(source[s1.position + j] != source[s2.position + j]) {
+          return source[s1.position + j] < source[s2.position + j];
+        }
+      }
+      return s1.length < s2.length;
     }
-    uint64 position;
-    int length;
-    unsigned count;
+
+    byte *source;
   };
 
  public:
   explicit LongSequences(byte *data, int threshold)
       : data_(data), threshold_(threshold) {}
   
+  /* Inefficient implementation, byt should be only callled once during the *
+   * algorithm. */
+  void MergeDuplicatesAndSort() {
+    size_t s = sequences_.size();
+    if(s <= 1) return;
+    std::vector<long_seq> temp;
+    temp.resize(s);
+    std::copy(sequences_.begin(), sequences_.end(), temp.begin());
+    std::sort(temp.begin(), temp.end(), cmp_long_seq(data_));
+    std::vector<long_seq> temp2;
+    std::vector<long_seq>::iterator curr = temp.begin();
+    std::vector<long_seq>::iterator prev = curr++;
+    for(; curr != temp.end(); prev = curr++)
+    {
+      if(StrEq(*prev, *curr)) {
+        curr->count += prev->count - 1;
+      } else  {
+        temp2.push_back(*prev);
+      }
+    }
+    temp2.push_back(*prev);
+    std::sort(temp2.begin(), temp2.end());
+    std::list<long_seq>::iterator lit = sequences_.begin();
+    for(curr = temp2.begin(); curr != temp2.end(); ++curr, ++lit) {
+      *lit = *curr;
+    }
+    sequences_.erase(lit, sequences_.end());
+  }
+
+  bool Empty() {
+    return sequences_.empty();
+  }
+  
+  long_seq Pop() {
+    long_seq val = sequences_.back();
+    sequences_.pop_back();
+    return val;
+  }
+
   int64 Update(uint64 pos, int length, unsigned amount) {
     assert(length >= threshold_);
     for(std::list<long_seq>::iterator it = sequences_.begin();
         it != sequences_.end(); ++it)
     {
-      std::pair<uint64, int> match = Match(pos, length, *it);
-      if (match.second >= threshold_) {
+      match m = Match(pos, length, *it);
+      if (m.length >= static_cast<unsigned>(threshold_) ) {
         /* In some cases we split the match */
-        int l_leftover = match.first - pos;
-        int r_leftover = length - match.second;
-        if (l_leftover > 0) r_leftover -= l_leftover;
-        if( l_leftover < threshold_ && r_leftover < threshold_) {
-          int left_len = match.first - it->position;
-          int right_len = it->length - left_len - match.second;
+        int l_leftover = m.match_pos - pos;
+        int r_leftover = length - m.length;
+        if(l_leftover > 0) r_leftover -= l_leftover;
+        if(l_leftover < threshold_ && r_leftover < threshold_) {
+          int left_len = m.orig_pos - it->position;
+          int right_len = it->length - left_len - m.length;
           if(left_len >= threshold_ || right_len >= threshold_) {
             long_seq old = *it;
             sequences_.erase(it);
             if(left_len >= threshold_)
               Update(old.position, left_len, old.count);
-            Update(match.first, match.second, old.count + amount);
             if(right_len >= threshold_)
-              return Update(match.first + match.second, right_len, old.count);
+              Update(m.orig_pos + m.length, right_len, old.count);
+            return Update(m.match_pos, m.length, old.count + amount);
           } else {
             it->count += amount;
-            it->position = match.first;
-            it->length = match.second;
+            it->position = m.match_pos;
+            it->length = m.length;
           }
         } else {
           it->count += amount;
-          it->position = match.first;
-          it->length = match.second;
+          it->position = m.match_pos;
+          it->length = m.length;
           if(l_leftover >= threshold_) Update(pos, l_leftover, amount);
           assert(r_leftover < length);
           if(r_leftover >= threshold_)
-            return Update(match.second + match.first, r_leftover, amount);
+            return Update(m.length + m.match_pos, r_leftover, amount);
         }
-        return match.first + match.second;
+        return m.match_pos + m.length;
       }
     }
     if(amount == 1) ++amount;
-    sequences_.push_back(long_seq(amount, length, pos));
+    sequences_.push_front(long_seq(amount, length, pos));
     return pos + length;
   }
 
@@ -337,20 +410,22 @@ class LongSequences {
         it != sequences_.end(); ++it)
     {
       std::cout << "Frequency: " << it->count << " Length: "
-                << it->length <<"\n";
+                << it->length << " Position: " << it->position << "\n";
       for(uint64 i = it->position; i < it->position + it->length; ++i)
         std::cout << data_[i];
       std::cout << "\n-----------------------\n";
       ++s;
     }
-    std::cout << "Total size of table: " << s << "\n";
+    std::cout << "Total size of table: " << s;
+    std::cout << "\n#########################\n";
   }
     
  private:
-  /* Returns pair <length,starting position> for the match. Uses brute-force  *
-   * strategy. Returns first match which has length is greater than threshold_*/
-  std::pair<uint64, int> Match(uint64 pos, int length,
-                                    const long_seq& sequence)
+  /* Returns match-struct where match_pos is the position of the current match*
+   * and orig_pos is the starting position of the match stored in structure.  *
+   * Uses brute-force  strategy and returns first match which length is       *
+   * greater than threshold_*/
+  match Match(uint64 pos, int length, const long_seq& sequence)
   {
     if(length < sequence.length) {
       for(int i = 0; i < sequence.length - threshold_; ++i) {
@@ -360,7 +435,7 @@ class LongSequences {
             ++l; ++k;
           }
           if(l - j >= threshold_)
-            return std::pair<uint64, int>(sequence.position + i, l - j);
+            return match(pos + j, sequence.position + i, l - j);
         }
       }
     } else {
@@ -373,11 +448,20 @@ class LongSequences {
             ++l; ++k;
           }
           if( l - j >= threshold_)
-            return std::pair<uint64, int>(sequence.position + j, l - j);
+            return match(pos + i, sequence.position + j, l - j);
         }
       }
     }
-    return std::pair<uint64, int>(0,0);
+    return match(0, 0, 0);
+  }
+
+  bool StrEq(const long_seq& s1, const long_seq& s2) {
+    if (s1.length != s2.length) return false;
+    for(int i = 0; i < s1.length; ++i) {
+      if(data_[s1.position + i] != data_[s2.position + i])
+        return false;
+    }
+    return true;
   }
 
   byte *data_;
@@ -386,23 +470,24 @@ class LongSequences {
 };
 
 /* Calculates frequencies from range [source_begin, source_end) */
-void CalculateFrequencies(uint64 *target, byte *source_begin, byte *source_end) {
+template <typename T>
+void CalculateFrequencies(T *target, byte *source_begin, byte *source_end) {
   while(source_begin != source_end) ++target[*source_begin++];
 }
 
 void DetectSequences(byte *from, uint64 length, int memory_constraint,
                      unsigned block_length, int threshold, uint64 *freqs,
-                     LongSequences *long_seqs)
+                     LongSequences *long_seqs, std::vector<long_seq> *periods)
 {
   /* Initialize the data structures */
   SequenceTable seq_table(length, block_length, from, memory_constraint);
   seq_table.Initialize();
-  CircularBuffer<bool> buffer(block_length);
+  CircularBuffer<byte> buffer(block_length);
   buffer.Fill(false);
   seq_table.JumpToPos(block_length - 1);
   CalculateFrequencies(freqs, from, from + block_length);
   
-  int matches = 0, longs = 0;
+  int matches = 0;
   int64 long_end = 0;
   for(uint64 i = block_length; i <= length - block_length; ++i) {
     ++freqs[from[i]];
@@ -413,27 +498,29 @@ void DetectSequences(byte *from, uint64 length, int memory_constraint,
       ++matches;
       if( buffer.Head() ) {
         /* Check for the long sequence */
-        uint64 k = prev_occ;
+        int64 k = prev_occ;
         int64 start_pos = i;
-        while(k > 0 && start_pos >= long_end /*start_pos > k + block_length */
-              && from[k] == from[start_pos]) {
+        assert(start_pos > static_cast<int64>(k));
+        while(k > 0 && start_pos >= long_end &&  from[k] == from[start_pos] &&
+              start_pos > static_cast<int64>(prev_occ))
+              /*start_pos > k + block_length */
+        {
           --k; --start_pos;
         }
-        if( start_pos < 0 || from[k] != from[start_pos])
+        if(start_pos < long_end || start_pos == static_cast<int64>(prev_occ) ||
+           from[k] != from[start_pos])
             /*(k == 0 && from[k] != from[start_pos]) ||
               (k != 0 && start_pos != k + block_length))*/
           ++start_pos;
-        uint64 end_pos = i + block_length;
-        k = prev_occ + block_length;
+        uint64 end_pos = i;
+        k = prev_occ;
         while(end_pos < length && k < start_pos && from[k] == from[end_pos]) {
           ++k; ++end_pos;
         }
-        if((end_pos == length && from[k] != from[end_pos]) ||
-           (end_pos != length && k < start_pos))
+        if(end_pos == length || from[k] != from[end_pos] || k == start_pos)
           --end_pos;
         int seq_len = end_pos - start_pos + 1;
         if(seq_len >= threshold) {
-          ++longs;
           long_end = long_seqs->Update(start_pos, seq_len, 1);
           seq_table.JumpToPos(end_pos);
           buffer.Fill(false);
@@ -442,26 +529,99 @@ void DetectSequences(byte *from, uint64 length, int memory_constraint,
           continue;
         }
       }
-      /* Which one of the alternative ways is better? 
+      /* Which one of the alternative ways is better? */
       buffer.SetHeadAndRest(true, false);
       CalculateFrequencies(freqs, from + i + 1, from + i + block_length);
       i += block_length - 1;
-      seq_table.JumpToPos(i);*/
-      buffer.Insert(true);
+      seq_table.JumpToPos(i);
+      //buffer.Insert(true);
     } else
       buffer.Insert(false);
   }
   //seq_table.DebugPrint();
-  long_seqs->DebugPrint();
-  std::cout << "Total matches: " << matches << "\n";
-  std::cout << "Long matches: " << longs << "\n";
-  
+  if(verbosity > 2)
+    std::cout << "Total matches in detecting long sequences: "
+              << matches << "\n";
+  seq_table.Periods(periods);
+}
+
+/* Replacement struct is used in lists which are inspected when writing *
+ * replcements of sequences. */
+struct replacement {
+  explicit replacement(int64 loc, unsigned len, byte s) :
+      location(loc), length(len), rank(s) {}
+
+  int64 location;
+  unsigned length;
+  byte rank;
+};
+
+void DecreaseFreqs(FreqTable *freqs, unsigned *vals, unsigned times) {
+  for(unsigned i = 0; i < 256; ++i) {
+    if(vals[i]) {
+      vals[i] *= times;
+      freqs->Decrease(i, vals[i]);
+    }
+  }
+}
+
+unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
+                            LongSequences *long_seqs,
+                            std::list<replacement> *repl, byte *data)
+{
+  unsigned seq_freqs[256];
+  if(verbosity > 6) long_seqs->DebugPrint();
+  long_seqs->MergeDuplicatesAndSort();
+  if(verbosity > 4) long_seqs->DebugPrint();
+  int j = 0;
+  while(!long_seqs->Empty() && j < 255) {
+    long_seq s = long_seqs->Pop();
+    std::fill(seq_freqs, seq_freqs + 256, 0);
+    CalculateFrequencies(seq_freqs, data + s.position,
+                         data + s.position + s.length);
+    DecreaseFreqs(freqs, seq_freqs, s.count);
+    repl[(data[s.position] << 8) + data[s.position + 1]]
+        .push_back(replacement(s.position, s.length, j++));
+  }
+  if(j == 255) return 0xF000;
+  std::partial_sort(periods->begin(), periods->begin() + (255-j), periods->end());
+  unsigned i = 0;
+  while(j < 255) {
+    long_seq curr = (*periods)[i];
+    if((*freqs)[j] >= curr.count*(curr.length - 1)) {
+      break;
+    } else {
+      repl[(data[curr.position] << 8) + data[curr.position + 1]].
+          push_back(replacement(curr.position, curr.length, j++));
+      ++i;
+    }
+  }
+
+  std::cout << "j=" << j << " i=" << i << "\n";
+
+  //TODO: how to handle if only single replacement!!
+  if(j-- <= 1) return 0xF000;
+  if((*freqs)[j] > 0) {
+    byte escape_index = j;
+    while(j >= 0 && (*freqs)[j] > 0) {
+      unsigned key = freqs->Key(j) << 8;
+      for(unsigned k = 0; k < 256; ++k) {
+        repl[key | k].push_back(replacement(-1,1,escape_index));
+      }
+      --j;
+    }
+    return (*freqs)[j];
+  }
+  return 0xF000;
 }
 
 } //namespace long_sequences
 
 /* Uses modification of Bentley-McIlroy algorithm which is based on Karp-Rabin *
- * pattern-matching algorithm.  */
+ * pattern-matching algorithm.  We give priority for replacing the long        *
+ * sequences. Sequence is considered long if its length is greate than         *
+ * threshold. Handling the long values is quite slow so threshold value should *
+ * be quite big. */
 uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
                          unsigned block_length, int threshold)
 {
@@ -472,15 +632,17 @@ uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
   assert(memory_constraint > 1);
   LongSequences long_seqs(from, threshold);
   uint64 frequencies[256] = {0};
+  std::vector<long_seq> periods;
 
-  //TODO: figure how the function will return information about sequences
-  //      of length block_length
   DetectSequences(from, length, memory_constraint, block_length, threshold,
-                  frequencies, &long_seqs);
-
+                  frequencies, &long_seqs, &periods);
+  FreqTable freqs(frequencies);
+  std::list<replacement> replacements[65536];
+  byte escape = DecideReplacements(&freqs, &periods, &long_seqs,
+                                   replacements, from);
+  bool escaping = escape < 0xff;
 
   return length;
 }
-
 
 } // namespace bwtc

@@ -1,6 +1,6 @@
 CC = g++
-DFLAGS = -g
-FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
+DFLAGS = -g 
+FLAGS = -pedantic -Wextra -Wall $(DFLAGS) 
 TFLAGS = -Wall $(DFLAGS) # because of template assertions
 
 all: bin/compr bin/uncompr

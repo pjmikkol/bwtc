@@ -189,11 +189,11 @@ class SequenceTable {
       if(table_[i].count > 0 && (table_[i].overflow & 0x80000000) == 0 ) {
         unsigned j = i;
         do {
-          std::cout << i << "\t" << table_[i].position << "\t"
+          std::clog << i << "\t" << table_[i].position << "\t"
                     <<  table_[i].count << "\n";
           i = table_[i].overflow & 0x7fffffff;
         } while (i != j);
-        std::cout << "\n";
+        std::clog << "\n";
       }
     }
   }
@@ -289,6 +289,37 @@ class CircularBuffer {
   T *buffer_;
 };
 
+/* Replacement struct is used in lists which are inspected when writing *
+ * replcements of sequences. */
+struct replacement {
+  explicit replacement(int64 loc, unsigned len, byte s) :
+      location(loc), length(len), rank(s) {}
+
+  int64 location;
+  unsigned length;
+  byte rank;
+};
+
+bool SeqEq(const long_seq& s1, const long_seq& s2, byte *data) {
+  if (s1.length != s2.length) return false;
+  for(int i = 0; i < s1.length; ++i) {
+    if(data[s1.position + i] != data[s2.position + i])
+      return false;
+  }
+  return true;
+}
+
+bool SeqEq(const replacement& s, uint64 position, byte *data,
+           uint64 len_of_data)
+{
+  if (s.length + position > len_of_data) return false;
+  for(unsigned i = 0; i < s.length; ++i) {
+    if(data[s.location + i] != data[position + i])
+      return false;
+  }
+  return true;
+}
+
 /* Data structure for holding long sequences. At the moment searching is *
  * done in simple brute-force style. */
 class LongSequences {
@@ -335,7 +366,7 @@ class LongSequences {
     std::vector<long_seq>::iterator prev = curr++;
     for(; curr != temp.end(); prev = curr++)
     {
-      if(StrEq(*prev, *curr)) {
+      if(SeqEq(*prev, *curr, data_)) {
         curr->count += prev->count - 1;
       } else  {
         temp2.push_back(*prev);
@@ -409,15 +440,15 @@ class LongSequences {
     for(std::list<long_seq>::iterator it = sequences_.begin();
         it != sequences_.end(); ++it)
     {
-      std::cout << "Frequency: " << it->count << " Length: "
+      std::clog << "Frequency: " << it->count << " Length: "
                 << it->length << " Position: " << it->position << "\n";
       for(uint64 i = it->position; i < it->position + it->length; ++i)
-        std::cout << data_[i];
-      std::cout << "\n-----------------------\n";
+        std::clog << data_[i];
+      std::clog << "\n-----------------------\n";
       ++s;
     }
-    std::cout << "Total size of table: " << s;
-    std::cout << "\n#########################\n";
+    std::clog << "Total size of table: " << s;
+    std::clog << "\n#########################\n";
   }
     
  private:
@@ -453,15 +484,6 @@ class LongSequences {
       }
     }
     return match(0, 0, 0);
-  }
-
-  bool StrEq(const long_seq& s1, const long_seq& s2) {
-    if (s1.length != s2.length) return false;
-    for(int i = 0; i < s1.length; ++i) {
-      if(data_[s1.position + i] != data_[s2.position + i])
-        return false;
-    }
-    return true;
   }
 
   byte *data_;
@@ -540,21 +562,10 @@ void DetectSequences(byte *from, uint64 length, int memory_constraint,
   }
   //seq_table.DebugPrint();
   if(verbosity > 2)
-    std::cout << "Total matches in detecting long sequences: "
+    std::clog << "Total matches in detecting long sequences: "
               << matches << "\n";
   seq_table.Periods(periods);
 }
-
-/* Replacement struct is used in lists which are inspected when writing *
- * replcements of sequences. */
-struct replacement {
-  explicit replacement(int64 loc, unsigned len, byte s) :
-      location(loc), length(len), rank(s) {}
-
-  int64 location;
-  unsigned length;
-  byte rank;
-};
 
 void DecreaseFreqs(FreqTable *freqs, unsigned *vals, unsigned times) {
   for(unsigned i = 0; i < 256; ++i) {
@@ -563,6 +574,10 @@ void DecreaseFreqs(FreqTable *freqs, unsigned *vals, unsigned times) {
       freqs->Decrease(i, vals[i]);
     }
   }
+}
+
+bool cmp_long_seq_freq(const long_seq& s1, const long_seq& s2) {
+    return s1.count*s1.length > s2.count*s2.length;
 }
 
 unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
@@ -584,11 +599,16 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
         .push_back(replacement(s.position, s.length, j++));
   }
   if(j == 255) return 0xF000;
-  std::partial_sort(periods->begin(), periods->begin() + (255-j), periods->end());
+  if (periods->size() < static_cast<unsigned>(255-j))
+    std::sort(periods->begin(), periods->end(), cmp_long_seq_freq);
+  else
+    std::partial_sort(periods->begin(), periods->begin() + (255-j),
+                      periods->end(), cmp_long_seq_freq);
   unsigned i = 0;
-  while(j < 255) {
+  while(j < 255 && i < periods->size()) {
     long_seq curr = (*periods)[i];
-    if((*freqs)[j] >= curr.count*(curr.length - 1)) {
+    /*TODO: Check the condition */
+    if((*freqs)[j] + curr.count >= (curr.count-1)*curr.length) {
       break;
     } else {
       repl[(data[curr.position] << 8) + data[curr.position + 1]].
@@ -596,7 +616,6 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
       ++i;
     }
   }
-
   std::cout << "j=" << j << " i=" << i << "\n";
 
   //TODO: how to handle if only single replacement!!
@@ -610,9 +629,48 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
       }
       --j;
     }
-    return (*freqs)[j];
+    return (*freqs)[escape_index];
   }
   return 0xF000;
+}
+
+uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
+                         uint64 length, byte escape_byte, FreqTable *freqs)
+{
+  uint64 result_index = 0;
+  uint16 pair = from[0];
+  uint64 i = 1;
+  while(1) {
+    pair <<= 8;
+    pair |= from[i];
+    std::list<replacement>::const_iterator it = rpls[pair].begin();
+    bool seq_replaced = false;
+    while(it != rpls[pair].end() && it->length > 1) {
+      if (SeqEq(*it, i - 1, from, length)) {
+        to[result_index++] = (*freqs)[it->rank];
+        i += it->length;
+        pair = from[i];
+        seq_replaced = true;
+        break;
+      }
+      ++it;
+    }
+    if(it != rpls[pair].end() && it->length == 1) {
+      to[result_index++] = escape_byte;
+    }
+    if (!seq_replaced) {
+      to[result_index++] = from[i-1];
+    }
+    if( i >= length - 1) {
+      assert(i <= length);
+      if(i == length) return result_index;
+      if(!rpls[from[i] << 8].empty() && rpls[from[i] << 8].back().length == 1)
+        to[result_index++] = escape_byte;
+      to[result_index++] = from[i];
+    }
+    ++i;
+  }
+  return result_index;  
 }
 
 } //namespace long_sequences
@@ -638,10 +696,16 @@ uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
                   frequencies, &long_seqs, &periods);
   FreqTable freqs(frequencies);
   std::list<replacement> replacements[65536];
-  byte escape = DecideReplacements(&freqs, &periods, &long_seqs,
-                                   replacements, from);
-  bool escaping = escape < 0xff;
-
+  byte escape_byte = DecideReplacements(&freqs, &periods, &long_seqs,
+                                        replacements, from);
+  byte *temp = new byte[2*length];
+  unsigned position = 0;
+  /* TODO: Write meta-info*/
+  uint64 result_length = position;
+  result_length += WriteReplacements(replacements, temp + position, from,
+                                     length, escape_byte, &freqs);
+  std::cout << length << "\n" << result_length << "\n";
+  delete [] temp;
   return length;
 }
 

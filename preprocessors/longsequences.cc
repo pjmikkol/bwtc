@@ -596,41 +596,6 @@ bool cmp_long_seq_freq(const long_seq& s1, const long_seq& s2) {
     return s1.count*s1.length > s2.count*s2.length;
 }
 
-class ReplacementTable {
- public:
-  ReplacementTable() {
-    std::fill(table_, table_ + 65536, -1);
-    rpls_.push_back(std::pair<int, replacement>(-1, replacement(-1, 1, 0)));
-  }
-
-  void PushBack(uint16 pair, replacement repl) {
-    int list_index = table_[pair];
-    std::pair<int, replacement>* p = 0;
-    while(list_index != -1) {
-      p = &rpls_[list_index];
-      list_index = p->first;
-    }
-    if(p) p->first = rpls_.size();
-    else table_[pair] = rpls_.size();
-    rpls_.push_back(std::pair<int, replacement>(-1, repl));
-  }
-
-  void EscapePair(uint16 pair) {
-    int list_index = table_[pair];
-    std::pair<int, replacement>* p = 0;
-    while(list_index != -1) {
-      p = &rpls_[list_index];
-      list_index = p->first;
-    }
-    if (p) p->first = 0;
-    else table_[pair] = 0;
-  }
-
- private:
-  int table_[65536];
-  std::vector<std::pair<int, replacement> > rpls_;
-};
-
 unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
                             LongSequences *long_seqs,
                             std::vector<replacement> *repl, byte *data)

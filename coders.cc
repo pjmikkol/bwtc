@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include <iostream> // For std::streampos
 #include <numeric> // for std::accumulate
 #include <vector>
@@ -5,39 +7,10 @@
 #include "block.h"
 #include "coders.h"
 #include "globaldefs.h"
+#include "utils.h"
 #include "probmodels/base_prob_model.h"
 
 namespace bwtc {
-
-uint64 PackInteger(uint64 integer, int* bytes_needed) {
-  /* Results for the if-clause are undefined if integer value 0x80
-   * doesn't have correct type (64-bit) */
-  static const uint64 kEightBit = 0x80;
-
-  uint64 result = 0; int i;
-  // For optimization (if needed) two OR-operations could be merged
-  for(i = 0; integer; ++i) {
-    result |= ((integer & 0x7F) << i*8);
-    integer >>= 7;
-    assert(i < 8);
-    if (integer) result |= (kEightBit << i*8);
-  }
-  *bytes_needed = i;
-  return result;
-}
-
-uint64 UnpackInteger(uint64 packed_integer) {
-  uint64 result = 0; int bits_handled = 0;
-  bool bits_left;
-  do {
-    bits_left = (packed_integer & 0x80) != 0;
-    result |= ((packed_integer & 0x7F) << bits_handled);
-    packed_integer >>= 8;
-    bits_handled += 7;
-    assert(bits_handled <= 56);
-  } while(bits_left);
-  return result;
-}
 
 Encoder::Encoder(const std::string& destination, char prob_model)
     : out_(NULL), destination_(NULL), pm_(NULL), header_position_(0),
@@ -105,8 +78,8 @@ void Decoder::EndContextBlock() {
 
 int Encoder::WriteTrailer(uint64 trailer) {
   int bytes;
-  uint64 packed_integer = PackInteger(trailer, &bytes);
-  WritePackedInteger(packed_integer, bytes);
+  uint64 packed_integer = utils::PackInteger(trailer, &bytes);
+  WritePackedInteger(packed_integer);
   return bytes;
 }
 
@@ -179,9 +152,9 @@ void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
     // TODO: At the moment we are not printing numbers in increasing order
     //       It has to be fixed at BWTransform and here
     if((*stats)[i] > 0) {
-      uint64 packed_cblock_size = PackInteger((*stats)[i], &bytes);
+      uint64 packed_cblock_size = utils::PackInteger((*stats)[i], &bytes);
       header_length += bytes;
-      WritePackedInteger(packed_cblock_size, bytes);
+      WritePackedInteger(packed_cblock_size);
     }
   }
   header_length += FinishBlockHeader();
@@ -192,13 +165,13 @@ void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
 }
 
 /* Integer is written in reversal fashion so that it can be read easier.*/
-void Encoder::WritePackedInteger(uint64 packed_integer, int bytes) {
+void Encoder::WritePackedInteger(uint64 packed_integer) {
   do {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
     out_->WriteByte(to_written);
-  } while (--bytes);
-  assert(0 == packed_integer);
+    //  } while (--bytes);
+  } while (packed_integer);
 }
 
 int Encoder::FinishBlockHeader() {
@@ -214,7 +187,7 @@ uint64 Decoder::ReadBlockHeader(std::vector<uint64>* stats) {
   while(1) {
     uint64 value = ReadPackedInteger();
     if(value & kErrorMask) break;
-    stats->push_back(UnpackInteger(value));
+    stats->push_back(utils::UnpackInteger(value));
   }
   return compressed_length;
 }
@@ -241,7 +214,7 @@ std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
     EndContextBlock();
   }
   uint64 packed_integer = ReadPackedInteger();
-  *eof_byte = UnpackInteger(packed_integer);
+  *eof_byte = utils::UnpackInteger(packed_integer);
   return data;
 }
 

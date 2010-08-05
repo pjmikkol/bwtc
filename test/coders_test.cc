@@ -42,8 +42,8 @@ void TestWritingAndReadingPackedIntegerList() {
   int bytes;
   for(unsigned i = 0; i < data.size(); ++i) {
     data[i] = static_cast<uint64>(rand());
-    uint64 packed_integer = bwtc::PackInteger(data[i], &bytes);
-    enc->WritePackedInteger(packed_integer, bytes);
+    uint64 packed_integer = utils::PackInteger(data[i], &bytes);
+    enc->WritePackedInteger(packed_integer);
   }
   enc->FinishBlockHeader();
   delete enc;
@@ -53,7 +53,7 @@ void TestWritingAndReadingPackedIntegerList() {
     uint64 value = dec.ReadPackedInteger();
     if(value & kErrorMask) break;
     assert(i < data.size());
-    assert(data[i] == bwtc::UnpackInteger(value));
+    assert(data[i] == utils::UnpackInteger(value));
     ++i;
   }
   assert(i == data.size());
@@ -83,8 +83,8 @@ void TestPackingIntegers(int times) {
   int bytes_needed;
   for(int i = 0; i < times; ++i) {
     uint64 original = static_cast<uint64>(rand());
-    uint64 packed = bwtc::PackInteger(original, &bytes_needed);
-    uint64 result = bwtc::UnpackInteger(packed);
+    uint64 packed = utils::PackInteger(original, &bytes_needed);
+    uint64 result = utils::UnpackInteger(packed);
 
     assert(result == original);
     assert(original <= (kLongOne << (bytes_needed*8)));
@@ -136,9 +136,9 @@ void TestWritingAndReadingHeadersAndSimpleData() {
   encoder->out_->Write48bits(0xFF, len_pos);
   
   int bytes;
-  uint64 packed_int = bwtc::PackInteger(0x0F, &bytes);
+  uint64 packed_int = utils::PackInteger(0x0F, &bytes);
   assert(bytes == 1);
-  encoder->WritePackedInteger(packed_int, bytes);
+  encoder->WritePackedInteger(packed_int);
   delete encoder;
 
   bwtc::Decoder decoder(test_fname);

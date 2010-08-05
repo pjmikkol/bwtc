@@ -1,23 +1,23 @@
 CC = g++
-DFLAGS = -g 
-FLAGS = -pedantic -Wextra -Wall $(DFLAGS) 
+DFLAGS = -g
+FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # because of template assertions
 
 all: bin/compr bin/uncompr
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
-	bin/difference_cover.o bin/prob_models.o
+	bin/difference_cover.o bin/prob_models.o bin/utils.o
 	$(CC) $(FLAGS) -I/usr/lib -lboost_program_options compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o bin/coders.o \
 	bin/rl_compress.o bin/dcbwt.o bin/bw_transform.o bin/prob_models.o \
-	bin/difference_cover.o -o bin/compr
+	bin/difference_cover.o bin/utils.o -o bin/compr
 
 bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
-	bin/stream.o bin/inverse_bwt.o bin/prob_models.o
+	bin/stream.o bin/inverse_bwt.o bin/prob_models.o bin/utils.o
 	$(CC) $(FLAGS) -lboost_program_options bin/coders.o uncompr.cc \
 	bin/rl_compress.o bin/stream.o bin/inverse_bwt.o bin/prob_models.o \
-	-o bin/uncompr
+	bin/utils.o -o bin/uncompr
 
 # Streams
 bin/stream.o : stream.h stream.cc 
@@ -78,6 +78,9 @@ bin/difference_cover.o :  bwtransforms/difference_cover-inl.h \
 bin/inverse_bwt.o : bwtransforms/inverse_bwt.h bwtransforms/inverse_bwt.cc
 	$(CC) $(FLAGS) bwtransforms/inverse_bwt.cc -c -o bin/inverse_bwt.o
 
+bin/utils.o : utils.cc utils.h
+	$(CC) $(FLAGS) utils.cc -c -o bin/utils.o
+
 clean :
 	rm -f bin/*
 	rm -f test/*test
@@ -103,9 +106,9 @@ test/preproctest : test/preproc_test.cc test/testdefs.h bin/block.o \
 	bin/block_manager.o test/preproc_test.cc -o test/preproctest
 
 test/coderstest : test/coders_test.cc test/testdefs.h bin/coders.o \
-	bin/stream.o bin/rl_compress.o bin/prob_models.o
+	bin/stream.o bin/rl_compress.o bin/prob_models.o bin/utils.o
 	$(CC) $(FLAGS) bin/coders.o bin/rl_compress.o bin/stream.o \
-	test/coders_test.cc bin/prob_models.o -o test/coderstest
+	test/coders_test.cc bin/prob_models.o bin/utils.o -o test/coderstest
 
 test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 	bin/bw_transform.o bin/dcbwt.o bin/block.o bin/difference_cover.o
@@ -123,7 +126,7 @@ test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 
 test/longsequencetest : test/longsequence_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bin/longsequences.o
+	bin/longsequences.o bin/utils.o
 	$(CC) $(FLAGS) test/longsequence_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bin/longsequences.o -o test/longsequencetest
+	bin/longsequences.o bin/utils.o -o test/longsequencetest

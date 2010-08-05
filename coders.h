@@ -12,22 +12,6 @@
 
 namespace bwtc {
 
-/*************************************************************************
- * PackInteger and UnpackInteger                                         *
- * Packs integer to bytefields, so that the first bit of the byte        *
- * tells if the number has succeeding bytes. Few examples:               *
- * 0xF0   -> 0x01F0                                                      *
- *   -- the last byte is F0, because of the continuation-bit             *
- * 0x2    -> 0x2                                                         *
-     -- no overhead here                                                 *
- * 0x142A -> 0x28AA                                                      *
- *   -- no overhead here because the most significant byte had leading   *
- *      zeroes                                                           *
- *************************************************************************/
-uint64 PackInteger(uint64 integer, int* bytes_needed);
-
-uint64 UnpackInteger(uint64 packed_integer);
-
 /**********************************************************************
  * Encoder and decoder are pretty similar in structure.               *
  *                                                                    *
@@ -49,7 +33,8 @@ class Encoder {
   //void EncodeMainBlock(MainBlock* block, uint64 trailer);
   void EncodeRange(const byte* begin, const byte* end);
   void WriteBlockHeader(std::vector<uint64>* stats);
-  void WritePackedInteger(uint64 packed_integer, int bytes);
+  void WritePackedInteger(uint64 packed_integer);
+  //void WritePackedInteger(uint64 packed_integer, int bytes);
   int FinishBlockHeader();
   void EndContextBlock();
   int WriteTrailer(uint64 trailer_value);

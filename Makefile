@@ -1,7 +1,7 @@
 CC = g++
 DFLAGS = -g
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
-TFLAGS = -Wall $(DFLAGS) # because of template assertions
+TFLAGS = -Wall $(DFLAGS) # less flags because of template assertions
 
 all: bin/compr bin/uncompr
 
@@ -35,7 +35,7 @@ bin/testpreprocessor.o : preprocessors/preprocessor.h block.h block_manager.h \
 	bin/testpreprocessor.o
 
 bin/postprocessor.o : preprocessors/postprocessor.cc \
-	preprocessors/postprocessor.h
+	preprocessors/postprocessor.h utils.h
 	$(CC) $(FLAGS) preprocessors/postprocessor.cc -c -o bin/postprocessor.o
 
 bin/longsequences.o : preprocessors/longsequences.cc \
@@ -118,15 +118,16 @@ test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
 	bwtransforms/dcbwt.h bin/bw_transform.o bin/dcbwt.o \
-	bin/difference_cover.o bin/postprocessor.o
+	bin/difference_cover.o bin/postprocessor.o bin/utils.o
 	$(CC) $(FLAGS) test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
 	bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o \
-	bin/postprocessor.o -o test/preprocalgotest
+	bin/postprocessor.o bin/utils.o -o test/preprocalgotest
 
 test/longsequencetest : test/longsequence_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bin/longsequences.o bin/utils.o
+	bin/longsequences.o bin/utils.o bin/postprocessor.o
 	$(CC) $(FLAGS) test/longsequence_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bin/longsequences.o bin/utils.o -o test/longsequencetest
+	bin/longsequences.o bin/utils.o bin/postprocessor.o \
+	-o test/longsequencetest

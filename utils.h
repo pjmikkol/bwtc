@@ -27,6 +27,10 @@ uint64 UnpackInteger(uint64 packed_integer);
 
 void WritePackedInteger(uint64 packed_integer, byte *to);
 
+unsigned PackAndWriteInteger(uint64 integer, byte *to);
+
+unsigned ReadAndUnpackInteger(byte *from, uint64 *to);
+
 template <typename Integer>
 void PrintBitRepresentation(Integer word) {
   std::stack<Integer> bits;

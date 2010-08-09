@@ -8,6 +8,7 @@
 
 #include "../preprocessors/test_preprocessor.h"
 #include "../preprocessors/longsequences.h"
+#include "../preprocessors/postprocessor.h"
 #include "../globaldefs.h"
 #include "../block_manager.h"
 
@@ -70,7 +71,7 @@ void TestBorder() {
 
 void TestSequenceCompression(const std::string& source_name, int times,
                              uint64 block_size, unsigned window_size,
-                             int threshold)
+                             int threshold, int mem_constr)
 {
   bwtc::BlockManager bm(block_size, 1);
   bwtc::TestPreProcessor pp(block_size);
@@ -78,12 +79,28 @@ void TestSequenceCompression(const std::string& source_name, int times,
   pp.Connect(source_name);
   pp.InitializeTarget();
   uint64 data_size = pp.FillBuffer();
-  //for(int j = 0; j < times; ++j) {
-  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_, 5,
-                          window_size, threshold);
-  bwtc::CompressSequences(pp.curr_block_->begin(), pp.curr_block_->filled_, 2,
-                          window_size, threshold);
-    //}
+  std::vector<byte> original(pp.curr_block_->filled_);
+  std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
+  uint64 compressed_size;
+  for(int j = 0; j < times; ++j) {
+    compressed_size = bwtc::CompressSequences(pp.curr_block_->begin(),
+                                              pp.curr_block_->filled_,
+                                              mem_constr, window_size,
+                                              threshold);
+    pp.curr_block_->filled_ = compressed_size;
+  }
+  uint64 uncompressed_size;
+  for(int j = 0; j < times; ++j) {
+    uncompressed_size = bwtc::UncompressSequences(pp.curr_block_->block_,
+                                                  pp.curr_block_->filled_);
+    pp.curr_block_->filled_ = uncompressed_size;
+  }
+  std::vector<byte>& uncompressed = *pp.curr_block_->block_;
+
+  assert(uncompressed_size == original.size());
+  for(uint64 j = 0; j < data_size; ++j) {
+    assert(uncompressed[j] == original[j]);
+  }
 }
 
 } //namespace tests
@@ -95,11 +112,13 @@ int main(int argc, char **argv) {
   int times = 1;
   unsigned window_size = 16;
   int threshold = 128;
+  int mem_constr = 2;
   if(argc > 2) window_size = atoi(argv[2]);
   if (argc > 3) threshold = atoi(argv[3]);
-  if(argc > 4) times =  atoi(argv[4]);
-  if (argc > 5) block_size = atoi(argv[5]);
+  if (argc > 4) mem_constr = atoi(argv[4]);
+  if(argc > 5) times =  atoi(argv[5]);
+  if (argc > 6) block_size = atoi(argv[6]);
   if(argc == 1) return 0;
   TestSequenceCompression(std::string(argv[1]), times, block_size, window_size,
-                          threshold);
+                          threshold, mem_constr);
 }

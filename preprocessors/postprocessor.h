@@ -1,3 +1,6 @@
+#ifndef BWTC_POSTPROCESSOR_H_
+#define BWTC_POSTPROCESSOR_H_
+
 #include <vector>
 
 #include "../globaldefs.h"
@@ -9,5 +12,8 @@ namespace bwtc {
   
 uint64 UncompressCommonPairs(std::vector<byte> *from, uint64 length);
 uint64 UncompressLongRuns(std::vector<byte> *from, uint64 length);
+uint64 UncompressSequences(std::vector<byte> *from, uint64 length);
 
 }
+
+#endif

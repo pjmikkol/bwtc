@@ -297,7 +297,6 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
     __int64 endPost = ReadTSC();
     total_cycles_postproc += (endPost - beginPost);
     std::vector<byte>& uncompressed = *pp.curr_block_->block_;
-    std::cout << uncompressed_size << " " << original.size() << "\n";
     assert(uncompressed_size == original.size());
     for(uint64 j = 0; j < data_size; ++j) {
       assert(uncompressed[j] == original[j]);

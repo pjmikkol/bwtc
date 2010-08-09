@@ -7,6 +7,7 @@
 
 #include "../globaldefs.h"
 #include "postprocessor.h"
+#include "../utils.h"
 
 namespace bwtc {
 
@@ -99,7 +100,7 @@ uint64 UncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
       }
     }
   }
-  if (verbosity) {
+  if (verbosity > 2) {
     unsigned repls;
     /* Compute the number of replacements from j */
     if ( (2*j-3) % 5 == 0 ) repls = (2*j-3) / 5;
@@ -126,6 +127,62 @@ uint64 UncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
   data.resize(result.size());
   std::copy(result.begin(), result.end(), data.begin());
   return result.size();
+}
+
+uint64 UncompressSequences(std::vector<byte> *compressed, uint64 length) {
+  std::vector<byte>& data = *compressed;
+  std::vector<byte> result;
+  result.reserve(length/2);
+  /* We use pair <position, length> for representing the sequences */
+  std::pair<uint64, unsigned> repls[256];
+  for(int i = 0; i < 256; ++i) {
+    repls[i] = std::pair<uint64, unsigned>(0,1);
+  }
+  bool escaping = false;
+  byte escape_byte;
+  uint64 source_pos = 0;
+  if(data[1] == 0) {
+    source_pos = 2;
+  } else {
+    byte prev = ~data[0];
+    while(1) {
+      if(prev == data[source_pos]) break;
+      prev = data[source_pos++];
+      uint64 len;
+      source_pos += utils::ReadAndUnpackInteger(&data[source_pos], &len);
+      repls[prev].second = len;
+      repls[prev].first = source_pos;
+      source_pos += len;
+    }
+    escape_byte = data[++source_pos];
+    if(escape_byte != prev) escaping = true;
+    ++source_pos;
+  }
+
+  if(verbosity > 2) {
+    int rep = 0;
+    for(int i = 0; i < 256; ++i) {
+      if(repls[i].second > 1) ++rep;
+    }
+    std::clog << rep << " sequences replaced. ";
+    if(escaping) std::clog << "U";
+    else std::clog << "Not u";
+    std::clog << "sing escape byte.\n";
+  }
+
+  for(; source_pos < length; ++source_pos) {
+    if(repls[data[source_pos]].second > 1) {
+      for(unsigned i = 0; i < repls[data[source_pos]].second; ++i)
+        result.push_back(data[repls[data[source_pos]].first + i]);
+    } else if (escaping && data[source_pos] == escape_byte) {
+      result.push_back(data[++source_pos]);
+    } else {
+      result.push_back(data[source_pos]);
+    }
+  }
+  data.resize(result.size());
+  std::copy(result.begin(), result.end(), data.begin());
+  return data.size();
 }
 
 

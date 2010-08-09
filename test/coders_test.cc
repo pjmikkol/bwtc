@@ -39,6 +39,7 @@ void TestWritingAndReadingPackedIntegerList() {
   int symbols = rand() & 0x00FFFF;
   bwtc::Encoder* enc = new bwtc::Encoder(test_fname,'n');
   std::vector<uint64> data(symbols);
+  data.push_back(0xF0000FF0);
   int bytes;
   for(unsigned i = 0; i < data.size(); ++i) {
     data[i] = static_cast<uint64>(rand());

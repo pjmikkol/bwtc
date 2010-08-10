@@ -721,34 +721,93 @@ unsigned EscapeCharIndex(FreqTable *freqs, const std::vector<triple>& runs,
   return i;
 }
 
-unsigned WriteRunReplacement(const std::vector<std::pair<unsigned, byte> > &repl,
-                             unsigned run_length, bool escaping, byte escape,
-                             byte symbol, byte *to)
+struct runlist_elem {
+  runlist_elem(int l, byte s, int n) : length(l), symbol(s), next_elem(n) {}
+  int length;
+  byte symbol;
+  int next_elem;
+};
+
+class ReplacementTable {
+
+ public:
+  ReplacementTable(byte escape_byte) {
+    std::fill(table_, table_ + 256, -1);
+    rpls_.push_back(runlist_elem(1, escape_byte, -1));
+  }
+
+  bool Empty(byte key) {
+    return table_[key] == -1;
+  }
+
+  void PushBack(byte run_symbol, unsigned length, byte replacement) {
+    int list_index = table_[run_symbol];
+    runlist_elem *e = 0;
+    while(list_index != -1 && rpls_[list_index].length > length) {
+      e = &rpls_[list_index];
+      list_index = e->next_elem;
+    }
+    int next = -1;
+    if(length > 1) {
+      if(!e)
+        table_[run_symbol] = rpls_.size();
+      else {
+        next = e->next_elem;
+        e->next_elem = rpls_.size();
+      }
+      rpls_.push_back(runlist_elem(length, replacement, next));
+    } else {
+      if(!e)
+        table_[run_symbol] = 0;
+      else {
+        e->next_elem = 0;
+      }
+    }
+  }
+
+  int ListBegin(byte symbol) {
+    return table_[symbol];
+  }
+
+  runlist_elem ListElement(int index) {
+    assert(index >= 0);
+    assert(static_cast<unsigned>(index) < rpls_.size());
+    return rpls_[index];
+  }
+
+ private:
+  int table_[256];
+  std::vector<runlist_elem> rpls_;
+};
+
+unsigned WriteRunReplacement(ReplacementTable *repl, unsigned run_length,
+                             bool escaping, byte escape, byte symbol, byte *to)
 {
-  std::vector<std::pair<unsigned, byte> >::const_iterator it = repl.begin();
-  assert(repl.size() > 0);
+  int tbl_index = repl->ListBegin(symbol);
   unsigned j = 0;
-  while(run_length > 0) {
-    assert(it != repl.end());
-    unsigned times = run_length/ (it->first);
-    if(it->first == 1 && escaping && it->second == escape) {
+  do {
+    if (tbl_index == -1) {
+      std::fill(to + j, to + j + run_length, symbol);
+      return run_length + j;
+    }
+    runlist_elem el = repl->ListElement(tbl_index);
+    unsigned times = run_length/el.length;
+    if(el.length == 1) {
       for(unsigned k = 0; k < times; ++k) {
         to[j++] = escape; to[j++] = symbol;
       }
-      break;
-    } else {
-      if(times > 0) std::fill(to + j, to + j + times, it->second);
-      j += times;
+    } else if (times > 0) {
+        std::fill(to + j, to + j + times, el.symbol);
+        j+= times;
     }
-    run_length -= times*it->first;
-    ++it;
-  }
+    run_length -= times*el.length;
+    tbl_index = el.next_elem;
+  } while(run_length > 0);
   return j;
 }
 
-uint64 WriteReplacements(const std::vector<std::pair<unsigned,byte> >
-                         *replacements, byte *to, byte *from, uint64 length,
-                         byte escape, bool escaping)
+uint64 WriteReplacements(ReplacementTable *replacements, byte *to, byte *from,
+                         uint64 length, byte escape, bool escaping)
 {
   uint64 j = 0; /* Index of target */
   byte prev = from[0];
@@ -757,14 +816,14 @@ uint64 WriteReplacements(const std::vector<std::pair<unsigned,byte> >
     if(prev == from[i] && run_length < kMaxLenOfSeq)
       ++run_length;
     else {
-      j += WriteRunReplacement(replacements[prev], run_length, escaping,
-                               escape, prev, to + j);
+      j += WriteRunReplacement(replacements, run_length, escaping, escape,
+                               prev, to + j);
       prev = from[i];
       run_length = 1;
     }
   }
-  j += WriteRunReplacement(replacements[prev], run_length, escaping,
-                           escape, prev, to + j);
+  j += WriteRunReplacement(replacements, run_length, escaping, escape,
+                           prev, to + j);
   return j;
 }
 
@@ -860,29 +919,28 @@ uint64 CompressLongRuns(byte *from, uint64 length)
   }
 
   /* Replacement table */
-  std::vector<std::pair<unsigned, byte> > replacements[256];
+  ReplacementTable replacements(escape_byte);
   /* Escaped characters*/
   if( new_symbols > 0) {
     for(unsigned i = free_symbols; i <= escape_index; ++i) {
-      replacements[freqs.Key(i)].push_back(
-          std::pair<unsigned, byte>(1, escape_byte));
+      replacements.PushBack(freqs.Key(i), 1, escape_byte);
     }
   }
-  for(unsigned i = 0; i < 256; ++i) {
-    if(replacements[i].size() == 0)
-      replacements[i].push_back(std::pair<unsigned, byte>(1,i));
-  }
+  //  for(unsigned i = 0; i < 256; ++i) {
+  //  if(replacements.Empty(i))
+  //   replacements.PushBack(i, 1, );
+  //}
   for (unsigned i = 0; i < run_replacements; ++i) {
     assert( i < longest_runs.size() );
-    replacements[longest_runs[i].symbol].push_back(
-        std::pair<unsigned, byte>(longest_runs[i].length, freqs.Key(i)));
+    replacements.PushBack(longest_runs[i].symbol, longest_runs[i].length,
+                          freqs.Key(i));
   }
   uint64 total_size = position;
-  for(unsigned i = 0; i < 256; ++i) {
-    std::sort(replacements[i].rbegin(), replacements[i].rend());
+  //  for(unsigned i = 0; i < 256; ++i) {
+  //std::sort(replacements[i].rbegin(), replacements[i].rend());
     //std::reverse(replacements[i].begin(), replacements[i].end());
-  }
-  total_size += WriteReplacements(replacements, temp + position, from, length,
+  //}
+  total_size += WriteReplacements(&replacements, temp + position, from, length,
                                   escape_byte, new_symbols > 0);
   
   std::copy(temp, temp + total_size, from);

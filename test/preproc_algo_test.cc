@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
   if (argc > 3) block_size = atoi(argv[3]);
   if(argc == 1) return 0;
   tests::TestRunUncompression(std::string(argv[1]), times, block_size);
-  //tests::TestComboCompression(std::string(argv[1]), times, block_size);
-  //tests::TestPairCompression(std::string(argv[1]), times, block_size);
-  //tests::TestPairUncompression(std::string(argv[1]), times, block_size);
+  tests::TestComboCompression(std::string(argv[1]), times, block_size);
+  tests::TestPairCompression(std::string(argv[1]), times, block_size);
+  tests::TestPairUncompression(std::string(argv[1]), times, block_size);
 }

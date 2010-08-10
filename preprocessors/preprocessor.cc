@@ -721,14 +721,15 @@ unsigned EscapeCharIndex(FreqTable *freqs, const std::vector<triple>& runs,
   return i;
 }
 
-unsigned WriteRunReplacement(const std::map<unsigned, byte> &repl,
+unsigned WriteRunReplacement(const std::vector<std::pair<unsigned, byte> > &repl,
                              unsigned run_length, bool escaping, byte escape,
                              byte symbol, byte *to)
 {
-  std::map<unsigned, byte>::const_reverse_iterator it = repl.rbegin();
+  std::vector<std::pair<unsigned, byte> >::const_iterator it = repl.begin();
   assert(repl.size() > 0);
   unsigned j = 0;
   while(run_length > 0) {
+    assert(it != repl.end());
     unsigned times = run_length/ (it->first);
     if(it->first == 1 && escaping && it->second == escape) {
       for(unsigned k = 0; k < times; ++k) {
@@ -745,8 +746,9 @@ unsigned WriteRunReplacement(const std::map<unsigned, byte> &repl,
   return j;
 }
 
-uint64 WriteReplacements(const std::map<unsigned,byte> *replacements, byte *to,
-                         byte *from, uint64 length, byte escape, bool escaping)
+uint64 WriteReplacements(const std::vector<std::pair<unsigned,byte> >
+                         *replacements, byte *to, byte *from, uint64 length,
+                         byte escape, bool escaping)
 {
   uint64 j = 0; /* Index of target */
   byte prev = from[0];
@@ -858,22 +860,28 @@ uint64 CompressLongRuns(byte *from, uint64 length)
   }
 
   /* Replacement table */
-  std::map<unsigned, byte> replacements[256];
-  for(unsigned i = 0; i < 256; ++i) {
-    replacements[i][1] = static_cast<byte>(i);
-  }
+  std::vector<std::pair<unsigned, byte> > replacements[256];
   /* Escaped characters*/
   if( new_symbols > 0) {
     for(unsigned i = free_symbols; i <= escape_index; ++i) {
-      replacements[freqs.Key(i)][1] = escape_byte;
+      replacements[freqs.Key(i)].push_back(
+          std::pair<unsigned, byte>(1, escape_byte));
     }
+  }
+  for(unsigned i = 0; i < 256; ++i) {
+    if(replacements[i].size() == 0)
+      replacements[i].push_back(std::pair<unsigned, byte>(1,i));
   }
   for (unsigned i = 0; i < run_replacements; ++i) {
     assert( i < longest_runs.size() );
-    replacements[longest_runs[i].symbol].insert(
-        std::pair<unsigned, byte>(longest_runs[i].length, freqs.Key(i)) );
+    replacements[longest_runs[i].symbol].push_back(
+        std::pair<unsigned, byte>(longest_runs[i].length, freqs.Key(i)));
   }
   uint64 total_size = position;
+  for(unsigned i = 0; i < 256; ++i) {
+    std::sort(replacements[i].rbegin(), replacements[i].rend());
+    //std::reverse(replacements[i].begin(), replacements[i].end());
+  }
   total_size += WriteReplacements(replacements, temp + position, from, length,
                                   escape_byte, new_symbols > 0);
   

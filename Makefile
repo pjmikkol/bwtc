@@ -1,5 +1,5 @@
 CC = g++
-DFLAGS = -g
+DFLAGS = -g -O3 -fno-inline
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # less flags because of template assertions
 

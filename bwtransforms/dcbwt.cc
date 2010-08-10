@@ -551,7 +551,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   if (verbosity > 4) {
     std::clog << "Computing bucket sizes" << std::endl;
   }
-  uint32 bucket_size[0x10000] = {0};
+  uint32 bucket_size[0x10001] = {0};
   memset(bucket_size, 0, 0x10000*sizeof(uint32));
   int bucket = static_cast<byte>(block[0]) << 8;
   for (uint32 i = 1; i < block_size; ++i) {

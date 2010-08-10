@@ -52,7 +52,7 @@ uint64 TestPreProcessor::FillBuffer() {
       curr_block_->begin() + curr_block_->Size(),
       static_cast<std::streamsize>(block_size_ - curr_block_->Size()));
   curr_block_->filled_ += read;
-  return read;
+  return static_cast<uint64>(read);
 }
 
 

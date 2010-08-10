@@ -729,7 +729,6 @@ unsigned WriteRunReplacement(const std::map<unsigned, byte> &repl,
   assert(repl.size() > 0);
   unsigned j = 0;
   while(run_length > 0) {
-    assert(it != repl.rend());
     unsigned times = run_length/ (it->first);
     if(it->first == 1 && escaping && it->second == escape) {
       for(unsigned k = 0; k < times; ++k) {
@@ -769,6 +768,8 @@ uint64 WriteReplacements(const std::map<unsigned,byte> *replacements, byte *to,
 
 } // namespace longruns
 
+
+/* Use of map for replacments may be too slow. */
 uint64 CompressLongRuns(byte *from, uint64 length)
 {
   using namespace longruns;

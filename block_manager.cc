@@ -30,7 +30,8 @@ std::vector<uint64>* BlockManager::GetFreeStats() {
 
 /* When adding concurrency to the program this one needs re-implementation*/
 MainBlock* BlockManager::MakeBlock(std::vector<byte>* data,
-                                   std::vector<uint64>* stats, uint64 filled) {
+                                   std::vector<uint64>* stats, uint64 filled)
+{
   return new MainBlock(data, stats, filled);
 }
 

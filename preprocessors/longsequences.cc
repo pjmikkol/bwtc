@@ -614,13 +614,13 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
   while(!long_seqs->Empty() && j < 255) {
     long_seq s = long_seqs->Pop();
     std::fill(seq_freqs, seq_freqs + 256, 0);
-    CalculateFrequencies(seq_freqs, data + s.position,
-                         data + s.position + s.length);
-    DecreaseFreqs(freqs, seq_freqs, s.count);
+    /* We can't update the values because the instances may overlap */
+    //CalculateFrequencies(seq_freqs, data + s.position,
+    //                   data + s.position + s.length);
+    //DecreaseFreqs(freqs, seq_freqs, s.count);
     repl[(data[s.position] << 8) + data[s.position + 1]]
         .push_back(replacement(s.position, s.length, j++));
   }
-  if(j == 255) return 0xF000;
   if (periods->size() < static_cast<unsigned>(255-j))
     std::sort(periods->begin(), periods->end(), cmp_long_seq_freq);
   else
@@ -630,7 +630,7 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
   long_seq curr;
   while(j < 255 && i < periods->size()) {
     curr = (*periods)[i];
-    if( (*freqs)[j]!=0||(*freqs)[j] + curr.count >= (curr.count-1)*curr.length) {
+    if((*freqs)[j] + curr.count >= (curr.count-1)*curr.length) {
       break;
     } else {
       repl[(data[curr.position] << 8) | data[curr.position + 1]].
@@ -638,17 +638,11 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
       ++i;
     }
   }
-  /*  if(i > 0) {
-    curr = (*periods)[i-1];
-    repl[(data[curr.position] << 8) | data[curr.position + 1]].pop_back();
-    }*/
   if(verbosity > 2)
     std::clog << "Replacing " << (j - i) << " sequences longer than "
               << "threshold and " << i << " shorter sequences. ";
 
   /* Ensuring that the escape bytes will be written */
-  //if(j-- <= 1) return 0xF000;
-  //--j;
   if(j <= 0) return 0xF000;
   if((*freqs)[j-1] > 0) {
     unsigned escape_index = j;
@@ -669,6 +663,7 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
 uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
                          uint64 length, byte escape_byte, FreqTable *freqs)
 {
+  unsigned esc = 0, rep =0; 
   uint64 result_index = 0;
   uint16 pair = static_cast<uint16>(from[0]);
   uint64 i = 1;
@@ -684,12 +679,14 @@ uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
         i += it->length - 1;
         pair = from[i];
         seq_replaced = true;
+        rep++;
         break;
       }
       ++it;
     }
     if(it != end && it->length == 1) {
       to[result_index++] = escape_byte;
+      esc++;
     }
     if (!seq_replaced) {
       to[result_index++] = from[i-1];
@@ -704,6 +701,7 @@ uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
     }
     ++i;
   }
+  std::cout << "Replacements " << rep << " escapes " << esc << "\n";
   return result_index;
 }
 

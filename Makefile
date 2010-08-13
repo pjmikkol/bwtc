@@ -3,12 +3,12 @@ DFLAGS = -g -O3 -fno-inline
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # less flags because of template assertions
 
-all: bin/compr bin/uncompr
+all: bin/compr bin/uncompr bin/sa-is-bwt.o
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
 	bin/difference_cover.o bin/prob_models.o bin/utils.o
-	$(CC) $(FLAGS) -I/usr/lib -lboost_program_options compr.cc bin/stream.o \
+	$(CC) $(FLAGS) -lboost_program_options compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o bin/coders.o \
 	bin/rl_compress.o bin/dcbwt.o bin/bw_transform.o bin/prob_models.o \
 	bin/difference_cover.o bin/utils.o -o bin/compr
@@ -64,6 +64,10 @@ bin/prob_models.o : probmodels/base_prob_model.cc probmodels/base_prob_model.h
 bin/bw_transform.o : bwtransforms/bw_transform.cc bwtransforms/bw_transform.h \
 	bwtransforms/dcbwt.h
 	$(CC) $(FLAGS) bwtransforms/bw_transform.cc -c -o bin/bw_transform.o
+
+bin/sa-is-bwt.o : bwtransforms/sa-is-bwt.cc bwtransforms/sa-is-bwt.h \
+	bin/bw_transform.o
+	$(CC) $(FLAGS) bwtransforms/sa-is-bwt.cc -c -o bin/sa-is-bwt.o
 
 bin/dcbwt.o : bwtransforms/bw_transform.h bwtransforms/dcbwt.h \
 	bwtransforms/difference_cover.h bwtransforms/difference_cover-inl.h \

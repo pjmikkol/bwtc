@@ -11,12 +11,14 @@
 namespace bwtc {
 
 /* At the moment we assume that context-block of sentinel char *
- * is at the front of transform. */
+ * is at the beginning of transform.                           */
+//TODO: Allow take array from preprocessor to parameter since they have
+//      already built stats
 void BWTransform::BuildStats() {
   std::fill(current_block_->stats_->begin(), current_block_->stats_->end(), 0);
   (*current_block_->stats_)[0] = 1;
   for( uint64 i = 0; i < current_block_->Size(); ++i)
-    (*current_block_->stats_)[(*current_block_->block_)[i] + 1]++; 
+    (*current_block_->stats_)[(*current_block_->block_)[i] + 1]++;
 }
 
 std::vector<byte>* BWTransform::AllocateMemory(uint64 size) {
@@ -24,8 +26,8 @@ std::vector<byte>* BWTransform::AllocateMemory(uint64 size) {
 }
 
 BWTransform* GiveTransformer() {
-  /* When there are multiple ways to do transform this is to place to add them*/
-  return new DCBWTransform(10);
+  /*When there are multiple ways to do transform this is to place to add them*/
+  return new DCBWTransform(8);
 }
 
 /***********************************************************************

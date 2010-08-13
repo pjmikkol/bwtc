@@ -109,13 +109,13 @@ int Encoder::WriteTrailer(uint64 trailer) {
 //       we can write the size of the compressed block in the beginning (1)
 // At the moment the implementation is done only for compressing into file
 void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
-                         uint64 block_size) {
+                         uint64 block_size)
+{
   // TODO: At the moment we are not assuming that block->stats_ is
-  //       ordered in increasing order (since it isn't yet)
+  //       ordered in increasing order (since it isn't)
   unsigned i = 0;
-
-  /* This loop is quite tricky since we want to prepare that context blocks
-   * can be shattered around. */
+  /* This loop is quite tricky since we want to be prepared that context
+   * blocks can be shattered around. */
   if (current_stat_handled_ == 0) 
     while((*stats)[current_stat_index_] == 0) ++current_stat_index_;
   
@@ -140,8 +140,12 @@ void Encoder::FinishBlock(uint64 eob_byte) {
 }
 
 /*********************************************************************
- * The format of header is the following:                            *
- * TODO:WRITE FORMAT                                                 *
+ * The format of header for single main block is the following:      *
+ * - 48 bits for the length of the compressed main block, doesn't    *
+ *   include 6 bytes used for this                                   *
+ * - lengths of context blocks in the same order as they are in the  *
+ *   result of BWT. Lengths are coded with utils::PackInteger        *
+ * - 2 sentinel bytes 0x80 and 0x00 for notifying end of the header  *
  *********************************************************************/
 void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
   uint64 header_length = 0;

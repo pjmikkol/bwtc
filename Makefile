@@ -87,8 +87,8 @@ clean :
 	rm -f test/testfile.txt
 
 # Rest of the file is for tests:
-tests : test/preproctest test/coderstest test/dcbwttest \
-	test/preprocalgotest test/longsequencetest test/streamtest
+tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
+	test/preprocalgotest test/longsequencetest test/streamtest 
 	./test/streamtest
 	./test/preproctest
 	./test/coderstest
@@ -114,6 +114,15 @@ test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 	bin/bw_transform.o bin/dcbwt.o bin/block.o bin/difference_cover.o
 	$(CC) $(FLAGS) bin/bw_transform.o bin/dcbwt.o test/dcbwt_test.cc \
 	bin/block.o bin/difference_cover.o -o test/dcbwttest
+
+test/speedtest : test/bwt_and_preproctest.cc bin/testpreprocessor.o \
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
+	bin/difference_cover.o bin/longsequences.o
+	$(CC) $(FLAGS) test/bwt_and_preproctest.cc bin/testpreprocessor.o \
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
+	bin/difference_cover.o bin/longsequences.o -o test/speedtest
 
 test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \

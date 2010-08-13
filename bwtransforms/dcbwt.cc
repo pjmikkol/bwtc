@@ -77,7 +77,7 @@ class EdgeGreater : std::binary_function<int, int, bool> {
   const uint32* const weights_;
 };
 
-uint32 OptimizeAlphabetOrder(const uint32* bucket_size, uint8* char_of_rank) {
+uint32 OptimizeAlphabetOrder(const uint32* bucket_size, byte* char_of_rank) {
 
   class Graph {
    public:
@@ -281,15 +281,6 @@ uint32 OptimizeAlphabetOrder(const uint32* bucket_size, uint8* char_of_rank) {
 }
 
 
-
-
-
-
-
-
-
-
-
 /*****************************************************************
  * Compute the suffix cover sample ranks and provide methods     *
  * for using it.                                                 *
@@ -449,16 +440,6 @@ class DifferenceCoverSuffixComparer {
   };
 };
 
-
-
-
-
-
-
-
-
-
-
 class DCSorter {
  public:
   DCSorter(const DifferenceCoverSuffixComparer::Less& dcless)
@@ -471,12 +452,6 @@ class DCSorter {
 };
 
 } //empty namespace
-
-
-
-
-
-
 
 
 std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
@@ -496,7 +471,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   byte* result_begin = &((*result)[0]);
 
   // Use basic string sorting for small blocks.
-  if (block_size < 1024) {
+  if (block_size < 102400) {
     if (verbosity > 2) {
       std::clog << "DifferenceCoverBWTransformer::DoTransform"
                 << " block_size=" << block_size
@@ -551,8 +526,8 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   if (verbosity > 4) {
     std::clog << "Computing bucket sizes" << std::endl;
   }
-  uint32 bucket_size[0x10001] = {0};
-  memset(bucket_size, 0, 0x10000*sizeof(uint32));
+  uint32 bucket_size[0x10001];
+  memset(bucket_size, 0, 0x10001*sizeof(uint32));
   int bucket = static_cast<byte>(block[0]) << 8;
   for (uint32 i = 1; i < block_size; ++i) {
     bucket += static_cast<byte>(block[i]);
@@ -590,8 +565,8 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   }
   assert(num_selected_suffixes == num_suffixes_to_sort);
 
-  /* At the moment we don't need this
-   * uint32* suffixes_end = suffix_area + num_suffixes; */
+  /* It seems that at the moment we don't need this
+  uint32* suffixes_end = suffix_area + num_suffixes; */
   uint32* selected_suffixes = suffix_area_end - num_selected_suffixes;
 
   // Distribute the suffixes to the selected buckets.
@@ -609,10 +584,10 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   }
 
   // Compute the positions of all buckets.
-  uint32 bucket_begin[0x10001] = {0};
+  uint32 bucket_begin[0x10001];
   bucket_begin[0] = 0;
   uint32 sum = bucket_size[0];
-  for (int bucket = 1; bucket < 0x10000; ++bucket) {
+  for (int bucket = 1; bucket < 0x10001; ++bucket) {
     bucket_begin[bucket] = sum;
     sum += bucket_size[bucket];
   }
@@ -635,6 +610,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
         source_end += bucket_size[bucket];
         uint32* target_begin = suffix_area + bucket_begin[bucket];
         assert(target_begin <= source_begin);
+        if(bucket_size[bucket] == 0) continue;
         uint32* target_end =
             dcsbwt::StringsortSuffixes(
                 block, block + block_size,
@@ -645,7 +621,6 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
       }
     }
   }
-
   // Move other suffixes into their final positions.
   if (verbosity > 4) {
     std::clog << "Setting other suffixes" << std::endl;

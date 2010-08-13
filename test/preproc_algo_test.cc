@@ -73,7 +73,6 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
 void TestPairUncompression(std::string source, int times, uint64 block_size)
 {
   bwtc::BlockManager bm(block_size, 1);
-  //bwtc::BWTransform *transformer = bwtc::GiveTransformer(); 
   for(int i = 0; i < kTimes; ++i) {
     bwtc::TestPreProcessor pp(block_size);
     pp.AddBlockManager(&bm);

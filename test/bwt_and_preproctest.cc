@@ -67,9 +67,11 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   delete transformer;
 
   std::cout << "Time spent on Burrows-Wheeler Transform: "
-            << (bwt_end - bwt_start)/static_cast<double>(CLOCKS_PER_SEC) << "\n";
+            << (bwt_end - bwt_start)/static_cast<double>(CLOCKS_PER_SEC)
+            << "\n";
   std::cout << "Time spent on preprocessing: "
-            << (prepr_end - prepr_start)/static_cast<double>(CLOCKS_PER_SEC) << "\n";
+            << (prepr_end - prepr_start)/static_cast<double>(CLOCKS_PER_SEC)
+            << "\n";
 }
 
 void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
@@ -166,8 +168,8 @@ int main(int argc, char **argv) {
   if (argc < 4) return 0;
   if (argc > 4) mem_constr = atoi(argv[4]);
   if (argc > 5) block_size = atoi(argv[5]);
-  tests::PreprocBWTSpeed(argv[1], atoi(argv[2]), std::string(argv[3]),
-                         block_size, mem_constr);
+  //tests::PreprocBWTSpeed(argv[1], atoi(argv[2]), std::string(argv[3]),
+  //                     block_size, mem_constr);
   tests::ValidatePreproc(argv[1], atoi(argv[2]), std::string(argv[3]),
                          block_size, mem_constr);
 

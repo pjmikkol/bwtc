@@ -13,7 +13,7 @@ unsigned PackAndWriteInteger(uint64 integer, byte *to) {
     if(integer) {
       byte to_written = static_cast<byte>(integer & 0x7F);
       integer >>= 7;
-      if(integer) to_written |= kEightBit;
+      if(integer) to_written |= 0x80;
       *to++ = to_written;
       ++bytes_used;
     } else {
@@ -30,7 +30,7 @@ unsigned ReadAndUnpackInteger(byte *from, uint64 *to) {
     uint64 read = *from;
     result |= ((read & 0x7F) << 7*bytes_read);
     ++bytes_read;
-    if ((*from & 0x80) == 0) break;
+    if (((*from) & 0x80) == 0) break;
     else ++from;
   }
   *to = result;

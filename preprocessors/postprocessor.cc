@@ -76,7 +76,7 @@ uint64 UncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
   if( data[1] == 0 ) j = 2;
   else {
     j = 0;
-    byte check_val = data[j] + 1; 
+    byte check_val = ~data[j];
     while(1) {
       byte lengths = data[j+1];
       if(lengths == 0) {
@@ -130,7 +130,6 @@ uint64 UncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
 }
 
 uint64 UncompressSequences(std::vector<byte> *compressed, uint64 length) {
-  unsigned esc = 0, rep =0;
   std::vector<byte>& data = *compressed;
   std::vector<byte> result;
   result.reserve(length/2);
@@ -175,15 +174,12 @@ uint64 UncompressSequences(std::vector<byte> *compressed, uint64 length) {
     if(repls[data[source_pos]].second > 1) {
       for(unsigned i = 0; i < repls[data[source_pos]].second; ++i)
         result.push_back(data[repls[data[source_pos]].first + i]);
-      ++rep;
     } else if (escaping && data[source_pos] == escape_byte) {
       result.push_back(data[++source_pos]);
-      ++esc;
     } else {
       result.push_back(data[source_pos]);
     }
   }
-  std::cout << "Replacements " << rep << " escapes " << esc << "\n";
   data.resize(result.size());
   std::copy(result.begin(), result.end(), data.begin());
   return data.size();

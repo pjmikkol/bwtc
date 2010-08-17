@@ -640,7 +640,7 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
   }
   if(verbosity > 2)
     std::clog << "Replacing " << (j - i) << " sequences longer than "
-              << "threshold and " << i << " shorter sequences. ";
+              << "threshold and " << i << " shorter sequences.\n";
 
   /* Ensuring that the escape bytes will be written */
   if(j <= 0) return 0xF000;
@@ -663,7 +663,6 @@ unsigned DecideReplacements(FreqTable *freqs, std::vector<long_seq> *periods,
 uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
                          uint64 length, byte escape_byte, FreqTable *freqs)
 {
-  unsigned esc = 0, rep =0; 
   uint64 result_index = 0;
   uint16 pair = static_cast<uint16>(from[0]);
   uint64 i = 1;
@@ -679,14 +678,12 @@ uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
         i += it->length - 1;
         pair = from[i];
         seq_replaced = true;
-        rep++;
         break;
       }
       ++it;
     }
     if(it != end && it->length == 1) {
       to[result_index++] = escape_byte;
-      esc++;
     }
     if (!seq_replaced) {
       to[result_index++] = from[i-1];
@@ -701,7 +698,6 @@ uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
     }
     ++i;
   }
-  std::cout << "Replacements " << rep << " escapes " << esc << "\n";
   return result_index;
 }
 
@@ -755,10 +751,7 @@ uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
     while(it != end && it->length > 1) {
       prev_s = freqs.Key(it->rank);
       temp[position++] = prev_s;
-      /*      int bytes;
-      uint64 len = utils::PackInteger(it->length, &bytes);
-      utils::WritePackedInteger(len, temp + position);
-      position += bytes;*/
+
       position += utils::PackAndWriteInteger(it->length, temp + position);
       std::copy(&from[it->location], &from[it->location + it->length],
                 &temp[position]);

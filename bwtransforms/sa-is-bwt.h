@@ -19,12 +19,12 @@ class SAISBWTransform : public BWTransform {
   virtual ~SAISBWTransform();
 
  private:
-  void GetBuckets(byte *s, int *bkt, int n, int K, int cs, bool end);
-  void InduceSAl(std::vector<bool> *t, int *SA, byte *s, int *bkt, int n,
-                 int K,int cs, bool end);
-  void InduceSAs(std::vector<bool> *t, int *SA, byte *s, int *bkt, int n,
-                 int K, int cs, bool end);
-  void SA_IS(byte *s, int *SA, int n, int K, int cs);
+  void GetBuckets(byte *s, uint32 *bkt, uint32 n, uint32 K, int cs, bool end);
+  void InduceSAl(const std::vector<bool>& t, uint32 *SA, byte *s, uint32 *bkt,
+                 uint32 n, uint32 K, int cs, bool end);
+  void InduceSAs(const std::vector<bool>& t, uint32 *SA, byte *s, uint32 *bkt,
+                 uint32 n, uint32 K, int cs, bool end);
+  void SA_IS(byte *s, uint32 *SA, uint32 n, uint32 K, int cs);
 
 };
 

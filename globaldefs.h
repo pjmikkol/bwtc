@@ -1,3 +1,4 @@
+
 #ifndef GLOBAL_DEFS_H_
 #define GLOBAL_DEFS_H_
 
@@ -10,6 +11,8 @@ typedef boost::uint32_t uint32;
 typedef boost::int16_t int16;
 typedef boost::uint16_t uint16;
 typedef boost::uint8_t uint8;
+
+const uint32 UINT32_MAX = 4294967295;
 
 /* Definitions for probability models and arithmetic coding */
 typedef uint16 Probability;

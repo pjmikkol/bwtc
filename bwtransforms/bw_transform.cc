@@ -32,7 +32,7 @@ BWTransform* GiveTransformer() {
 
 /***********************************************************************
  * BwtFromSuffixArray computes the BWT from the suffix array and       *
- * writes it to result. 
+ * writes it to result.                                                *
  ***********************************************************************/
 uint32 BwtFromSuffixArray(const byte* block, uint32 block_size,
                           const uint32* suffix_array, byte* output)

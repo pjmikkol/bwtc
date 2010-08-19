@@ -1,6 +1,7 @@
-
 #ifndef GLOBAL_DEFS_H_
 #define GLOBAL_DEFS_H_
+
+#include <limits>
 
 /* Common typedefs for different sizes of integers */
 #include <boost/cstdint.hpp>
@@ -12,7 +13,14 @@ typedef boost::int16_t int16;
 typedef boost::uint16_t uint16;
 typedef boost::uint8_t uint8;
 
-const uint32 UINT32_MAX = 4294967295;
+/* Upper limits for different types */
+template <typename Integer>
+struct Max {
+ public:
+  static Integer max; 
+};
+template <typename Integer>
+Integer Max<Integer>::max = std::numeric_limits<Integer>::max();
 
 /* Definitions for probability models and arithmetic coding */
 typedef uint16 Probability;

@@ -1,9 +1,9 @@
 CC = g++
-DFLAGS = -g -O3 #-fno-inline
+DFLAGS = -g #-O3 -fno-inline
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # less flags because of template assertions
 
-all: bin/compr bin/uncompr bin/sa-is-bwt.o
+all: bin/compr bin/uncompr 
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
@@ -66,7 +66,7 @@ bin/bw_transform.o : bwtransforms/bw_transform.cc bwtransforms/bw_transform.h \
 	$(CC) $(FLAGS) bwtransforms/bw_transform.cc -c -o bin/bw_transform.o
 
 bin/sa-is-bwt.o : bwtransforms/sa-is-bwt.cc bwtransforms/sa-is-bwt.h \
-	bin/bw_transform.o
+	bwtransforms/bw_transform.h
 	$(CC) $(FLAGS) bwtransforms/sa-is-bwt.cc -c -o bin/sa-is-bwt.o
 
 bin/dcbwt.o : bwtransforms/bw_transform.h bwtransforms/dcbwt.h \
@@ -92,13 +92,19 @@ clean :
 
 # Rest of the file is for tests:
 tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
-	test/preprocalgotest test/longsequencetest test/streamtest 
+	test/preprocalgotest test/longsequencetest test/streamtest \
+	test/sa-is_test
 	./test/streamtest
 	./test/preproctest
 	./test/coderstest
 	./test/dcbwttest
 	./test/preprocalgotest
 	./test/longsequencetest
+	./test/sa-is_test
+
+test/sa-is_test : bin/sa-is-bwt.o test/sa-is_test.cc 
+	$(CC) $(FLAGS) bin/sa-is-bwt.o test/sa-is_test.cc \
+	-o test/sa-is_test
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o
 	$(CC) $(FLAGS) bin/stream.o test/stream_test.cc -lboost_filesystem \

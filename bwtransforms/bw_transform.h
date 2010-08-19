@@ -7,6 +7,8 @@
 #ifndef BWTC_BW_TRANSFORM_H_
 #define BWTC_BW_TRANSFORM_H_
 
+#include <cassert>
+
 #include <algorithm> // for reverse
 #include <vector>
 
@@ -58,12 +60,35 @@ class BWTransform {
 };
 
 /* Block size and memory budget would probably be suitable parameters... */
-BWTransform* GiveTransformer();
+BWTransform* GiveTransformer(char transform);
 
-/* Computes BWT to output. Caller has to be sure that output is at least *
- * length of block_size + 1 */
-uint32 BwtFromSuffixArray(const byte* block, uint32 block_size,
-                          const uint32* suffix_array, byte* output);
+/***********************************************************************
+ * BwtFromSuffixArray computes the BWT from the suffix array and       *
+ * writes it to output. Caller has to be sure that output has at least *
+ * length of block_size + 1                                            *
+ ***********************************************************************/
+template <typename T>
+uint64 BwtFromSuffixArray(const byte* block, int64 block_size,
+                          const T* suffix_array, byte* output)
+{
+  byte ch = '\0';
+  T eob_position = 0;
+  for (T rank = 0; rank < block_size + 1; ++rank) {
+    T suffix = suffix_array[rank];
+    assert(suffix <= block_size);
+    if (suffix != 0) {
+      ch = block[suffix - 1];
+    } else {
+      /* This is the end-of-block (eob) character, which cannot be
+       * directly written since it has no code.
+       * Instead, write a copy of the previous character here and
+       * store this position in order to indicate its location. */
+      eob_position = rank;
+    }
+    *output++ = ch;
+  }
+  return eob_position;
+}
 
 } //namespace bwtc
 

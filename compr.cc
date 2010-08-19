@@ -32,7 +32,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::BlockManager block_manager(block_size, 1);
   preprocessor->AddBlockManager(&block_manager);
 
-  bwtc::BWTransform* transformer = bwtc::GiveTransformer();
+  bwtc::BWTransform* transformer = bwtc::GiveTransformer('s');
 
   bwtc::Encoder encoder(output_name, encoding);
   encoder.WriteGlobalHeader(preproc, encoding);

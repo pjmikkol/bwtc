@@ -1,5 +1,5 @@
 CC = g++
-DFLAGS = -g #-O3 -fno-inline
+DFLAGS = -g -O3 -fno-inline
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # less flags because of template assertions
 
@@ -7,11 +7,11 @@ all: bin/compr bin/uncompr
 
 bin/compr : compr.cc globaldefs.h bin/stream.o bin/preprocessor.o bin/block.o \
 	bin/block_manager.o bin/coders.o bin/dcbwt.o bin/bw_transform.o \
-	bin/difference_cover.o bin/prob_models.o bin/utils.o
+	bin/difference_cover.o bin/prob_models.o bin/utils.o bin/sa-is-bwt.o
 	$(CC) $(FLAGS) -lboost_program_options compr.cc bin/stream.o \
 	bin/preprocessor.o bin/block.o bin/block_manager.o bin/coders.o \
 	bin/rl_compress.o bin/dcbwt.o bin/bw_transform.o bin/prob_models.o \
-	bin/difference_cover.o bin/utils.o -o bin/compr
+	bin/difference_cover.o bin/utils.o bin/sa-is-bwt.o -o bin/compr
 
 bin/uncompr : uncompr.cc globaldefs.h bin/coders.o bin/rl_compress.o \
 	bin/stream.o bin/inverse_bwt.o bin/prob_models.o bin/utils.o
@@ -102,9 +102,8 @@ tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
 	./test/longsequencetest
 	./test/sa-is_test
 
-test/sa-is_test : bin/sa-is-bwt.o test/sa-is_test.cc 
-	$(CC) $(FLAGS) bin/sa-is-bwt.o test/sa-is_test.cc \
-	-o test/sa-is_test
+test/sa-is_test : test/sa-is_test.cc 
+	$(CC) $(FLAGS) test/sa-is_test.cc -o test/sa-is_test
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o
 	$(CC) $(FLAGS) bin/stream.o test/stream_test.cc -lboost_filesystem \
@@ -120,27 +119,28 @@ test/coderstest : test/coders_test.cc test/testdefs.h bin/coders.o \
 	$(CC) $(FLAGS) bin/coders.o bin/rl_compress.o bin/stream.o \
 	test/coders_test.cc bin/prob_models.o bin/utils.o -o test/coderstest
 
-test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
+test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h bin/sa-is-bwt.o \
 	bin/bw_transform.o bin/dcbwt.o bin/block.o bin/difference_cover.o
 	$(CC) $(FLAGS) bin/bw_transform.o bin/dcbwt.o test/dcbwt_test.cc \
-	bin/block.o bin/difference_cover.o -o test/dcbwttest
+	bin/block.o bin/difference_cover.o bin/sa-is-bwt.o -o test/dcbwttest
 
 test/speedtest : test/bwt_and_preproctest.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
 	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
-	bin/difference_cover.o bin/longsequences.o
+	bin/difference_cover.o bin/longsequences.o bin/sa-is-bwt.o
 	$(CC) $(FLAGS) test/bwt_and_preproctest.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
 	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
-	bin/difference_cover.o bin/longsequences.o -o test/speedtest
+	bin/difference_cover.o bin/longsequences.o bin/sa-is-bwt.o \
+	-o test/speedtest
 
 test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bwtransforms/dcbwt.h bin/bw_transform.o bin/dcbwt.o \
+	bwtransforms/dcbwt.h bin/bw_transform.o bin/dcbwt.o bin/sa-is-bwt.o \
 	bin/difference_cover.o bin/postprocessor.o bin/utils.o
 	$(CC) $(FLAGS) test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bin/bw_transform.o bin/dcbwt.o bin/difference_cover.o \
+	bin/bw_transform.o bin/sa-is-bwt.o bin/dcbwt.o bin/difference_cover.o \
 	bin/postprocessor.o bin/utils.o -o test/preprocalgotest
 
 test/longsequencetest : test/longsequence_test.cc bin/testpreprocessor.o \

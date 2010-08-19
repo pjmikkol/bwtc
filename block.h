@@ -14,6 +14,8 @@
 #ifndef BWTC_BLOCK_H_
 #define BWTC_BLOCK_H_
 
+#include <cassert>
+
 #include <vector>
 
 #include "globaldefs.h"
@@ -40,6 +42,12 @@ class MainBlock {
    * Uses filled_ for deducing the value.*/
   inline byte* end() { return &(*block_)[filled_]; }
 
+  /* Append single byte to the end of filled area. */
+  inline void Append(byte b) {
+    assert(filled_ < block_->size());
+    (*block_)[filled_++] = b;
+  }
+  
   std::vector<byte> *block_;
   std::vector<uint64> *stats_;
   /* Defines range [0, filled_) in array, which will hold the relevant data. */

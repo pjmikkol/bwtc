@@ -16,7 +16,7 @@ int verbosity = 7;
 namespace tests {
 
 void SimpleBWTtest(const char* input, uint64 length) {
-  bwtc::BWTransform* bwt = bwtc::GiveTransformer();
+  bwtc::BWTransform* bwt = bwtc::GiveTransformer('d');
   std::vector<byte> data(&input[0], &input[length]);
   std::vector<uint64> dummy;
   bwtc::MainBlock block(&data, &dummy, length);
@@ -34,7 +34,7 @@ void SimpleBWTtest(const char* input, uint64 length) {
 }
 
 void BWTfromFile(const char *fname) {
-  bwtc::BWTransform* bwt = bwtc::GiveTransformer();
+  bwtc::BWTransform* bwt = bwtc::GiveTransformer('d');
   std::ifstream file(fname);
   std::vector<byte> data((std::istream_iterator<byte>(file)),
                          std::istream_iterator<byte>());

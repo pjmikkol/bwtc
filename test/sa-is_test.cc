@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 #include <iostream>
 
@@ -19,7 +20,7 @@ int SufCmp(byte *str, uint32 s1, uint32 s2, unsigned n) {
 }
 
 void testSA_IS() {
-  unsigned size = rand() & 0x0000FFFF;
+  unsigned size = (rand() & 0x000FFFFF) + 1;
   byte *str = new byte[size+1];
   for(unsigned i = 0; i < size + 1; ++i) {
     str[i] = rand() & 0xFF;
@@ -27,8 +28,12 @@ void testSA_IS() {
   str[size] = 0;
   uint32 *SA = new uint32[size+1];
   sa_is::SA_IS_ZeroInclude(str, SA, size + 1, 256);
-  for(unsigned i = 1; i < size; ++i)
+  for(unsigned i = 1; i < size; ++i) {
     assert(SufCmp(str, SA[i], SA[i+1], size) < 0);
+    assert(SA[i] < size);
+  }
+  std::cout << "." << std::flush;
+  assert(SA[0] == size);
 }
 
 void SimpleTest(char *arg) {
@@ -50,10 +55,11 @@ void SimpleTest(char *arg) {
 
 int main(int argc, char** argv) {
   using namespace tests;
+  srand( time(NULL));
   for(int i = 0; i < 10; ++i) {
     testSA_IS();
   }
-  std::cout << "SA_IS passed all tests.\n";
+  std::cout << "\nSA_IS passed all tests.\n";
   if(argc == 1) return 0;
   SimpleTest(argv[1]);
 }

@@ -8,6 +8,7 @@
 
 #include <cassert>
 
+#include <algorithm>
 #include <vector>
 
 #include "bw_transform.h"
@@ -17,13 +18,14 @@ namespace bwtc {
 
 class SAISBWTransform : public BWTransform {
  public:
-  SAISBWTransform() {}
+  SAISBWTransform();
   virtual ~SAISBWTransform() {}
-  virtual std::vector<byte>* DoTransform(uint64* eob_byte) {}
+  virtual std::vector<byte>* DoTransform(uint64* eob_byte);
 
-  virtual uint64 MaxSizeInBytes(uint64 block_size) const {}
-  virtual uint64 MaxBlockSize(uint64 memory_budget) const {}
-  virtual uint64 SuggestedBlockSize(uint64 memory_budget) const {}
+  /* The following values aren't correct */
+  virtual uint64 MaxSizeInBytes(uint64 block_size) const { return 0; }
+  virtual uint64 MaxBlockSize(uint64 memory_budget) const { return 0; }
+  virtual uint64 SuggestedBlockSize(uint64 memory_budget) const { return 0; }
   
 };
 
@@ -42,7 +44,7 @@ namespace sa_is {
  * Both versions require that last character of the input string is 0.      *
  ****************************************************************************/
 template <typename T, typename S>
-void SA_IS_ZeroIncluded(T *s, S *SA, int64 n, uint32 K);
+void SA_IS_ZeroInclude(T *s, S *SA, int64 n, uint32 K);
 template <typename T, typename S>
 void SA_IS(T *s, S *SA, int64 n, uint32 K);
 
@@ -53,7 +55,7 @@ template <typename T>
 void GetBuckets(T *s, uint32 *bkt, int64 n, uint32 K, bool end);
 
 template <typename T>
-void GetBucketsZeroIncluded(T *s, uint32 *bkt, int64 n, uint32 K, bool end);
+void GetBucketsZeroInclude(T *s, uint32 *bkt, int64 n, uint32 K, bool end);
 
 /* Mutual part for the two SA_IS-procedures */
 template <typename T, typename S>
@@ -160,7 +162,7 @@ void GetBuckets(T *s, uint32 *bkt, int64 n, uint32 K, bool end)
 }
 
 template <typename T>
-void GetBucketsZeroIncluded(T *s, uint32 *bkt, int64 n, uint32 K, bool end)
+void GetBucketsZeroInclude(T *s, uint32 *bkt, int64 n, uint32 K, bool end)
 {
   int64 sum = 0;
   std::fill(bkt, bkt + K + 1, 0);
@@ -211,7 +213,7 @@ void SA_IS(T *s, S *SA, int64 n, uint32 K)
 {
   assert(n >= 2);
   assert(n < Max<S>::max - 1);
-  assert(s[n-1] == 0);
+  //assert(s[n-1] == 0);
 
   std::vector<bool> t(n, false);
 
@@ -245,7 +247,7 @@ void SA_IS_ZeroInclude(T *s, S *SA, int64 n, uint32 K)
 
   /* Stage 1: sort all the S-substrings */
   uint32 *bkt = new uint32[K+1];
-  GetBucketsZeroIncluded(s, bkt, n, K, true);
+  GetBucketsZeroInclude(s, bkt, n, K, true);
   std::fill(SA, SA + n, Max<S>::max);
   for(int64 i = 1; i < n - 1; ++i)
     if(isLMS(i)) SA[--bkt[s[i] + 1]] = i;
@@ -255,6 +257,7 @@ void SA_IS_ZeroInclude(T *s, S *SA, int64 n, uint32 K)
 
   delete [] bkt;
   MutualPart(s, SA, n, K, &t);
+  SA[0] = n - 1;
 }
 
 } //namespace sa_is

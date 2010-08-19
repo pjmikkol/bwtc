@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "../block.h"
+#include "../globaldefs.h"
+#include "bw_transform.h"
 #include "dcbwt.h"
 #include "difference_cover.h"
 #include "difference_cover-inl.h"
@@ -11,8 +13,6 @@
 #include "prefix_doubling-inl.h"
 #include "stringsort.h"
 #include "stringsort-inl.h"
-
-
 
 namespace bwtc {
 
@@ -492,7 +492,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
             null_reporter);
     assert(suffixes_end == begin + num_suffixes);
 
-    *eob_byte =  BwtFromSuffixArray(block, block_size, begin, result_begin);
+    *eob_byte = BwtFromSuffixArray(block, block_size, begin, result_begin);
     return result;
   }
   // For short blocks and long periods, we may have to reduce the period.
@@ -658,7 +658,7 @@ std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   }
 
   period_ = saved_period;
-  *eob_byte =  BwtFromSuffixArray(block, block_size, suffix_area, result_begin);
+  *eob_byte = BwtFromSuffixArray(block, block_size, suffix_area, result_begin);
   return result;
 }
 

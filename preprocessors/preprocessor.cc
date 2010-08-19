@@ -51,6 +51,7 @@ void PreProcessor::AddBlockManager(BlockManager* manager) {
   block_manager_ = manager;
 }
 
+/* We append sentinel to the block here */
 MainBlock* PreProcessor::ReadBlock() {
   assert(source_);
   assert(block_manager_);
@@ -62,8 +63,9 @@ MainBlock* PreProcessor::ReadBlock() {
    * platform and wants to use too large blocks (amount of bits needed to
    * represent block size is more than 32)?? */
   /*** Stub implementation ***/
+  /* We leave on unused byte to the block so that we can use SA-IS-transformer */
   std::streamsize read = source_->ReadBlock(
-      &(*to)[0], static_cast<std::streamsize>(block_size_) );
+      &(*to)[0], static_cast<std::streamsize>(block_size_ - 1));
   if (!read) return NULL;
   return block_manager_->MakeBlock(to, stats, static_cast<uint64>(read));
 }

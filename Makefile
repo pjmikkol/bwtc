@@ -1,5 +1,5 @@
 CC = g++
-DFLAGS = -g -O3 -fno-inline
+DFLAGS = -g -O3 -fomit-frame-pointer #-fno-inline
 FLAGS = -pedantic -Wextra -Wall $(DFLAGS)
 TFLAGS = -Wall $(DFLAGS) # less flags because of template assertions
 
@@ -102,7 +102,7 @@ tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
 	./test/longsequencetest
 	./test/sa-is_test
 
-test/sa-is_test : test/sa-is_test.cc 
+test/sa-is_test : test/sa-is_test.cc bwtransforms/sa-is-bwt.h
 	$(CC) $(FLAGS) test/sa-is_test.cc -o test/sa-is_test
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o

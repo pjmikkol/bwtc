@@ -36,6 +36,24 @@ void testSA_IS() {
   assert(SA[0] == size);
 }
 
+void test_sais() {
+  int size = (rand() & 0x000FFFFF) + 1;
+  byte *str = new byte[size+1];
+  //byte *str = new byte[size];
+  for(unsigned i = 0; i < size; ++i) {
+    str[i] = rand() & 0xFF;
+  }
+  str[size] = 0;
+  int *SA = new int[size + 1];
+  sa_is::sais(str, SA, 0, size + 1, 256, false);
+  for(unsigned i = 1; i < size; ++i) {
+    assert(SufCmp(str, SA[i], SA[i+1], size) < 0);
+    assert(SA[i] < size);
+  }
+  std::cout << "." << std::flush;
+  assert(SA[0] == size);
+}
+
 void SimpleTest(char *arg) {
   int len = strlen(arg);
   byte *str = new byte[len+1];
@@ -50,16 +68,38 @@ void SimpleTest(char *arg) {
   delete [] SA;
   delete [] str;
 }
+
+void BwtSaisTest(char *arg) {
+  int len = strlen(arg);
+  byte *str = new byte[len+1];
+  strcpy((char*)str, arg);
+  int *SA = new int[len+1];
+  int val = sa_is::sais(str, SA, 0, len + 1, 256, true);
+  for(uint32 i = 0; i < len + 1; ++i) {
+    if(SA[i] > 0) std::cout << (char)SA[i];
+    else std::cout << '$';
+    //std::cout << SA[i] << "\n";
+  }
+  std::cout << "\nReturn value: " << val << "\n";
+  delete [] SA;
+  delete [] str;
+}
+
 }
 
 
 int main(int argc, char** argv) {
   using namespace tests;
+  if(argc > 1) {
+    SimpleTest(argv[1]);
+    BwtSaisTest(argv[1]);
+  }
   srand( time(NULL));
   for(int i = 0; i < 10; ++i) {
     testSA_IS();
   }
+  for(int i = 0; i < 10; ++i) {
+    test_sais();
+  }
   std::cout << "\nSA_IS passed all tests.\n";
-  if(argc == 1) return 0;
-  SimpleTest(argv[1]);
 }

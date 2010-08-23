@@ -66,7 +66,7 @@ bin/bw_transform.o : bwtransforms/bw_transform.cc bwtransforms/bw_transform.h \
 	$(CC) $(FLAGS) bwtransforms/bw_transform.cc -c -o bin/bw_transform.o
 
 bin/sa-is-bwt.o : bwtransforms/sa-is-bwt.cc bwtransforms/sa-is-bwt.h \
-	bwtransforms/bw_transform.h
+	bwtransforms/bw_transform.h bwtransforms/sais.hxx
 	$(CC) $(FLAGS) bwtransforms/sa-is-bwt.cc -c -o bin/sa-is-bwt.o
 
 bin/dcbwt.o : bwtransforms/bw_transform.h bwtransforms/dcbwt.h \
@@ -102,7 +102,8 @@ tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
 	./test/longsequencetest
 	./test/sa-is_test
 
-test/sa-is_test : test/sa-is_test.cc bwtransforms/sa-is-bwt.h
+test/sa-is_test : test/sa-is_test.cc bwtransforms/sa-is-bwt.h \
+	bwtransforms/sais.hxx
 	$(CC) $(FLAGS) test/sa-is_test.cc -o test/sa-is_test
 
 test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o

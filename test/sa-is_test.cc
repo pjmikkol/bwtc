@@ -6,6 +6,7 @@
 
 #include "../globaldefs.h"
 #include "../bwtransforms/sa-is-bwt.h"
+#include "../bwtransforms/sais.hxx"
 
 namespace tests {
 
@@ -39,13 +40,12 @@ void testSA_IS() {
 void test_sais() {
   int size = (rand() & 0x000FFFFF) + 1;
   byte *str = new byte[size+1];
-  //byte *str = new byte[size];
   for(unsigned i = 0; i < size; ++i) {
     str[i] = rand() & 0xFF;
   }
   str[size] = 0;
   int *SA = new int[size + 1];
-  sa_is::sais(str, SA, 0, size + 1, 256, false);
+  saisxx(str, SA, size + 1, 256);
   for(unsigned i = 1; i < size; ++i) {
     assert(SufCmp(str, SA[i], SA[i+1], size) < 0);
     assert(SA[i] < size);
@@ -74,11 +74,11 @@ void BwtSaisTest(char *arg) {
   byte *str = new byte[len+1];
   strcpy((char*)str, arg);
   int *SA = new int[len+1];
-  int val = sa_is::sais(str, SA, 0, len + 1, 256, true);
-  for(uint32 i = 0; i < len + 1; ++i) {
-    if(SA[i] > 0) std::cout << (char)SA[i];
+  byte *res = new byte[len+1];
+  int val = saisxx_bwt(str, res, SA, len + 1, 256);
+  for(int i = 0; i < len + 1; ++i) {
+    if(i != val) std::cout << res[i];
     else std::cout << '$';
-    //std::cout << SA[i] << "\n";
   }
   std::cout << "\nReturn value: " << val << "\n";
   delete [] SA;

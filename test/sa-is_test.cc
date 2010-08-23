@@ -25,6 +25,10 @@ void testSA_IS() {
   for(unsigned i = 0; i < size + 1; ++i) {
     str[i] = rand() & 0xFF;
   }
+  if(size > 255) {
+    for(unsigned i = 0; i < 256; ++i)
+      str[i] = i;
+  }
   str[size] = 0;
   uint32 *SA = new uint32[size+1];
   sa_is::SA_IS_ZeroInclude(str, SA, size + 1, 256);
@@ -37,7 +41,7 @@ void testSA_IS() {
 }
 
 void SimpleTest(char *arg) {
-  int len = strlen(arg);
+  uint32 len = strlen(arg);
   byte *str = new byte[len+1];
   strcpy((char*)str, arg);
   uint32 *SA = new uint32[len+1];
@@ -60,6 +64,6 @@ int main(int argc, char** argv) {
     testSA_IS();
   }
   std::cout << "\nSA_IS passed all tests.\n";
-  if(argc == 1) return 0;
+  if(argc < 2) return 0;
   SimpleTest(argv[1]);
 }

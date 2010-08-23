@@ -9,6 +9,7 @@
 #include <cassert>
 
 #include <algorithm>
+#include <iostream>
 #include <vector>
 
 #include "bw_transform.h"
@@ -90,8 +91,7 @@ void MutualPart(T* s, S *SA, int64 n, uint32 K, std::vector<bool> *isS)
   std::vector<bool>& t = *isS;
   /* Compact the sorted substrings into the first n1 items of SA */
   int64 n1 = 0;
-  for(int64 i = 0; i < n; ++i) 
-    if(isLMS(SA[i])) SA[n1++] = SA[i];
+  for(int64 i = 0; i < n; ++i) if(isLMS(SA[i])) SA[n1++] = SA[i];
 
   assert(2*n1 <= n);
 
@@ -115,27 +115,27 @@ void MutualPart(T* s, S *SA, int64 n, uint32 K, std::vector<bool> *isS)
       ++name;
       prev = pos;
     }
-    pos /= 2; 
+    pos /= 2;
     SA[n1+pos] = name - 1;
   }
+
   for(int64 i = n - 1, j = n - 1; i >= n1; --i) {
     if(SA[i] < Max<S>::max) SA[j--] = SA[i];
   }
-
   /* Stage 2: Solve the reduced problem. Recurse if names are not unique. */
   S *SA1 = SA, *s1 = SA + n - n1;
-  if(name < n1)
-    SA_IS(s1, SA1, n1, name - 1);
+  if(name < n1) 
+    SA_IS(s1, SA1, n1, name - 1); 
   else
     for(int64 i = 0; i < n1; ++i) SA1[s1[i]] = i;
-
+  
   /* Stage 3: Induce the result for the original problem. */
   uint32 *bkt = new uint32[K+1];
   /* Put all LMS-characters into their buckets. */
   GetBuckets(s, bkt, n, K, true);
   for(int64 i = 1, j = 0; i < n; ++i) 
-    if(isLMS(i)) s1[j++] = i; 
-  for(int64 i = 0; i < n1; ++i) SA1[i] = s1[SA1[i]];
+    if(isLMS(i)) s1[j++] = i;
+  for(int64 i = 0; i < n1; ++i){assert(SA1[i] != Max<S>::max); SA1[i] = s1[SA1[i]];}
   std::fill(SA + n1, SA + n, Max<S>::max);
   for(int64 i = n1 - 1; i >= 0; --i) {
     S j = SA[i];
@@ -147,6 +147,7 @@ void MutualPart(T* s, S *SA, int64 n, uint32 K, std::vector<bool> *isS)
 
   delete [] bkt;
 }
+
 
 /* Finds the start or end of each bucket (depending on end-parameter) */
 template <typename T>
@@ -179,7 +180,7 @@ void ClassifyCharacters(T *s, std::vector<bool> *isS, int64 n) {
   std::vector<bool>& t = *isS;
   t[n-2] = false;
   t[n-1] = true;
-  for(int64 i = static_cast<int64>(n) - 3; i >= 0; --i)
+  for(int64 i = n - 3; i >= 0; --i)
     t[i] = ((s[i] < s[i+1]) || (s[i] == s[i+1] && t[i+1])) ?
         true : false;
 }
@@ -192,6 +193,34 @@ void InduceSAl(const std::vector<bool>& t, S *SA, T *s, uint32 *bkt, int64 n,
   for(int64 i = 0; i < n; ++i) {
     S j = SA[i] - 1;
     if(j < Max<S>::max - 1 && !t[j]) SA[bkt[s[j]]++] = j;
+  }
+}
+
+template <typename T, typename S>
+void InduceSAlZ(const std::vector<bool>& t, S *SA, T *s, uint32 *bkt, int64 n,
+               uint32 K, bool end)
+{
+  GetBucketsZeroInclude(s, bkt, n, K, end);
+  for(int64 i = 0; i < n; ++i) {
+    S j = SA[i] - 1;
+    if(j < Max<S>::max - 1 && !t[j]) {
+      if(j != n - 1) SA[bkt[s[j] + 1]++] = j;
+      else SA[bkt[s[j]]++] = j;
+    }
+  }
+}
+
+template <typename T, typename S>
+void InduceSAsZ(const std::vector<bool>& t, S *SA, T *s, uint32 *bkt, int64 n,
+               uint32 K, bool end)
+{
+  GetBucketsZeroInclude(s, bkt, n, K, end);
+  for(int64 i = n - 1; i >= 0; --i) {
+    S j = SA[i] - 1;
+    if(j < Max<S>::max - 1 && t[j]) {
+      if(j != n - 1) SA[--bkt[s[j] + 1]] = j;
+      else SA[--bkt[s[j]]] = j;
+    }
   }
 }
 
@@ -213,7 +242,9 @@ void SA_IS(T *s, S *SA, int64 n, uint32 K)
 {
   assert(n >= 2);
   assert(n < Max<S>::max - 1);
-  //assert(s[n-1] == 0);
+  assert(SA);
+  assert(s);
+  assert(s[n-1] == 0);
 
   std::vector<bool> t(n, false);
 
@@ -229,7 +260,6 @@ void SA_IS(T *s, S *SA, int64 n, uint32 K)
 
   InduceSAl(t, SA, s, bkt, n, K, false);
   InduceSAs(t, SA, s, bkt, n, K, true);
-
   delete [] bkt;
   MutualPart(s, SA, n, K, &t);
 }
@@ -240,7 +270,6 @@ void SA_IS_ZeroInclude(T *s, S *SA, int64 n, uint32 K)
   assert(n >= 2);
   assert(n < Max<S>::max - 1);
   assert(s[n-1] == 0);
-
   std::vector<bool> t(n, false);
   /* Classify the characters into L- and S-types. */
   ClassifyCharacters(s, &t, n);
@@ -252,12 +281,71 @@ void SA_IS_ZeroInclude(T *s, S *SA, int64 n, uint32 K)
   for(int64 i = 1; i < n - 1; ++i)
     if(isLMS(i)) SA[--bkt[s[i] + 1]] = i;
   SA[--bkt[0]] = n - 1;
-  InduceSAl(t, SA, s, bkt, n, K, false);
-  InduceSAs(t, SA, s, bkt, n, K, true);
+  InduceSAlZ(t, SA, s, bkt, n, K, false);
+  InduceSAsZ(t, SA, s, bkt, n, K, true);
 
   delete [] bkt;
-  MutualPart(s, SA, n, K, &t);
-  SA[0] = n - 1;
+
+  /* Compact the sorted substrings into the first n1 items of SA */
+  int64 n1 = 0;
+  for(int64 i = 0; i < n; ++i) if(isLMS(SA[i])) SA[n1++] = SA[i];
+
+  assert(2*n1 <= n);
+
+  /* Find the lexicographic names of all substrings */
+  std::fill(SA + n1, SA + n, Max<S>::max);
+  SA[n1 + SA[0]/2] = 0;
+
+  S name = 1, prev = Max<S>::max;
+  for(int64 i = 1; i < n1; ++i) {
+    S pos = SA[i];
+    bool diff = false;
+    for(S d = 0; d < n; ++d) {
+      if(prev == Max<S>::max || s[pos+d] != s[prev+d]||t[pos+d] != t[prev+d])
+      {
+        diff = true;
+        break;
+      } else if (d > 0 && (isLMS(pos+d) || isLMS(prev+d))) {
+        break;
+      }
+    }
+
+    if (diff) {
+      ++name;
+      prev = pos;
+    }
+    pos /= 2;
+    SA[n1+pos] = name - 1;
+  }
+
+  for(int64 i = n - 1, j = n - 1; i >= n1; --i) {
+    if(SA[i] < Max<S>::max) SA[j--] = SA[i];
+  }
+  /* Stage 2: Solve the reduced problem. Recurse if names are not unique. */
+  S *SA1 = SA, *s1 = SA + n - n1;
+  if(name < n1) 
+    SA_IS(s1, SA1, n1, name - 1); 
+  else
+    for(int64 i = 0; i < n1; ++i) SA1[s1[i]] = i;
+
+  /* Stage 3: Induce the result for the original problem. */
+  bkt = new uint32[K+1];
+  /* Put all LMS-characters into their buckets. */
+  GetBucketsZeroInclude(s, bkt, n, K, true);
+  for(int64 i = 1, j = 0; i < n; ++i) 
+    if(isLMS(i)) s1[j++] = i; 
+  for(int64 i = 0; i < n1; ++i) SA1[i] = s1[SA1[i]];
+  std::fill(SA + n1, SA + n, Max<S>::max);
+  for(int64 i = n1 - 1; i >= 1; --i) {
+    S j = SA[i];
+    SA[i] = Max<S>::max;
+    SA[--bkt[s[j] + 1]] = j;
+  }
+  SA[--bkt[s[SA[0]]]] = SA[0];
+  InduceSAlZ(t, SA, s, bkt, n, K, false);
+  InduceSAsZ(t, SA, s, bkt, n, K, true);
+
+  delete [] bkt;
 }
 
 } //namespace sa_is

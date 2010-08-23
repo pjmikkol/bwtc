@@ -580,7 +580,7 @@ void DetectSequences(byte *from, uint64 length, int memory_constraint,
       seq_table.JumpToPos(i);
       //buffer.Insert(true);
     } else
-      buffer.Insert(false);
+        buffer.Insert(false);
   }
   //seq_table.DebugPrint();
   if(verbosity > 2)

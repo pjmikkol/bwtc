@@ -1,3 +1,22 @@
+/**************************************************************************
+ *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
+ *                                                                        *
+ *  This file is part of bwtc.                                            *
+ *                                                                        *
+ *  bwtc is free software: you can redistribute it and/or modify          *
+ *  it under the terms of the GNU General Public License as published by  *
+ *  the Free Software Foundation, either version 3 of the License, or     *
+ *  (at your option) any later version.                                   *
+ *                                                                        *
+ *  bwtc is distributed in the hope that it will be useful,               *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *  GNU General Public License for more details.                          *
+ *                                                                        *
+ *  You should have received a copy of the GNU General Public License     *
+ *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
+ **************************************************************************/
+
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
@@ -14,7 +33,7 @@
 #include "../bwtransforms/bw_transform.h"
 
 namespace bwtc {
-int verbosity = 3;
+int verbosity = 0;
 }
 
 namespace tests {
@@ -73,6 +92,12 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   std::cout << "Time spent on preprocessing: "
             << (prepr_end - prepr_start)/static_cast<double>(CLOCKS_PER_SEC)
             << "\n";
+  std::cout << "############################\n";
+  std::cout << "Size of data was " << orig_size << "B\n";
+  std::cout << "Result of preprocessing was " << compressed_size
+            << "B which is "
+            << (compressed_size/static_cast<double>(orig_size))*100.0
+            << "% of the original data\n";
 }
 
 void ValidatePreproc(char *preprocs, int threshold, const std::string& input,

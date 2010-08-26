@@ -1,3 +1,22 @@
+/**************************************************************************
+ *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
+ *                                                                        *
+ *  This file is part of bwtc.                                            *
+ *                                                                        *
+ *  bwtc is free software: you can redistribute it and/or modify          *
+ *  it under the terms of the GNU General Public License as published by  *
+ *  the Free Software Foundation, either version 3 of the License, or     *
+ *  (at your option) any later version.                                   *
+ *                                                                        *
+ *  bwtc is distributed in the hope that it will be useful,               *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *  GNU General Public License for more details.                          *
+ *                                                                        *
+ *  You should have received a copy of the GNU General Public License     *
+ *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
+ **************************************************************************/
+
 #include <cassert>
 
 #include <iostream> // For std::streampos
@@ -83,36 +102,39 @@ int Encoder::WriteTrailer(uint64 trailer) {
   return bytes;
 }
 
-/**************************************************************************
- *            Encoding and decoding single MainBlock                      *
- *------------------------------------------------------------------------*
- * Next functions handle encoding and decoding of the main blocks.        *
- * Also block header-format is specified here.                            *
- *                                                                        *
- * Format of the block is following:                                      *
- *  - Block header (no fixed length)                              (1)     *
- *  - Compressed block (no fixed length)                          (2)     *
- *  - Block trailer (coded same way as the context block lengths) (3)     *
- *                                                                        *
- * Block header format is following:                                      *
- * - Length of the header + compressed block + trailer in bytes (48 bits) *
- *   Note that the the length field itself isn't included                 *
- * - List of context block lengths in increasing order so that the stored *
- *   value is difference of current and previous length (always > 0).     *
- *   Lengths are compressed with PackInteger-function.                    *
- * - Ending symbol of the block header (2 bytes = 0x8000) which is        *
- *   invalid code for packed integer                                      *
- **************************************************************************/
+/******************************************************************************
+ *            Encoding and decoding single MainBlock                          *
+ *----------------------------------------------------------------------------*
+ * Following functions handle encoding and decoding of the main blocks.       *
+ * Also block header-format is specified here.                                *
+ *                                                                            *
+ * Format of the block is following:                                          *
+ *  - Block header (no fixed length)                              (1)         *
+ *  - Compressed block (no fixed length)                          (2)         *
+ *  - Block trailer (coded same way as the context block lengths) (3)         *
+ *                                                                            *
+ *----------------------------------------------------------------------------*
+ *                                                                            *
+ * Block header (1) format is following:                                      *
+ * a) Length of the (header + compressed block + trailer) in bytes (6 bytes). *
+ *    Note that the the length field itself isn't includedin total length     *
+ * b) List of context block lengths. Lengths are compressed with              *
+ *    utils::PackInteger-function.                                            *
+ * c) Ending symbol of the block header (2 bytes = 0x8000) which is           *
+ *    invalid code for packed integer                                         *
+ ******************************************************************************/
 
 // TODO: for compressing straight to the stdout we need to use
 //       temporary file or huge buffer for each mainblock, so that
-//       we can write the size of the compressed block in the beginning (1)
+//       we can write the size of the compressed block in the beginning (1a)
 // At the moment the implementation is done only for compressing into file
 void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
                          uint64 block_size)
 {
-  // TODO: At the moment we are not assuming that block->stats_ is
-  //       ordered in increasing order (since it isn't)
+  /* At the moment the context block-lengths are written in same order than   *
+   * are found form the stats. Transform which build stats, have to re-order  *
+   * lengths of stat-array if we are going to use some more clever packing of *
+   * the context block-lengths (eg. ascending/descending order)               */
   unsigned i = 0;
   /* This loop is quite tricky since we want to be prepared that context
    * blocks can be shattered around. */
@@ -174,7 +196,6 @@ void Encoder::WritePackedInteger(uint64 packed_integer) {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
     out_->WriteByte(to_written);
-    //  } while (--bytes);
   } while (packed_integer);
 }
 

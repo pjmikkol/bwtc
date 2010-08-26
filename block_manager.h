@@ -1,3 +1,22 @@
+/**************************************************************************
+ *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
+ *                                                                        *
+ *  This file is part of bwtc.                                            *
+ *                                                                        *
+ *  bwtc is free software: you can redistribute it and/or modify          *
+ *  it under the terms of the GNU General Public License as published by  *
+ *  the Free Software Foundation, either version 3 of the License, or     *
+ *  (at your option) any later version.                                   *
+ *                                                                        *
+ *  bwtc is distributed in the hope that it will be useful,               *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *  GNU General Public License for more details.                          *
+ *                                                                        *
+ *  You should have received a copy of the GNU General Public License     *
+ *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
+ **************************************************************************/
+
 /*********************************************************************
  * BlockManager handles the memory usage of a various Block-objects. *
  * With the help of this we can use the same memory multiple times   *
@@ -25,7 +44,7 @@ class BlockManager {
 
  private:
   uint64 block_size_;
-  std::vector<byte>* data_buffer_; /* if multiple Block-objects will live *
+  std::vector<byte>* data_buffer_; /* if multiple Block-objects will exist *
                                     * at the same time, then we need to *
                                     * transform this to array.  */
   std::vector<uint64>* frequency_buffer_; /* above holds also for this */

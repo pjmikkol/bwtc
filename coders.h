@@ -1,3 +1,22 @@
+/**************************************************************************
+ *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
+ *                                                                        *
+ *  This file is part of bwtc.                                            *
+ *                                                                        *
+ *  bwtc is free software: you can redistribute it and/or modify          *
+ *  it under the terms of the GNU General Public License as published by  *
+ *  the Free Software Foundation, either version 3 of the License, or     *
+ *  (at your option) any later version.                                   *
+ *                                                                        *
+ *  bwtc is distributed in the hope that it will be useful,               *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *  GNU General Public License for more details.                          *
+ *                                                                        *
+ *  You should have received a copy of the GNU General Public License     *
+ *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
+ **************************************************************************/
+
 #ifndef BWTC_CODERS_H_
 #define BWTC_CODERS_H_
 
@@ -30,11 +49,9 @@ class Encoder {
   void EncodeByte(byte b);
   void EncodeData(std::vector<byte>* data, std::vector<uint64>* stats,
                   uint64 data_size);
-  //void EncodeMainBlock(MainBlock* block, uint64 trailer);
   void EncodeRange(const byte* begin, const byte* end);
   void WriteBlockHeader(std::vector<uint64>* stats);
   void WritePackedInteger(uint64 packed_integer);
-  //void WritePackedInteger(uint64 packed_integer, int bytes);
   int FinishBlockHeader();
   void EndContextBlock();
   int WriteTrailer(uint64 trailer_value);

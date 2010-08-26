@@ -30,6 +30,13 @@
 
 namespace bwtc {
 
+/* Floor of logarithm of base two */
+byte LogFloor(unsigned n);
+
+unsigned MostSignificantBit16(unsigned n);
+
+unsigned MostSignificantBit(unsigned n);
+
 //TODO: Make this class to abstract class (interface for real implementations)
 class PreProcessor {
  public:

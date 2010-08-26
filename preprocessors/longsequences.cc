@@ -83,16 +83,103 @@ bool IsPrime(int n)
 /* Finds prime which is lesser or equal to given n */
 int FindPrimeLeq(int n) {
   assert(n > 3);
-  if (n%2 == 0) n -= 1;
+  if ((n&1) == 0) n -= 1;
   while (!IsPrime(n)) n -= 2;
   return n;
 }
 
-/* Hashtable based structure for holding the frequency information about the *
- * substrings encountered. Calculating the hash values is based on Karp-Rabin*
- * pattern-matching algorithm.                                               *
- *                                                                           *
- * Same object is used also for finding the most frequent strings.           */
+/* Base class for computing different rolling hashes */
+class Hasher {
+ public:
+  virtual ~Hasher() {};
+  /* Initialize function computes the size of actual hash_table and space *
+   * reserved for overflow-lists. Their sum is returned.                  */
+  virtual unsigned Initialize(unsigned max_values, int64 bytes_to_use,
+                              unsigned size_of_elem, unsigned w_length) = 0;
+  virtual int64 InitValue(const byte *from, unsigned length) = 0;
+  virtual int64 Update(byte old_val, byte new_val) = 0;
+
+};
+  
+class PrimeHasher : public Hasher {
+ public:
+  PrimeHasher() : prev_hash_(0) {}
+  virtual ~PrimeHasher() {}
+  virtual unsigned Initialize(unsigned max_values, int64 bytes_to_use,
+                              unsigned size_of_elem, unsigned window_length)
+  {
+    q_ = FindPrimeLeq(bytes_to_use/size_of_elem - max_values/2);
+    c_ = 1;
+    for(unsigned i = 0; i < window_length - 1; ++i) {
+      c_ <<= 8;
+      c_ %= q_;
+    }
+    assert(q_ <= bytes_to_use/size_of_elem);
+    //return bytes_to_use/size_of_elem;
+    return q_ + max_values/2;
+  }
+
+  virtual int64 InitValue(const byte *from, unsigned len) {
+    prev_hash_ = 0;
+    for(unsigned i = 0; i < len; ++i)
+      prev_hash_ = ((prev_hash_ << 8) + *from++) % q_;
+    return prev_hash_;
+  }
+
+  virtual int64 Update(byte old_val, byte new_val) {
+    prev_hash_ = (((prev_hash_ - old_val*c_) << 8) + new_val) % q_;
+    if (prev_hash_ < 0) prev_hash_ = -prev_hash_;
+    return prev_hash_;
+  }
+
+ private:
+  int64 prev_hash_;
+  int64 c_; /* parameter used in calclation of hash values */
+  int64 q_; /* prime, hash values will be in range [0..q_) */
+};
+
+class FastHasher : public Hasher {
+ public:
+  FastHasher() : prev_hash_(0) {}
+  virtual ~FastHasher() {}
+  virtual unsigned Initialize(unsigned max_values, int64 bytes_to_use,
+                              unsigned size_of_elem, unsigned window_length)
+  {
+    //TODO: Put more care for choosing the mask_ and size of hash table
+    mask_ = MostSignificantBit(max_values) - 1;
+    c_ = 1;
+    for(unsigned i = 0; i < window_length - 1; ++i)
+      c_ = (c_*257) & mask_;
+    assert(mask_ <= bytes_to_use/size_of_elem);
+    return bytes_to_use/size_of_elem;
+  }
+
+  virtual int64 InitValue(const byte *from, unsigned len) {
+    prev_hash_ = 0;
+    for(unsigned i = 0; i < len; ++i)
+      prev_hash_ = ((prev_hash_*257) + *from++) & mask_;
+    return prev_hash_;
+  }
+
+  virtual int64 Update(byte old_val, byte new_val) {
+    prev_hash_ = (((prev_hash_ - old_val*c_)*257) + new_val) & mask_;
+    return prev_hash_;
+  }
+
+ private:
+  int64 prev_hash_;
+  int64 c_; /* parameter used in calclation of hash values */
+  int64 mask_; /* prime */
+};
+
+
+/******************************************************************************
+ * Hashtable based structure for holding the frequency information about the  *
+ * substrings encountered. Calculating the hash values is based on Karp-Rabin *
+ * pattern-matching algorithm.                                                *
+ *                                                                            *
+ * Same object is used also for finding the most frequent strings.            *
+ ******************************************************************************/
 class SequenceTable {
 
   struct seq {
@@ -102,7 +189,7 @@ class SequenceTable {
     
     unsigned count; /* How many times we have encountered the string */
     unsigned overflow; /* Index of overflow sequence in over_ -vector */
-    uint64 position; /* Position in actual text */
+    unsigned position; /* Position in actual text */
   };
 
  public:
@@ -111,25 +198,32 @@ class SequenceTable {
    * We have to store at most D/B values to SequenceTable. Single entry takes *
    * 16 bytes. If we allocate 0.5*D/B places for overflow-part of the array   *
    * then to satisfy memory constraint we can set the actual size of the      *
-   * hashtable to (c*D)/16 - D/(2*m) where c is how many bytes we can use for *
-   * single byte in input.                                                    *
+   * hashtable to (c*D)/s - D/(2*m) where c is how many bytes we can use for  *
+   * single byte in input and s is the size of single seq-struct.             *
+   *                                                                          *
+   * Parameter hasher decides which hash function to use.                     *
    ****************************************************************************/
-  explicit SequenceTable(unsigned size_of_data, unsigned block_length,
-                         byte *data, unsigned memory_constraint)
-      : data_(data), block_length_(block_length), prev_hash_(0)
+  explicit SequenceTable(uint64 size_of_data, unsigned block_length,
+                         byte *data, unsigned memory_constraint,
+                         char hasher = 'p')
+      : data_(data), block_length_(block_length), prev_hash_(0), h_(0)
   {
     //TODO: what if given size too small
-    size_ = FindPrimeLeq((memory_constraint*size_of_data)/16 -
-                         size_of_data/(2*block_length_));
-    h_size_ = size_ + size_of_data/(2*block_length_);
+    switch(hasher) {
+      case 'p':
+        h_ = new PrimeHasher();
+        break;
+      default:
+        h_ = new FastHasher();
+        break;
+    }
+    h_size_ = h_->Initialize(size_of_data/block_length_,
+                             memory_constraint*size_of_data, sizeof(seq),
+                             block_length);
+    assert(h_size_ >= size_of_data/block_length);
+    assert(h_size_*sizeof(seq) > size_of_data/block_length);
     table_ = new seq[h_size_];
     next_overflow_ = h_size_ - 1;
-    c_ = 1;
-    for(unsigned i = 0; i < block_length_ - 1; ++i) {
-      c_ <<= 8;
-      c_ %= size_;
-    }
-    assert((size_ & 0x80000000) == 0);
     assert((h_size_ & 0x80000000) == 0);
   }
 
@@ -139,22 +233,12 @@ class SequenceTable {
 
   /* Initializes the structure */
   void Initialize() {
-    prev_hash_ = 0;
-    for(unsigned i = 0; i < block_length_; ++i) {
-      prev_hash_ <<= 8;
-      prev_hash_ += data_[i];
-      prev_hash_ %= size_;
-    }
+    prev_hash_ = h_->InitValue(data_, block_length_);
     table_[prev_hash_] = seq(1, prev_hash_, 0);
   }
 
   void JumpToPos(uint64 pos) {
-    prev_hash_ = 0;
-    for(uint64 i = pos; i < pos + block_length_; ++i) {
-      prev_hash_ <<= 8;
-      prev_hash_ += data_[i];
-      prev_hash_ %= size_;
-    }
+    prev_hash_ = h_->InitValue(data_ + pos, block_length_);
   }
 
   int64 Search(uint64 pos) {
@@ -205,20 +289,6 @@ class SequenceTable {
     return pos;
   }
 
-  void DebugPrint() {
-    for(unsigned i = 0; i < size_; ++i) {
-      if(table_[i].count > 0 && (table_[i].overflow & 0x80000000) == 0 ) {
-        unsigned j = i;
-        do {
-          std::clog << i << "\t" << table_[i].position << "\t"
-                    <<  table_[i].count << "\n";
-          i = table_[i].overflow & 0x7fffffff;
-        } while (i != j);
-        std::clog << "\n";
-      }
-    }
-  }
-
   void Periods(std::vector<long_seq> *periods) {
     /*
     for(unsigned i = 0; i < h_size_; ++i) {
@@ -258,25 +328,25 @@ class SequenceTable {
   
   void UpdateHashValue(uint64 pos) {
     assert(pos > 0);
-    prev_hash_ = (((prev_hash_ - c_*data_[pos - 1]) << 8) +
-                  data_[pos + block_length_ - 1]) % size_;
-    if (prev_hash_ < 0) prev_hash_ += size_;
-    assert(prev_hash_ >= 0);
+    prev_hash_ = h_->Update(data_[pos - 1], data_[pos + block_length_ - 1]);
   }
-  /* We use one array for holding the hashtable and its overflow-lists. *
-   * Range [0,h_size_) is reserved for hashtable. Initially range       *
-   * [h_size_, size_) is for overflow-lists. If there are more than     *
-   * size_ - h_size_ entries in overflow-lists we start to use actual   *
-   * hashtable for overflow-entries. First bit of entry's overflow-field*
-   * tells whether or not this entry belongs to overflow-list           */
+  /***********************************************************************
+   * We use one array for holding the hashtable and its overflow-lists.  *
+   * Range [0,x) is reserved for hashtable. Initially range              *
+   * [x, h_size_) is for overflow-lists. If there are more than          *
+   * h_size_ - x entries in overflow-lists we start to use actual        *
+   * hashtable for overflow-entries. Only Hasher knows value of x.       *
+   * First bit of entry's overflow-field tells whether or not this entry *
+   * belongs to overflow-list                                            *
+   ***********************************************************************/
   byte *data_; /* Source of strings stored to table */
   unsigned block_length_; /* Length of stored strings */
   int64 prev_hash_; /* Previous value of the hash function */
   int64 c_; /* parameter used in updating the hash values */ 
-  unsigned size_; /* size of the whole array */
-  unsigned h_size_; /* size of the actual hashtable */
+  unsigned h_size_; /* size of the whole array */
   seq *table_; 
   unsigned next_overflow_; /* next free spot to store overflow-entry */
+  Hasher *h_;
 };
 
 template <typename T>

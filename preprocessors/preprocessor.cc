@@ -89,6 +89,35 @@ MainBlock* PreProcessor::ReadBlock() {
   return block_manager_->MakeBlock(to, stats, static_cast<uint64>(read));
 }
 
+/* Floor of logarithm of base two */
+byte LogFloor(unsigned n) {
+  assert(n > 0);
+  byte log = 0;
+  while(n > 1) {
+    n >>= 1;
+    ++log;
+  }
+  return log;
+}
+
+unsigned MostSignificantBit16(unsigned n) {
+  assert(n < (1 << 16));
+  n |= (n >> 1);
+  n |= (n >> 2);
+  n |= (n >> 4);
+  n |= (n >> 8);
+  return n & (~(n >> 1));
+}
+
+unsigned MostSignificantBit(unsigned n) {
+  assert(sizeof(unsigned) == 4);
+  n |= (n >> 1);
+  n |= (n >> 2);
+  n |= (n >> 4);
+  n |= (n >> 8);
+  n |= (n >> 16);
+  return n & (~(n >> 1));
+}
 
 /*#################### Preprocessing algorithms #############################*/
 
@@ -647,27 +676,6 @@ class SequenceHeap {
 #undef right
 };
 
-
-/* Floor of logarithm of base two */
-byte LogFloor(unsigned n) {
-  assert(n > 0);
-  byte log = 0;
-  while(n > 1) {
-    n >>= 1;
-    ++log;
-  }
-  return log;
-}
-
-unsigned MostSignificantBit(unsigned n) {
-  assert(n < (1 << 16));
-  n |= (n >> 1);
-  n |= (n >> 2);
-  n |= (n >> 4);
-  n |= (n >> 8);
-  return n & (~(n >> 1));
-}
-
 void UpdateFreqs(std::map<unsigned, uint32> *run_freq, byte symbol,
                  unsigned length)
 {
@@ -676,7 +684,7 @@ void UpdateFreqs(std::map<unsigned, uint32> *run_freq, byte symbol,
   length -= (length % 2);
   unsigned original = length;
   while(length) { /* Compute the number of sequences of length 2^k for some k */
-    unsigned longest = MostSignificantBit(length);
+    unsigned longest = MostSignificantBit16(length);
     if (run_freq[symbol].count(longest))
       run_freq[symbol][longest] += original/longest;
     else run_freq[symbol][longest] = original/longest;

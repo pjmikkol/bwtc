@@ -95,6 +95,9 @@
 #include <algorithm>   // for copy, copy_backward, find_if, partition
 #include <cassert>
 
+using bwtc::uint64;
+using bwtc::int32;
+
 namespace dcsbwt {
 namespace stringsort {
 

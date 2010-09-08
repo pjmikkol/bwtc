@@ -25,6 +25,9 @@
 
 #include "globaldefs.h"
 
+using bwtc::uint64;
+using bwtc::byte;
+
 /* Useful functions for debugging activites etc. */
 namespace utils {
 

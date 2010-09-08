@@ -31,6 +31,13 @@
 #include "stream.h"
 #include "globaldefs.h" /* Important definitions */
 
+using bwtc::uint64;
+using bwtc::uint32;
+using bwtc::byte;
+using bwtc::Probability;
+using bwtc::kProbabilityScale;
+using bwtc::kLogProbabilityScale;
+
 namespace dcsbwt {
 
 using bwtc::verbosity;

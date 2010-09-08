@@ -10,3 +10,6 @@ bin/
 /test/preprocalgotest
 /testdata/a.out
 /test/longsequencetest
+/test/sa-is_test
+/test/speedtest
+/bwtc_docs/

@@ -17,18 +17,6 @@
  *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
  **************************************************************************/
 
-/********************************************************************
- * MainBlock models one block of a data which can have multiple     *
- * context blocks.                                                  *
- *                                                                  *
- * On a compressor pipeline the preprocessor produces MainBlocks    *
- * which are then transformed into cotext blocks by BWT.            *
- *                                                                  *
- * TODO: Do we even need to use MainBlock in decompressing pipeline *
- *       or are byte arrays enough                                  *
- * On a decompressing pipeline ....                                 *
- ********************************************************************/
-
 #ifndef BWTC_BLOCK_H_
 #define BWTC_BLOCK_H_
 
@@ -40,36 +28,76 @@
 
 namespace bwtc {
 
-/*******************************************************************
- * MainBlock has two  arrays: block_ and stats_.                   *
- * Both are allocated and deallocated by the client. BlockManager- *
- * class exists for this task.                                     *
- *                                                                 *
- * block_       contains the actual data in MainBlock.             *
- * stats_       contains frequencies for each byte                 *
- *******************************************************************/
+/**
+ * MainBlock models one block of a data which is en-/decoded as an unit.
+ *
+ * On a compressor pipeline the preprocessor produces MainBlocks which are
+ * then transformed into a sequence of context blocks by BWTransform. 
+ * MainBlock has two  arrays: {@link #block_} and {@link #stats_}. Both are
+ * allocated and deallocated by the client. BlockManager-class exists for this
+ * task.
+ *
+ * @see BlockManager
+ * @see BWTransform
+ * @see PreProcessor
+ */
 class MainBlock {
  public:
+  /**
+   * Creates MainBlock-object from given allocated resources.
+   *
+   * @param block Pointer to vector which will be used as an storage
+   *              for the data the MainBlock-object holds ({@link #block_}).
+   * @param stats Pointer to vector which will be used to hold frequencies
+   *              of the characters ({@link #stats_}).
+   * @param filled Range [0,filled) of the block contains meaningful data .
+   */
   MainBlock(std::vector<byte>* block, std::vector<uint64>* stats,
             uint64 filled);
+  /**
+   * Destructor which doesn't free any resources the object has used!
+   */
   ~MainBlock();
+
+  /**
+   * Size of actual data in object.
+   *
+   * @return number of bytes of actual data in object
+   */
   inline uint64 Size() { return filled_; }
-  /* begin and end can be used for reading and writing a block.*/
+
+  /**
+   * Start of the data of the object.
+   *
+   * @return memory address for the first byte of the data the object holds
+   */
   inline byte* begin()  { return &(*block_)[0]; }
-  /* end() returns pointer one past the valid range of its array.
-   * Uses filled_ for deducing the value.*/
+
+  /**
+   * End of the data of the object.
+   *
+   * @return memory address one past the last byte of the data the object holds
+   */
   inline byte* end() { return &(*block_)[filled_]; }
 
-  /* Append single byte to the end of filled area. */
-  inline void Append(byte b) {
+  /**
+   * Appends single byte to the end of filled area.
+   *
+   * @param toAppend byte which will be appended
+   */
+  inline void Append(byte toAppend) {
     assert(filled_ < block_->size());
-    (*block_)[filled_++] = b;
+    (*block_)[filled_++] = toAppend;
   }
   
-  std::vector<byte> *block_;
-  std::vector<uint64> *stats_;
-  /* Defines range [0, filled_) in array, which will hold the relevant data. */
-  uint64 filled_;
+  std::vector<byte> *block_; /**<Contains the actual data of MainBlock-object*/
+  std::vector<uint64> *stats_;/**<Contains frequencies for each byte in block_.
+                                 After Burrows-Wheeler transform this holds the
+                                 sizes of context blocks of a single byte in
+                                 the same order as they appear in transformed
+                                 data.*/
+  uint64 filled_;/**<Range [0, filled_) in block_ will hold the relevant data.*/
+
 
  private:
   MainBlock& operator=(const MainBlock& b);

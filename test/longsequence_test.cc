@@ -35,6 +35,9 @@ namespace bwtc {
 int verbosity = 3;
 }
 
+using bwtc::uint64;
+using bwtc::byte;
+
 namespace tests {
 
 /******************** Testing calculation of borders ******************/

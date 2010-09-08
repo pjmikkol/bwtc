@@ -17,13 +17,19 @@
  *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
  **************************************************************************/
 
+/**
+ * @file globaldefs.h
+ * Global definitions and typedefs for bwtc.
+ */
+
 #ifndef GLOBAL_DEFS_H_
 #define GLOBAL_DEFS_H_
 
 #include <limits>
-
-/* Common typedefs for different sizes of integers */
 #include <boost/cstdint.hpp>
+
+namespace bwtc {
+/* Common typedefs for different sizes of integers */
 typedef boost::int64_t int64;
 typedef boost::uint64_t uint64;
 typedef boost::int32_t int32;
@@ -48,13 +54,18 @@ static const Probability kProbabilityScale = (1 << kLogProbabilityScale);
 
 typedef unsigned char byte;
 
-// Name of the compressor program
+/**
+ * Name of the compressor program
+ */
 #define COMPRESSOR "compr"
-// Name of the decrompressor program
+
+/**
+ * Name of the decompressor program
+ */
 #define DECOMPRESSOR "uncompr"
 
-namespace bwtc {
+
   extern int verbosity;
-}
+} // namespace bwtc
 
 #endif

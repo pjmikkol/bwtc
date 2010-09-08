@@ -27,7 +27,6 @@
 
 #include "rl_compress.h"
 #include "stream.h"
-#include "globaldefs.h" /* Important definitions */
 
 namespace dcsbwt {
 

@@ -30,6 +30,9 @@ namespace fs = boost::filesystem;
 #include "../stream.h"
 #include "testdefs.h"
 
+using bwtc::uint64;
+using bwtc::byte;
+
 namespace tests {
 
 void BlockWriteTest();

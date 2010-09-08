@@ -29,15 +29,38 @@
 
 namespace bwtc {
 
+/**
+ * OutStream writes data into file or std::cout.
+ *
+ * On the compression pipeline OutStream-object is located at the end of
+ * the pipeline. It is owned by Encoder-object which feeds it with compressed
+ * data.
+ *
+ * OutStream is also at the end of the decompression pipeline right after the
+ * postprocessors.
+ *
+ * @see Encoder
+ * @see PostProcessor
+ */
+//TODO: Check PostProcessor-ref above after class is created
 class OutStream {
  public:
-  // TODO: find justified buffer size
-  static const int kDefaultBufferSize = (1 << 12);
   explicit OutStream(std::string file_name);
   ~OutStream();
-  /* Writes rightmost amount_of_bits of char to stream */
+
+  /**
+   * Writes given byte into target.
+   *
+   *@param b byte to be written
+   */
   void WriteByte(byte b);
-  /* Writes chars in range [begin, end) to stream */
+
+  /**
+   * Writes bytes from range [begin, end) to stream
+   *
+   * @param begin iterator to the start of the range to be written
+   * @param end iterator to the one past last of the range to be written
+   */
   void WriteBlock(std::vector<byte>::const_iterator begin,
                   std::vector<byte>::const_iterator end);
   std::streampos GetPos() const; 
@@ -48,7 +71,6 @@ class OutStream {
   std::string name_;
   std::ostream* to_;
   std::ofstream* outfile_;
-  std::vector<char> buffer_;
   
   OutStream& operator=(const OutStream& os);
   OutStream(const OutStream& os);

@@ -31,12 +31,11 @@
 namespace bwtc {
 
 OutStream::OutStream(std::string file_name) :
-    name_(file_name), to_(NULL), outfile_(NULL),
-    buffer_(kDefaultBufferSize)
+    name_(file_name), to_(NULL), outfile_(NULL)
 {
   if (name_ != "") {
     outfile_ = new std::ofstream(name_.c_str());
-    to_ = dynamic_cast<std::ostream*>(outfile_);
+    to_ = outfile_;
   } else
     to_ = &std::cout;
   assert(to_);

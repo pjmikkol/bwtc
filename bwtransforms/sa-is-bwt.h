@@ -34,6 +34,12 @@
 #include "bw_transform.h"
 #include "../globaldefs.h"
 
+using bwtc::uint64;
+using bwtc::int64;
+using bwtc::uint32;
+using bwtc::byte;
+using bwtc::Max;
+
 namespace bwtc {
 
 class SAISBWTransform : public BWTransform {
@@ -48,8 +54,7 @@ class SAISBWTransform : public BWTransform {
   virtual uint64 SuggestedBlockSize(uint64 memory_budget) const { return 0; }
   
 };
-
-} //namespace bwtc
+} // namespace bwtc
 
 
 namespace sa_is {

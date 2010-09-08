@@ -1,0 +1,12 @@
+PROJECT_NAME            = bwtc
+OUTPUT_DIRECTORY        = bwtc_docs
+EXTRACT_ALL             = YES
+EXTRACT_PRIVATE         = YES
+EXTRACT_STATIC          = YES
+JAVADOC_AUTOBRIEF       = YES
+SOURCE_BROWSER          = YES
+GENERATE_HTML           = YES
+GENERATE_LATEX          = YES
+RECURSIVE               = YES
+GENERATE_TREEVIEW       = YES
+FILE_PATTERNS           = *.cc *.h *.hxx

@@ -36,6 +36,10 @@
 #include <algorithm>  // for swap
 #include <cstdlib>    // for drand48
 
+using bwtc::int64;
+using bwtc::int32;
+using bwtc::uint32;
+
 namespace dcsbwt {
 
 namespace ternary_partition {

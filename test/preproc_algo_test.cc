@@ -34,6 +34,9 @@ namespace bwtc {
 int verbosity = 2;
 }
 
+using bwtc::uint64;
+using bwtc::byte;
+
 namespace tests {
 
 const int kTimes = 1;

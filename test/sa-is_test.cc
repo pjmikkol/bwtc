@@ -27,6 +27,10 @@
 #include "../bwtransforms/sa-is-bwt.h"
 #include "../bwtransforms/sais.hxx"
 
+//using bwtc::uint64;
+using bwtc::uint32;
+using bwtc::byte;
+
 namespace tests {
 
 int SufCmp(byte *str, uint32 s1, uint32 s2, unsigned n) {

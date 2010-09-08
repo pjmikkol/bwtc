@@ -32,6 +32,9 @@ namespace bwtc {
 int verbosity = 7;
 }
 
+using bwtc::uint64;
+using bwtc::byte;
+
 namespace tests {
 
 void SimpleBWTtest(const char* input, uint64 length) {

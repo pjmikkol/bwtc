@@ -16,7 +16,11 @@
  *  You should have received a copy of the GNU General Public License     *
  *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
  **************************************************************************/
-
+/**
+ * @file bwt_and_preproctest.cc
+ * File for testing the speed of preprocessing algorithms and their
+ * effect to the speed of Burrows-Wheeler transform.
+ */
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
@@ -106,6 +110,7 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
 void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
                      uint64 block_size, unsigned mem_constr)
 {
+  bwtc::verbosity = 3;
   bwtc::BlockManager bm(block_size, 1);
   bwtc::TestPreProcessor pp(block_size);
   pp.AddBlockManager(&bm);
@@ -164,7 +169,6 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   } while(--str_index >= 0);
 
   std::vector<byte>& uncompressed = *pp.curr_block_->block_;
-
   assert(uncompr_size == original.size());
   for(uint64 j = 0; j < original.size(); ++j) {
     assert(uncompressed[j] == original[j]);
@@ -175,6 +179,7 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
             << "B which is "
             << (compressed_size/static_cast<double>(orig_size))*100.0
             << "% of the original data\n############################\n";
+
 }
 
 } // namespace tests
@@ -198,7 +203,7 @@ int main(int argc, char **argv) {
   if (argc > 4) mem_constr = atoi(argv[4]);
   if (argc > 5) block_size = atoi(argv[5]);
   tests::PreprocBWTSpeed(argv[1], atoi(argv[2]), std::string(argv[3]),
-                       block_size, mem_constr);
+                         block_size, mem_constr);
   tests::ValidatePreproc(argv[1], atoi(argv[2]), std::string(argv[3]),
                          block_size, mem_constr);
 

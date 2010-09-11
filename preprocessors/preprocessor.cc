@@ -160,12 +160,12 @@ FreqTable::FreqTable(uint64* frequencies) {
   InitLocations();
 }
 
-const uint64& FreqTable::operator[](unsigned i) {
+const uint64& FreqTable::operator[](unsigned i) const {
   assert(i <= 255);
   return freq_[i].second;
 }
 
-byte FreqTable::Key(unsigned i) {
+byte FreqTable::Key(unsigned i) const {
   assert(i < 256);
   return freq_[i].first;
 }
@@ -248,10 +248,13 @@ bool FreqTable::Test() {
    * The penalty from escape byte is f(x) so we require that                *
    *   sum from k=i to j: f(P_k) - f(x_k) - 3 > f(x)              (p2)      *
    **************************************************************************/
+/**
+ * Implementation  for replacing the most common pairs.
+ */
 namespace commonpairs {
 
 void ComputePairFrequencies(byte *data, uint64* freqs,
-                            std::pair<uint16, uint32>* pair_freqs, uint64 len)
+                            std::pair<uint16, unsigned>* pair_freqs, uint64 len)
 {
   uint16 index = data[0];
   ++freqs[index];
@@ -263,24 +266,23 @@ void ComputePairFrequencies(byte *data, uint64* freqs,
   }
 }
 
-/*****************************************************************************
- * FindReplaceablePairs - Finds the candidates for pairs which are going to  *
- *                        be replaced by single symbols. It is required that *
- *                        if pair = <p1,p2> is in result, then there is no   *
- *                        pair where p2 would be first symbol of pair or     *
- *                        where p1 would be second symbol. Optimal solution  *
- *                        for the problem is NP-hard (max-cut).              *
- *                                                                           *
- * Takes the following arguments:                                            *
- * replaceable_pairs  - empty vector where pairs are stored                  *
- * pair_freqs         - unsorted array of <pair, frequency>-pairs, size of   *
- *                      65536                                                *
- * frequencies        - array of <byte, frequency>-pairs sorted by frequency *
- *                      in descending order                                  *
- *****************************************************************************/
-void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
+/**
+ * Finds the candidates for pairs which are going to be replaced by
+ * single symbols.
+ *
+ * If pair = <p1,p2> is in result, then isn't any pair where p2 is the first
+ * symbol or p1 is the second symbol. Greedy heuristic is used. Optimal
+ * solution for choosing the pairs is NP-hard (max-cut).
+ *
+ * @param replaceable_pairs empty vector where pairs are stored
+ * @param pair_freqs unsorted array of <pair, frequency>-pairs with
+ *                   65536 entries
+ * @param freqs pointer to FreqTable-object
+ * @return result is stored into replaceable_pairs
+ */
+void FindReplaceablePairs(std::vector<std::pair<uint16,unsigned> >*
                           replaceable_pairs,
-                          std::pair<uint16, uint32>* pair_freqs,
+                          std::pair<uint16, unsigned>* pair_freqs,
                           FreqTable *freqs)
 {
   const unsigned kStep = 256;
@@ -293,7 +295,7 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
       assert(limit < 65536);
       std::partial_sort(pair_freqs + current_pair, pair_freqs + limit,
                         pair_freqs  + 65536,
-                        ComparePairSecondDesc<uint16, uint32>);
+                        ComparePairSecondDesc<uint16, unsigned>);
     }
     byte fst = static_cast<byte>((pair_freqs[current_pair].first & 0xFF00) >> 8);
     byte snd = static_cast<byte>(pair_freqs[current_pair].first & 0x00FF);
@@ -318,10 +320,9 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
       freqs->Increase(snd, pair_freqs[current_pair].second);
       break; /* We won't benefit from any changes any more*/
     }
-    /* Reject pairs which have conflicting symbols
-     * This one NEEDS better heuristics. Now it uses greedy heuristic */
+    /* Reject pairs which have conflicting symbols. */
     bool valid = true;
-    for(std::vector<std::pair<uint16, uint32> >::iterator it =
+    for(std::vector<std::pair<uint16, unsigned> >::iterator it =
             replaceable_pairs->begin();
         it != replaceable_pairs->end(); ++it)
     {
@@ -346,7 +347,7 @@ void FindReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
 /* Returns the index for the 'escape_char' in freqs-array or value of
  * free_symbols if freeing of the chars is not profitable */
 unsigned EscapeCharIndex(FreqTable* freqs,
-                         const std::vector<std::pair<uint16, uint32> >&
+                         const std::vector<std::pair<uint16, unsigned> >&
                          suitable_pairs,
                          unsigned free_symbols)
 {
@@ -370,29 +371,38 @@ unsigned EscapeCharIndex(FreqTable* freqs,
   return i;
 }
 
-/* Writes uint16 to given address. Used for writing the pairs to result-array*/
-void WriteBytes(uint16 value, byte *address) {
-  *address = (value >> 8);
-  *(address + 1) = value & 0xFF;
+/**
+ * Writes pair to given address. Used for writing the pair-replacement info
+ * to result-array.
+ *
+ * @param pair Two bytes represented with uint16. First 8 bits represent the
+ *             first byte of pair. The latter 8 bits are the second byte of pair.
+ * @param address pointer to where the pair is written
+ */
+void WritePair(uint16 pair, byte *address) {
+  *address = (pair >> 8);
+  *(address + 1) = pair & 0xFF;
 }
 
-/*******************************************************************************
- * WriteReplacements - Writes replacements of pairs to result array.           *
- *                                                                             *
- * replacements - array of size 65536 where index of element is interpreted    *
- *                as a pair of two bytes where their bit-representations are   *
- *                concatenated. Let p be the value of pair. We require the     *
- *                following conditions:                                        *
- *                if replacements[p] == common_byte there is no replacement    *
- *                                      for p                                  *
- *                if replacements[p] == escape_byte the first element of p     *
- *                                      needs escaping because it is made free *
- *                in other cases replacement for p is replacements[p]          *
- * to           - is an array where we write the replacements                  *
- * from         - source of an original data                                   *
- * length       - length of from                                               *
- * common_byte and escape_byte are described above                             *
- *******************************************************************************/
+/**
+ * Writes replacements of pairs to result array.
+ *
+ * @param replacements Array of size 65536 where index of element is
+ *                     interpreted as a pair of two bytes where their
+ *                     bit-representations are concatenated.
+ *                     Let p be the value of pair. We require the following
+ *                     conditions: if replacements[p] == common_byte there is
+ *                     no replacement for p if replacements[p] == escape_byte
+ *                     the first element of p needs escaping because it is made
+ *                     free in other cases replacement for p is value at
+ *                     replacements[p].
+ * @param to an array where the replacements are written
+ * @param from source of an original data
+ * @param length length of from (source)
+ * @param common_byte explained above
+ * @param escape_byte explained above
+ * @return Bytes used at result array when replaced the pairs.
+ */
 uint64 WriteReplacements(byte *replacements, byte *to, byte *from, uint64 length,
                          byte common_byte, byte escape_byte)
 {
@@ -412,12 +422,12 @@ uint64 WriteReplacements(byte *replacements, byte *to, byte *from, uint64 length
     else { // pair will be replaced
       to[result_index++] = replacements[pair];
       if( i == length - 1) break;
-      pair = static_cast<byte>(from[++i]);
+      pair = from[++i];
     }
 
-    if ( i >= length - 1) {
-      assert(i == length - 1);
-      if(from[i] == escape_byte && escape_byte != common_byte) 
+    if ( i == length - 1) {
+      pair = (from[i] << 8) | 0;
+      if(replacements[pair] == escape_byte && escape_byte != common_byte)
         to[result_index++] = escape_byte;
       to[result_index++] = from[i];
       break;
@@ -427,16 +437,74 @@ uint64 WriteReplacements(byte *replacements, byte *to, byte *from, uint64 length
   return result_index;
 }
 
+/**
+ * Constructs replacement table.
+ *
+ * @param symbols Number of symbols used in writing the replacements,
+ * @param replacements Array of size 65536 indexed by concatenated pairs.
+ *                     The replacements for pairs are writen to this. 
+ * @param freqs {@link FreqTable} containing frequencies of characters.
+ * @param escaping true if escaping is in use.
+ * @param free_symbols Number of symbols which aren't present in the source.
+ * @return Result is written to replacements.
+ */
+void ConstructReplacementTable(unsigned symbols, byte *replacements,
+                               const std::vector<std::pair<uint16, unsigned> >&
+                               replaceable_pairs, const FreqTable& freqs,
+                               bool escaping, unsigned free_symbols)
+{
+  assert(symbols > 0);
+  byte common_byte = replacements[0];
+  unsigned limit = (escaping)?symbols-1:symbols;
+  for(unsigned i = 0; i < limit; ++i) {
+    replacements[replaceable_pairs[i].first] = freqs.Key(i);
+  }
+  byte escape_byte = freqs.Key(symbols-1);
+  /* Prepare escaped characters for writing of the replacements */
+  for(unsigned i = free_symbols; i < symbols; ++i) {
+    uint16 pair_value = freqs.Key(i) << 8;
+    for(unsigned j = 0; j < 256; ++j, ++pair_value)
+      if(replacements[pair_value] == common_byte)
+        replacements[pair_value] = escape_byte;
+  }
+}
+
+/**
+ * Writes header for pair replacements and gathers replacement table for pairs.
+ */
+unsigned WriteReplaceablePairs(byte *to, byte *replacements, byte escape_byte,
+                               byte common_byte)
+{
+  unsigned position = 0;
+  byte last_value = escape_byte;
+  for(unsigned i = 0; i < 65536; ++i) {
+    if(replacements[i] != escape_byte && replacements[i] != common_byte) {
+      last_value = replacements[i];
+      *to++ = last_value;
+      WritePair(i&0xFFFF, to);
+      to += 2;
+      position += 3;
+    }
+  }
+  *to++ = last_value;
+  *to = (escape_byte != common_byte)?escape_byte : last_value;
+  return position + 2;
+}
+
 } //namespace commonpairs
 
-/************************************************************************
- * CompressCommonPairs - Replaces common pairs of bytes with single     *
- *                       byte values. Writes the result to source array *
- *                       (from). Requires that from has at least length *
- *                       of length+3, where the actual data is in range *
- *                       [0, length).                                   *
- ************************************************************************/
- 
+/**
+ * Replaces common pairs of bytes with single byte values. Writes the
+ * result to source array.
+ *
+ *  Requires that from has at least 3 additional
+ * bytes reserved of length+3, where the actual data is in range [0, length).
+ *
+ * @param from Source array. It is required that from points to memory area
+ *             where at least length+3 bytes is allocated.
+ * @param length Input data is in the range [from[0], from[length])
+ * @return Result is written to input array (from).
+ */ 
 uint64 CompressCommonPairs(byte *from, uint64 length)
 {
   using namespace commonpairs;
@@ -444,15 +512,15 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   assert(length > 0);
   assert(from);
   uint64 freq[256] = {0U};
-  std::pair<uint16, uint32> pair_freq[65536];
-  InitPairsWithValue<uint16, uint32>(pair_freq, 0, 65536);
+  std::pair<uint16, unsigned> pair_freq[65536];
+  InitPairsWithValue<uint16, unsigned>(pair_freq, 0, 65536);
   ComputePairFrequencies(from, freq, pair_freq, length);
 
   FreqTable freqs(freq);
   unsigned free_symbols = 0;
   while(freqs[free_symbols] == 0) ++free_symbols;
 
-  std::vector<std::pair<uint16, uint32> > replaceable_pairs;
+  std::vector<std::pair<uint16, unsigned> > replaceable_pairs;
   FindReplaceablePairs(&replaceable_pairs, pair_freq, &freqs);
 
   unsigned escape_index = free_symbols;
@@ -464,74 +532,39 @@ uint64 CompressCommonPairs(byte *from, uint64 length)
   if(escape_index > free_symbols) escape_byte = freqs.Key(escape_index);
   else escape_byte = common_byte;
 
+  /* Initialize replacement table and write header */
+  unsigned candidates = static_cast<unsigned>(replaceable_pairs.size());
+  unsigned symbols = (candidates < free_symbols)?candidates:
+      ((free_symbols < escape_index)?escape_index+1:free_symbols); 
+
+  if (verbosity > 1) {
+    std::clog << "Replacing ";
+    if (symbols > free_symbols)
+      std::clog << (symbols - 1) << " pairs. Made " << (symbols - free_symbols)
+                << " symbols free.\n";
+    else
+      std::clog << symbols << " pairs. No symbols made free.\n";
+  }
+
   byte replacements[65536];
   std::fill(replacements, replacements + 65536, common_byte);
   byte *temp = new byte[length + 3];
-
-  // TODO: Change this to also store the replacements to map etc
-  /* Initialize replacement table and write header */
-  int symbols_in_use = 0;
-  uint64 position = 0;
-  unsigned candidates = static_cast<unsigned>(replaceable_pairs.size());
-  unsigned k;
-  for(k = 0; k < std::min(free_symbols, candidates); ++k) {
-    replacements[replaceable_pairs[k].first] = freqs.Key(k);
-    assert(freqs.Key(k) != common_byte);
-    assert(freqs.Key(k) != escape_byte);
-    temp[position++] = freqs.Key(k);
-    WriteBytes(replaceable_pairs[k].first, temp + position);
-    position += 2;
+  uint64 total_size = 0;
+  if(symbols > 0) {
+    ConstructReplacementTable(symbols, replacements, replaceable_pairs,
+                              freqs, escape_byte != common_byte,
+                              free_symbols);
+    total_size = WriteReplaceablePairs(temp, replacements, escape_byte,
+                                       common_byte);
+  } else {
+    for(int i = 0; i < 3; ++i)
+      temp[total_size++] = 0;
   }
-  if (k > 0) symbols_in_use = k;
-  else symbols_in_use = 0;
-
-  if ( free_symbols < escape_index) {
-    /* Prepare escaped characters for writing of the replacements */
-    for(unsigned i = free_symbols; i <= escape_index; ++i) {
-
-      uint16 pair_value = freqs.Key(i) << 8;
-      for(unsigned j = 0; j < 256; ++j, ++pair_value)
-        if(replacements[pair_value] == common_byte)
-          replacements[pair_value] = escape_byte;
-      if(i < escape_index) {
-        replacements[replaceable_pairs[i].first] = freqs.Key(i);
-        assert(freqs.Key(i) != common_byte);
-        assert(freqs.Key(i) != escape_byte);
-        temp[position++] = freqs.Key(i);
-        WriteBytes(replaceable_pairs[i].first, temp + position);
-        position += 2;
-      }
-    }
-    symbols_in_use += escape_index - free_symbols + 1;
-  }
-  unsigned new_symbols = (free_symbols == escape_index)?
-      0 : symbols_in_use - free_symbols;
-  /* Find the dummy byte for header and write the end of header */
-  byte dummy = escape_byte + 1;
-  if (new_symbols > 0) dummy = freqs.Key(escape_index - 1);
-  else if (symbols_in_use > 0) dummy = freqs.Key(symbols_in_use - 1);
-  temp[position++] = dummy;
-  if (free_symbols < escape_index) temp[position++] = escape_byte;
-  else {
-    temp[position++] = dummy;
-    if( symbols_in_use == 0) temp[position++] = dummy;
-  }
-
-  if (verbosity > 1) {
-    std::clog << "Replacing " << ((new_symbols > 0)?
-                                  (symbols_in_use - 1):symbols_in_use)
-              << " pairs. ";
-    if (new_symbols > 0)
-      std::clog << "Made " << new_symbols << " symbols free.\n";
-    else
-      std::clog << "No symbols made free.\n";
-  }
-
-  uint64 total_size = position;
-  total_size += WriteReplacements(replacements, temp + position, from, length,
-                                  common_byte, escape_byte);
+  total_size += WriteReplacements(replacements, temp + total_size, from,
+                                  length, common_byte, escape_byte);
   assert(total_size <= length + 3);
   std::copy(temp, temp + total_size, from);
+  assert(temp[total_size-1] != escape_byte || escape_byte == common_byte);
   delete [] temp;
   return total_size;
 }
@@ -978,7 +1011,6 @@ uint64 CompressLongRuns(byte *from, uint64 length)
   //}
   total_size += WriteReplacements(&replacements, temp + position, from, length,
                                   escape_byte);
-  
   std::copy(temp, temp + total_size, from);
   delete [] temp;
   assert(total_size <= length + 2);

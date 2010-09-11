@@ -17,6 +17,11 @@
  *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
  **************************************************************************/
 
+/**
+ * @file block.h
+ * Header for MainBlock-class.
+ */
+
 #ifndef BWTC_BLOCK_H_
 #define BWTC_BLOCK_H_
 

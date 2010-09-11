@@ -16,7 +16,10 @@
  *  You should have received a copy of the GNU General Public License     *
  *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
  **************************************************************************/
-
+/**
+ * @file longsequences.cc
+ * Implementation for finding repetitive sequences and replacing them.
+ */
 #include <cassert>
 #include <cstdlib>
 
@@ -37,10 +40,16 @@ namespace bwtc {
 
 namespace long_sequences {
 
-namespace {
-/* Utilities for finding prime numbers. Test we use here is deterministic *
- * variant of Miller-Rabin primality test. */
+/**
+ * Utilities for testing prime numbers. Test we use here is deterministic
+ * variant of Miller-Rabin primality test.
+ */
+namespace prime {
 
+/**
+ * Product of a and b in modulo m
+ * @return (a*b) % m
+ */
 int mulm(int a, int b, int m)
 {
   return static_cast<int64>(a)*b % m;
@@ -55,6 +64,14 @@ T powm(T b, T e, T m)
   return (e & 1) ? mulm(b, xx, m) : xx;
 }
 
+/**
+ * Checks if second argument is composite with Miller-Rabin primality test.
+ * There is small probability for mistakes.
+ *
+ * @param a possible witness fo compositeness of n
+ * @param n number to be inspected
+ * @return true if n is composite for sure
+ */
 template<class T>
 bool Witness(T a, T n)
 {
@@ -69,10 +86,17 @@ bool Witness(T a, T n)
   return x != 1;
 }
 
-} // empty namespace
+} // namespace prime
 
+/**
+ * Determinized version of Miller-Rabin primality test.
+ *
+ * @param n number to be inspected
+ * @return true if n is prime, false if composite
+ */
 bool IsPrime(int n)
 {
+  using namespace prime;
   assert(n % 2 == 1);
   if ( n < 1373653) return (!Witness(2,n) && !Witness(3,n));
   else if ( n < 9080191 ) return (!Witness(31,n) && !Witness(73,n));
@@ -80,7 +104,12 @@ bool IsPrime(int n)
   else return (!Witness(2,n) && !Witness(7,n) && !Witness(61,n));
 }
 
-/* Finds prime which is lesser or equal to given n */
+/**
+ * Finds prime which is lesser or equal to given n.
+ *
+ * @param n upper bound for prime returned
+ * @return prime lesser or equal to n
+ */
 int FindPrimeLeq(int n) {
   assert(n > 3);
   if ((n&1) == 0) n -= 1;
@@ -88,25 +117,48 @@ int FindPrimeLeq(int n) {
   return n;
 }
 
-/* Base class for computing different rolling hashes */
+/**
+ * Classes for hash functions.
+ */
+namespace hash_functions {
+
+/* Idealized base class for computing different rolling hashes.
+ * We dont want overhead of virtual function calls so we don't build
+ * class-hierarchy. Instead we use templates.
 class Hasher {
  public:
   virtual ~Hasher() {};
-  /* Initialize function computes the size of actual hash_table and space *
-   * reserved for overflow-lists. Their sum is returned.                  */
+  //Initialize function computes the size of actual hash_table and space
+  //reserved for overflow-lists. Their sum is returned.                  
   virtual unsigned Initialize(unsigned max_values, int64 bytes_to_use,
                               unsigned size_of_elem, unsigned w_length) = 0;
   virtual int64 InitValue(const byte *from, unsigned length) = 0;
   virtual int64 Update(byte old_val, byte new_val) = 0;
 
 };
-  
-class PrimeHasher : public Hasher {
+*/
+
+/**
+ * Computes rolling hash using remainder of division with primes.
+ */
+class PrimeHasher /*: public Hasher*/ {
  public:
   PrimeHasher() : prev_hash_(0) {}
-  virtual ~PrimeHasher() {}
-  virtual unsigned Initialize(unsigned max_values, int64 bytes_to_use,
-                              unsigned size_of_elem, unsigned window_length)
+  /**
+   * Initializes the hasher and seeks parameters used for calculating hash
+   * values. Client must supply constructor with some information about the
+   * data that is going to be hashed.
+   *
+   * @param max_values maximum amount of separate values to hash
+   * @param bytes_to_use how many bytes the structure holding hash table
+   *                     can consume at the most
+   * @param size_of_elem size of single element stored in structure holding
+   *                     hash table
+   * @param window_length number of bytes where the hash value is calculated
+   * @return suggested size for hash table and its overflow list
+   */
+  unsigned Initialize(unsigned max_values, int64 bytes_to_use,
+                      unsigned size_of_elem, unsigned window_length)
   {
     q_ = FindPrimeLeq(bytes_to_use/size_of_elem - max_values/2);
     c_ = 1;
@@ -119,30 +171,60 @@ class PrimeHasher : public Hasher {
     return q_ + max_values/2;
   }
 
-  virtual int64 InitValue(const byte *from, unsigned len) {
+  /**
+   * Initializes the value of rolling hash with the hash value of
+   * [*from, *(from +len) ).
+   *
+   * @param from pointer to the start of sequence
+   * @param len length of sequence
+   * @return hash value of sequence [*from, *(from +len) )
+   */
+  int64 InitValue(const byte *from, unsigned len) {
     prev_hash_ = 0;
     for(unsigned i = 0; i < len; ++i)
       prev_hash_ = ((prev_hash_ << 8) + *from++) % q_;
     return prev_hash_;
   }
 
-  virtual int64 Update(byte old_val, byte new_val) {
+  /**
+   * Updates the hash value from the hash of [old_val, new_val) to
+   * (old_val, new_val].
+   *
+   * @return updated hash value
+   */
+  int64 Update(byte old_val, byte new_val) {
     prev_hash_ = (((prev_hash_ - old_val*c_) << 8) + new_val) % q_;
-    if (prev_hash_ < 0) prev_hash_ = -prev_hash_;
+    if (prev_hash_ < 0) prev_hash_ += q_;
     return prev_hash_;
   }
 
  private:
-  int64 prev_hash_;
-  int64 c_; /* parameter used in calclation of hash values */
-  int64 q_; /* prime, hash values will be in range [0..q_) */
+  int64 prev_hash_; /**<Hash value of previous sequence*/
+  int64 c_; /**<Parameter used in calculation of hash function*/
+  int64 q_; /**<Prime used in the calculation of hash function.
+               Hash values will be in range [0,q_) */
 };
 
-class FastHasher : public Hasher {
+/**
+ * Computes rolling hash using bitmask.
+ */
+class FastHasher /*: public Hasher*/ {
  public:
   FastHasher() : prev_hash_(0) {}
-  virtual ~FastHasher() {}
-  virtual unsigned Initialize(unsigned max_values, int64 bytes_to_use,
+  /**
+   * Initializes the hasher and seeks parameters used for calculating hash
+   * values. Client must supply constructor with some information about the
+   * data that is going to be hashed.
+   *
+   * @param max_values maximum amount of separate values to hash
+   * @param bytes_to_use how many bytes the structure holding hash table
+   *                     can consume at the most
+   * @param size_of_elem size of single element stored in structure holding
+   *                     hash table
+   * @param window_length number of bytes where the hash value is calculated
+   * @return suggested size for hash table and its overflow list
+   */
+  unsigned Initialize(unsigned max_values, int64 bytes_to_use,
                               unsigned size_of_elem, unsigned window_length)
   {
     //TODO: Put more care for choosing the mask_ and size of hash table
@@ -154,42 +236,67 @@ class FastHasher : public Hasher {
     return bytes_to_use/size_of_elem;
   }
 
-  virtual int64 InitValue(const byte *from, unsigned len) {
+  /**
+   * Initializes the value of rolling hash with the hash value of
+   * [*from, *(from +len) ).
+   *
+   * @param from pointer to the start of sequence
+   * @param len length of sequence
+   * @return hash value of sequence [*from, *(from +len) )
+   */
+  int64 InitValue(const byte *from, unsigned len) {
     prev_hash_ = 0;
     for(unsigned i = 0; i < len; ++i)
       prev_hash_ = ((prev_hash_*257) + *from++) & mask_;
     return prev_hash_;
   }
 
-  virtual int64 Update(byte old_val, byte new_val) {
-    prev_hash_ = (((prev_hash_ - old_val*c_)*257) + new_val) & mask_;
+  /**
+   * Updates the hash value from the hash of [old_val, new_val) to
+   * (old_val, new_val].
+   *
+   * @return updated hash value
+   */
+  int64 Update(byte old_val, byte new_val) {
+    prev_hash_ = ((prev_hash_ - old_val*c_)*257 + new_val) & mask_;
     return prev_hash_;
   }
 
  private:
-  int64 prev_hash_;
-  int64 c_; /* parameter used in calclation of hash values */
-  int64 mask_; /* prime */
+  int64 prev_hash_; /**<Hash value of previous sequence*/
+  int64 c_; /**<Parameter used in calculation of hash function*/
+  int64 mask_; /**<Mask used in the calculation of hash function.
+                  Hash values will be in range [0,mask_] */
+
 };
 
+} // namespace hash_functions
 
-/******************************************************************************
- * Hashtable based structure for holding the frequency information about the  *
- * substrings encountered. Calculating the hash values is based on Karp-Rabin *
- * pattern-matching algorithm.                                                *
- *                                                                            *
- * Same object is used also for finding the most frequent strings.            *
- ******************************************************************************/
+/**
+ * Hashtable based structure for holding the frequency information about the
+ * substrings encountered. SequenceTable is used also for finding the most
+ * frequent strings.
+ *
+ * Hash values are calculated with specific Hasher-classes. Hasher-class is
+ * given as a template parameter.
+ *
+ * @see hash_functions
+ */
+template <class Hasher>
 class SequenceTable {
 
+  /**
+   * Struct for holding the information about strings in source sequence.
+   * seq doesn't know anything about the source sequence.
+   */
   struct seq {
     seq() : count(0), overflow(0), position(0) {}
     seq(unsigned c, unsigned o, uint64 p) :
         count(c), overflow(o), position(p) {}
     
-    unsigned count; /* How many times we have encountered the string */
-    unsigned overflow; /* Index of overflow sequence in over_ -vector */
-    unsigned position; /* Position in actual text */
+    unsigned count; /**<How many times we have encountered the string*/
+    unsigned overflow; /**<Index of overflow sequence in over_ -vector */
+    unsigned position; /**<Position in actual text */
   };
 
  public:
@@ -206,20 +313,11 @@ class SequenceTable {
   explicit SequenceTable(uint64 size_of_data, unsigned block_length,
                          byte *data, unsigned memory_constraint,
                          char hasher = 'p')
-      : data_(data), block_length_(block_length), prev_hash_(0), h_(0)
+      : data_(data), block_length_(block_length), prev_hash_(0)
   {
-    //TODO: what if given size too small
-    switch(hasher) {
-      case 'p':
-        h_ = new PrimeHasher();
-        break;
-      default:
-        h_ = new FastHasher();
-        break;
-    }
-    h_size_ = h_->Initialize(size_of_data/block_length_,
-                             memory_constraint*size_of_data, sizeof(seq),
-                             block_length);
+    h_size_ = h_.Initialize(size_of_data/block_length_,
+                            memory_constraint*size_of_data, sizeof(seq),
+                            block_length);
     assert(h_size_ >= size_of_data/block_length);
     assert(h_size_*sizeof(seq) > size_of_data/block_length);
     table_ = new seq[h_size_];
@@ -233,12 +331,12 @@ class SequenceTable {
 
   /* Initializes the structure */
   void Initialize() {
-    prev_hash_ = h_->InitValue(data_, block_length_);
+    prev_hash_ = h_.InitValue(data_, block_length_);
     table_[prev_hash_] = seq(1, prev_hash_, 0);
   }
 
   void JumpToPos(uint64 pos) {
-    prev_hash_ = h_->InitValue(data_ + pos, block_length_);
+    prev_hash_ = h_.InitValue(data_ + pos, block_length_);
   }
 
   int64 Search(uint64 pos) {
@@ -328,7 +426,7 @@ class SequenceTable {
   
   void UpdateHashValue(uint64 pos) {
     assert(pos > 0);
-    prev_hash_ = h_->Update(data_[pos - 1], data_[pos + block_length_ - 1]);
+    prev_hash_ = h_.Update(data_[pos - 1], data_[pos + block_length_ - 1]);
   }
   /***********************************************************************
    * We use one array for holding the hashtable and its overflow-lists.  *
@@ -346,7 +444,7 @@ class SequenceTable {
   unsigned h_size_; /* size of the whole array */
   seq *table_; 
   unsigned next_overflow_; /* next free spot to store overflow-entry */
-  Hasher *h_;
+  Hasher h_;
 };
 
 template <typename T>
@@ -400,7 +498,7 @@ struct replacement {
 };
 
 /* We do the comparison of the srings backwards, because it seems to be *
- * faster then forwards. */
+ * faster the forwards. */
 bool SeqEq(const long_seq& s1, const long_seq& s2, byte *data) {
   if (s1.length != s2.length) return false;
   byte *f = data + s1.position + s1.length - 1;
@@ -615,7 +713,8 @@ void DetectSequences(byte *from, uint64 length, int memory_constraint,
                      LongSequences *long_seqs, std::vector<long_seq> *periods)
 {
   /* Initialize the data structures */
-  SequenceTable seq_table(length, block_length, from, memory_constraint);
+  SequenceTable<hash_functions::FastHasher>
+      seq_table(length, block_length, from, memory_constraint);
   seq_table.Initialize();
   CircularBuffer<byte> buffer(block_length);
   buffer.Fill(false);

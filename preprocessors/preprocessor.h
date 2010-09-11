@@ -65,8 +65,8 @@ class FreqTable {
  public:
   FreqTable();
   FreqTable(uint64* frequencies); /* Constructs FreqTable from given freqs */
-  const uint64& operator[](unsigned i); /* Returns the i:th lowest freq */
-  byte Key(unsigned i); /* Returns the key which has i:th lowest freq */
+  const uint64& operator[](unsigned i) const; /* Returns the i:th lowest freq*/
+  byte Key(unsigned i) const ; /* Returns the key which has i:th lowest freq*/
   bool Decrease(unsigned key, uint64 decrement);
   void Increase(unsigned key, uint64 increment);
 

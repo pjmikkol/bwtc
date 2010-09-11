@@ -19,6 +19,7 @@
 
 #include <cassert>
 
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <utility>
@@ -31,13 +32,14 @@
 namespace bwtc {
 
 uint64 UncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
+  static const unsigned no_repl = 70000;
   std::vector<byte>& data = *compressed;
   assert(length > 2);
   std::vector<byte> result;
   //result.reserve(length - 3); /* Minimum size of result */
   /* Prepare the replacement table */
-  uint16 replacements[256];
-  for (unsigned i = 0; i < 256; ++i) replacements[i] = static_cast<uint16>(i);
+  unsigned replacements[256];
+  std::fill(replacements, replacements + 256, no_repl);
 
   /* initialize value of j to the first index of compressed data */
   uint64 j = 0;
@@ -66,11 +68,11 @@ uint64 UncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
     if (escaping && escape_symbol == current) {
       result.push_back(data[++j]);
     }
-    else if (replacements[current] == current) {
+    else if (replacements[current] == no_repl) {
       result.push_back(current);
     }
     else {
-      uint16 pair = replacements[current];
+      uint16 pair = replacements[current]&0xFFFF;
       result.push_back(pair >> 8);
       result.push_back(pair & 0xFF);
     }

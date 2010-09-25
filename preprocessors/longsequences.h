@@ -28,20 +28,6 @@ namespace bwtc {
 
 namespace long_sequences {
 
-struct long_seq {
-  long_seq() : position(0), length(0), count(0) {}
-  long_seq(unsigned c, int l, uint64 p) :
-      position(p), length(l), count(c) {}
-  
-  bool operator<(const long_seq& ll) const {
-    return count*length < ll.count*ll.length;
-  }
-
-  uint64 position;
-  int length;
-  unsigned count;
-};
-
 /* To avoid costly memory-allocations we allocate the array used in *
  * computations of Borders only once.                               */
 template <typename T>

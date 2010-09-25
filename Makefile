@@ -39,8 +39,8 @@ bin/postprocessor.o : preprocessors/postprocessor.cc \
 	$(CC) $(FLAGS) preprocessors/postprocessor.cc -c -o bin/postprocessor.o
 
 bin/longsequences.o : preprocessors/longsequences.cc \
-	preprocessors/longsequences.h
-	$(CC) $(FLAGS) preprocessors/longsequences.cc -c -o bin/longsequences.o
+	preprocessors/longsequences.h preprocessors/sequence_detector.h
+#	$(CC) $(FLAGS) preprocessors/longsequences.cc -c -o bin/longsequences.o
 
 # Blocks and related things
 bin/block.o : block.h block.cc 
@@ -92,8 +92,8 @@ clean :
 
 # Rest of the file is for tests:
 tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
-	test/preprocalgotest test/longsequencetest test/streamtest \
-	test/sa-is_test
+	test/preprocalgotest test/streamtest test/sa-is_test \
+	test/sequence_detector_test test/longsequencetest
 	./test/streamtest
 	./test/preproctest
 	./test/coderstest
@@ -101,6 +101,12 @@ tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
 	./test/preprocalgotest
 	./test/longsequencetest
 	./test/sa-is_test
+	./test/seqdettest
+
+test/sequence_detector_test : preprocessors/sequence_detector.h \
+	test/seq_det_test.cc
+	$(CC) $(FLAGS) test/seq_det_test.cc -o test/seqdettest
+
 
 test/sa-is_test : test/sa-is_test.cc bwtransforms/sa-is-bwt.h \
 	bwtransforms/sais.hxx

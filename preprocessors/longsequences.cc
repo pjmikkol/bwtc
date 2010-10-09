@@ -44,241 +44,6 @@ namespace bwtc {
 
 namespace long_sequences {
 
-/**
- * Utilities for testing prime numbers. Test we use here is deterministic
- * variant of Miller-Rabin primality test.
- */
-namespace prime {
-
-/**
- * Product of a and b in modulo m
- * @param a member of multiplication
- * @param b other member of multiplication
- * @param m modulo where the multiplication is conducted
- * @return (a*b) % m
- */
-int mulm(int a, int b, int m)
-{
-  return static_cast<int64>(a)*b % m;
-}
-
-template<class T>
-T powm(T b, T e, T m)
-{
-  if (e == 0) return 1;
-  T x = powm(b, e>>1, m);
-  T xx = mulm(x, x, m);
-  return (e & 1) ? mulm(b, xx, m) : xx;
-}
-
-/**
- * Checks if second argument is composite with Miller-Rabin primality test.
- * There is small probability for mistakes.
- *
- * @param a possible witness fo compositeness of n
- * @param n number to be inspected
- * @return true if n is composite for sure
- */
-template<class T>
-bool Witness(T a, T n)
-{
-  // TODO: Replace use of builtin for other compilers than gcc
-  int t = __builtin_ffsll(n-1)-1;
-  T x = powm(a, (n-1) >> t, n);
-  for(int i = 0; i < t; ++i) {
-    T y = mulm(x,x,n);
-    if (y == 1 && x != 1 && x != n-1) return 1;
-    x = y;
-  }
-  return x != 1;
-}
-
-} // namespace prime
-
-/**
- * Determinized version of Miller-Rabin primality test.
- *
- * @param n number to be inspected
- * @return true if n is prime, false if composite
- */
-bool IsPrime(int n)
-{
-  using namespace prime;
-  assert(n % 2 == 1);
-  if ( n < 1373653) return (!Witness(2,n) && !Witness(3,n));
-  else if ( n < 9080191 ) return (!Witness(31,n) && !Witness(73,n));
-  /* n < 4,759,123,141 */
-  else return (!Witness(2,n) && !Witness(7,n) && !Witness(61,n));
-}
-
-/**
- * Finds prime which is lesser or equal to given n.
- *
- * @param n upper bound for prime returned
- * @return prime lesser or equal to n
- */
-int FindPrimeLeq(int n) {
-  assert(n > 3);
-  if ((n&1) == 0) n -= 1;
-  while (!IsPrime(n)) n -= 2;
-  return n;
-}
-
-/**
- * Classes for hash functions.
- */
-namespace hash_functions {
-
-/* Idealized base class for computing different rolling hashes.
- * We dont want overhead of virtual function calls so we don't build
- * class-hierarchy. Instead we use templates.
-class Hasher {
- public:
-  virtual ~Hasher() {};
-  //Initialize function computes the size of actual hash_table and space
-  //reserved for overflow-lists. Their sum is returned.                  
-  virtual unsigned Initialize(unsigned max_values, int64 bytes_to_use,
-                              unsigned size_of_elem, unsigned w_length) = 0;
-  virtual int64 InitValue(const byte *from, unsigned length) = 0;
-  virtual int64 Update(byte old_val, byte new_val) = 0;
-
-};
-*/
-
-/**
- * Computes rolling hash using remainder of division with primes.
- */
-class PrimeHasher /*: public Hasher*/ {
- public:
-  PrimeHasher() : prev_hash_(0) {}
-  /**
-   * Initializes the hasher and seeks parameters used for calculating hash
-   * values. Client must supply constructor with some information about the
-   * data that is going to be hashed.
-   *
-   * @param max_values maximum amount of separate values to hash
-   * @param bytes_to_use how many bytes the structure holding hash table
-   *                     can consume at the most
-   * @param size_of_elem size of single element stored in structure holding
-   *                     hash table
-   * @param window_length number of bytes where the hash value is calculated
-   * @return suggested size for hash table and its overflow list
-   */
-  unsigned Initialize(unsigned max_values, int64 bytes_to_use,
-                      unsigned size_of_elem, unsigned window_length)
-  {
-    q_ = FindPrimeLeq(bytes_to_use/size_of_elem - max_values/2);
-    c_ = 1;
-    for(unsigned i = 0; i < window_length - 1; ++i) {
-      c_ <<= 8;
-      c_ %= q_;
-    }
-    assert(q_ <= bytes_to_use/size_of_elem);
-    //return bytes_to_use/size_of_elem;
-    return q_ + max_values/2;
-  }
-
-  /**
-   * Initializes the value of rolling hash with the hash value of
-   * [*from, *(from +len) ).
-   *
-   * @param from pointer to the start of sequence
-   * @param len length of sequence
-   * @return hash value of sequence [*from, *(from +len) )
-   */
-  int64 InitValue(const byte *from, unsigned len) {
-    prev_hash_ = 0;
-    for(unsigned i = 0; i < len; ++i)
-      prev_hash_ = ((prev_hash_ << 8) + *from++) % q_;
-    return prev_hash_;
-  }
-
-  /**
-   * Updates the hash value from the hash of [old_val, new_val) to
-   * (old_val, new_val].
-   *
-   * @return updated hash value
-   */
-  int64 Update(byte old_val, byte new_val) {
-    prev_hash_ = (((prev_hash_ - old_val*c_) << 8) + new_val) % q_;
-    if (prev_hash_ < 0) prev_hash_ += q_;
-    return prev_hash_;
-  }
-
- private:
-  int64 prev_hash_; /**<Hash value of previous sequence*/
-  int64 c_; /**<Parameter used in calculation of hash function*/
-  int64 q_; /**<Prime used in the calculation of hash function.
-               Hash values will be in range [0,q_) */
-};
-
-/**
- * Computes rolling hash using bitmask.
- */
-class MaskHasher /*: public Hasher*/ {
- public:
-  MaskHasher() : prev_hash_(0) {}
-  /**
-   * Initializes the hasher and seeks parameters used for calculating hash
-   * values. Client must supply constructor with some information about the
-   * data that is going to be hashed.
-   *
-   * @param max_values maximum amount of separate values to hash
-   * @param bytes_to_use how many bytes the structure holding hash table
-   *                     can consume at the most
-   * @param size_of_elem size of single element stored in structure holding
-   *                     hash table
-   * @param window_length number of bytes where the hash value is calculated
-   * @return suggested size for hash table and its overflow list
-   */
-  unsigned Initialize(unsigned max_values, int64 bytes_to_use,
-                              unsigned size_of_elem, unsigned window_length)
-  {
-    //TODO: Put more care for choosing the mask_ and size of hash table
-    mask_ = MostSignificantBit(max_values) - 1;
-    c_ = 1;
-    for(unsigned i = 0; i < window_length - 1; ++i)
-      c_ = (c_*257) & mask_;
-    assert(mask_ <= bytes_to_use/size_of_elem);
-    return bytes_to_use/size_of_elem;
-  }
-
-  /**
-   * Initializes the value of rolling hash with the hash value of
-   * [*from, *(from +len) ).
-   *
-   * @param from pointer to the start of sequence
-   * @param len length of sequence
-   * @return hash value of sequence [*from, *(from +len) )
-   */
-  int64 InitValue(const byte *from, unsigned len) {
-    prev_hash_ = 0;
-    for(unsigned i = 0; i < len; ++i)
-      prev_hash_ = ((prev_hash_*257) + *from++) & mask_;
-    return prev_hash_;
-  }
-
-  /**
-   * Updates the hash value from the hash of [old_val, new_val) to
-   * (old_val, new_val].
-   *
-   * @return updated hash value
-   */
-  int64 Update(byte old_val, byte new_val) {
-    prev_hash_ = ((prev_hash_ - old_val*c_)*257 + new_val) & mask_;
-    return prev_hash_;
-  }
-
- private:
-  int64 prev_hash_; /**<Hash value of previous sequence*/
-  int64 c_; /**<Parameter used in calculation of hash function*/
-  int64 mask_; /**<Mask used in the calculation of hash function.
-                  Hash values will be in range [0,mask_] */
-
-};
-
-} // namespace hash_functions
-
 
 template <typename T>
 class CircularBuffer {
@@ -358,12 +123,6 @@ bool SeqEq(const replacement& s, uint64 position, byte *data,
   byte *g = data + position + s.length - 1;
   while(f != start) if(*f-- != *g--) return false;
   return true;
-}
-
-/* Calculates frequencies from range [source_begin, source_end) */
-template <typename T>
-void CalculateFrequencies(T *target, byte *source_begin, byte *source_end) {
-  while(source_begin != source_end) ++target[*source_begin++];
 }
 
 void DetectSequences(byte *from, uint64 length, int memory_constraint,
@@ -457,7 +216,7 @@ uint64 WriteReplacements(std::list<replacement> *rpls, byte *to, byte *from,
 uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
                          unsigned window_size, int threshold)
 {
-  using namespace long_sequences;
+  /*  using namespace long_sequences;
   assert(length > 0);
   assert(from);
   assert(length > window_size);
@@ -474,7 +233,7 @@ uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
   bool escaping = escape_index < 255;
   byte escape_byte = escaping ? freqs.Key(escape_index) : 0;
   byte *temp = new byte[2*length];
-  unsigned position = 0;
+  unsigned position = 0;*/
   /*************************************************************************
    * Info of the replacements is in a following format:                    *
    * 1)  We write triplets: <s, l, sequence> where sequence is the         *
@@ -488,7 +247,7 @@ uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
    *     is ok). After this we write escape symbol if it is in use.        *
    *     Otherwise the S is written again.                                 *
    *************************************************************************/
-  unsigned prev_s = 0xF000;
+  /*  unsigned prev_s = 0xF000;
   for(int i = 0; i < 65536; ++i) {
     if(replacements[i].empty()) continue;
     std::list<replacement>::const_iterator it = replacements[i].begin();
@@ -514,7 +273,7 @@ uint64 CompressSequences(byte *from, uint64 length, int memory_constraint,
                                      length, escape_byte, &freqs);
   std::copy(temp, temp + result_length, from);
   delete [] temp;
-  return result_length;
+  return result_length;*/
 }
 
 } // namespace bwtc

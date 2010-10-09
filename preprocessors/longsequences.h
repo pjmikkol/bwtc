@@ -1,21 +1,28 @@
-/**************************************************************************
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file longsequences.cc
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Header for detecting and replacing long repetitive sequences.
+ */
 
 #ifndef BWTC_LONGSEQUENCES_H_
 #define BWTC_LONGSEQUENCES_H_
@@ -27,6 +34,17 @@
 namespace bwtc {
 
 namespace long_sequences {
+
+/** Calculates frequencies from range [source_begin, source_end)
+ *
+ *  @param target where the frequency information is stored
+ *  @param source_begin start of the inspected sequence
+ *  @param source_begin one element past the end of the inspected sequence
+ */
+template <typename T>
+void CalculateFrequencies(T *target, byte *source_begin, byte *source_end) {
+  while(source_begin != source_end) ++target[*source_begin++];
+}
 
 /* To avoid costly memory-allocations we allocate the array used in *
  * computations of Borders only once.                               */

@@ -21,122 +21,207 @@
  *
  * @section DESCRIPTION
  *
- * Header for SequenceDetector-class.
+ * Header for structs and functions that are implemented and used in
+ * SequenceDetector-class.
  */
 
 #ifndef BWTC_SEQUENCE_DETECTOR_H_
 #define BWTC_SEQUENCE_DETECTOR_H_
 
-#include <vector>
 #include <list>
 #include "../globaldefs.h"
-
 
 namespace bwtc {
 namespace long_sequences {
 
-
 /**
- * Represents one interval of the input. Chunks are stored in list where
- * they are in the same order as they are in input. Besides that the
- * chunks representing the same string of bytes are linked together.
- * So we have multiple linked list in linked list.
+ * Utilities for testing prime numbers. Test we use here is deterministic
+ * variant of Miller-Rabin primality test.
  */
-struct chunk {
-  uint32 parent; /**<Link to link_table_ or long_table_ depending how long
-                    the chunk is.*/
-  uint32 position;
-  std::list<chunk>::iterator prev;
-  std::list<chunk>::iterator next;
-};
+namespace prime {
 
 /**
- * Represents single entry in link_table_
+ * Product of a and b in modulo m
+ * @param a member of multiplication
+ * @param b other member of multiplication
+ * @param m modulo where the multiplication is conducted
+ * @return (a*b) % m
  */
-struct link_struct {
-  /**<Iterator to chunk_list_. Length of this entry
-     is the size of window at most. */
-  std::list<chunk>::iterator short_chunk; 
-  
-  //TODO: is there need to save memory in this. length is always small and
-  //      needs at most few bytes. 
-  /**<Length of the chunk. Always lesser or equal to window
-     size. Smaller when we are dealing with periods. */
-  uint32 length; 
-
-  /**<Next entry in link_table_ which has the same hash value. */
-  int next;
-
-  /**<Count of this chunk idetified so far. */  
-  uint32 count;
-  
-  /**<If some entry of this chunk is later found to
-     be a part of some long sequence then this integer
-     is the index of that long sequence in long_table_. */
-  int related_long_seq; 
-  
-  /**<Offset position for this chunk in the
-     related_long_seq.
-  */
-  int place_in_long; 
-};
+int mulm(int a, int b, int m);
 
 /**
- * Represents single entry in SequenceDetector<Hasher>#long_table_.
+ * Computes b to the power of e in modulo m.
+ * @param b base
+ * @param e exponent
+ * @param m modulo where the exponentiation is conducted.
+ * @return (b**e) % m
  */
-struct long_seq {
-  long_seq(std::list<chunk>::iterator long_chunk, uint32 l, uint32 c) :
-      head(long_chunk), length(l), count(c) {}
-  
-  bool operator<(const long_seq& ll) const {
-    return count*length < ll.count*ll.length;
-  }
-  
-  std::list<chunk>::iterator head;
-  uint32 length;
-  uint32 count;
-};
-
+template<class T>
+T powm(T b, T e, T m)
+{
+  if (e == 0) return 1;
+  T x = powm(b, e>>1, m);
+  T xx = mulm(x, x, m);
+  return (e & 1) ? mulm(b, xx, m) : xx;
+}
 
 /**
- * SequenceDetector finds repeating sequences from the given input.
+ * Checks if second argument is composite with Miller-Rabin primality test.
+ * There is small probability for mistakes.
  *
- * Roots of the algorithm lies on the Karp-Rabin-string search algorithm and
- * Bentley-McIlroy compression algorithm. 
+ * @param a possible witness fo compositeness of n
+ * @param n number to be inspected
+ * @return true if n is composite for sure
  */
-template <typename Hasher>
-class SequenceDetector {
-  static const int kMinPeriod = 16;
-  static const int kWindowSize = 64;
-
-
-
-  
- public:
-  // note that only 32-bit lengths are supported
-  // period_threshold (kMinPeriod) and window_size are compile time constants
-  SequenceDetector(byte *from, uint64 length, byte *freqs) {
-    
+template<class T>
+bool Witness(T a, T n)
+{
+  // TODO: Replace use of builtin for other compilers than gcc
+  int t = __builtin_ffsll(n-1)-1;
+  T x = powm(a, (n-1) >> t, n);
+  for(int i = 0; i < t; ++i) {
+    T y = mulm(x,x,n);
+    if (y == 1 && x != 1 && x != n-1) return 1;
+    x = y;
   }
-  
- private:
-  Hasher h_; /**<Hasher-object which computes the rolling-hash function.
-                @see hash_functions */
-  uint32 *h_table_; /**<Table indexed by hash-values. Contains an index of
-                       link-table of the chain of this hash-value.*/
-  uint32 h_table_size_; //TARVITAANKO?
-  std::vector<link_struct> link_table; /**<Link-table which holds the chains
-                                          of different hash-values. Each member
-                                          points to the head of the
-                                          sequence-list. */
-  std::vector<long_seq> long_table_; /**<Analogy of link-table for long
-                                        sequences. */
-  std::list<chunk> chunk_list_; /**<Members of this list represent one chunk
-                                   of input data. Each chunk has correspondent
-                                   entry in either link_table or long_table_.*/
+  return x != 1;
+}
+} //namespace prime
 
+/**
+ * Determinized version of Miller-Rabin primality test.
+ *
+ * @param n number to be inspected
+ * @return true if n is prime, false if composite
+ */
+bool IsPrime(int n);
+
+/**
+ * Finds prime which is lesser or equal to given n.
+ *
+ * @param n upper bound for prime returned
+ * @return prime lesser or equal to n
+ */
+int FindPrimeLeq(int n);
+
+/**
+ * Classes for computing rolling hash functions.
+ *
+ * Each Hasher-object is designed to used as a template parameter and is
+ * thought to be inherited from idealized Hasher-class. We don't use
+ * class-hierarchy since we want to avoid overhead from virtual function calls.
+ *
+ * Hasher-classes need to implement the following functions:
+ * unsigned Initialize(unsigned size_of_table);
+ * int64 InitValue(const byte *from, unsigned length);
+ * int64 Update(byte old_val, byte new_val);
+ */
+namespace hash_functions {
+
+/**
+ * Computes rolling hash using remainder of division with primes.
+ */
+class PrimeHasher {
+ public:
+  PrimeHasher();
+  /**
+   * Initializes the hasher and seeks parameters used for calculating hash
+   * values. Client must supply constructor with the maximum size of the
+   * hash table.
+   *
+   * @param size_of_table maximum size of hash table
+   * @param window_length length of the rolling hash
+   * @return size of hash table
+   */
+  unsigned Initialize(unsigned size_of_table, uint32 window_length);
+  /**
+   * Initializes the value of rolling hash with the hash value of
+   * [*from, *(from +len) ).
+   *
+   * @param from pointer to the start of sequence
+   * @param len length of sequence
+   * @return hash value of sequence [*from, *(from +len) )
+   */
+  int64 InitValue(const byte *from, unsigned len);
+  /**
+   * Get the expected size of the hash table.
+   *
+   * @return expected size of the hash table
+   */
+  unsigned Size() {
+    return q_;
+  }
+  /**
+   * Updates the hash value from the hash of [old_val, new_val) to
+   * (old_val, new_val].
+   *
+   * @return updated hash value
+   */
+  int64 Update(byte old_val, byte new_val);
+ private:
+  /**<Hash value of previous sequence*/
+  int64 prev_hash_; 
+  /**<Parameter used in calculation of hash function*/
+  int64 c_; 
+  /**<Prime used in the calculation of hash function. Hash values will be in
+     range [0,q_) */
+  int64 q_; 
+};
+
+
+/**
+ * Computes rolling hash using bitmask.
+ */
+class MaskHasher {
+ public:
+  MaskHasher();
+  /**
+   * Initializes the hasher and seeks parameters used for calculating hash
+   * values. Client must supply constructor with the maximum size of the
+   * hash table.
+   *
+   * @param size_of_table maximum size of hash table
+   * @param window_length length of the rolling hash
+   * @return size of hash table
+   */
+  unsigned Initialize(unsigned size_of_table, uint32 window_length);
+  /**
+   * Initializes the value of rolling hash with the hash value of
+   * [*from, *(from +len) ).
+   *
+   * @param from pointer to the start of sequence
+   * @param len length of sequence
+   * @return hash value of sequence [*from, *(from +len) )
+   */
+  int64 InitValue(const byte *from, unsigned len);
+  /**
+   * Get the expected size of the hash table.
+   *
+   * @return expected size of the hash table
+   */
+  unsigned Size() {
+    return mask_+1;
+  }
+  /**
+   * Updates the hash value from the hash of [old_val, new_val) to
+   * (old_val, new_val].
+   *
+   * @return updated hash value
+   */
+  int64 Update(byte old_val, byte new_val);
+
+ private:
+  /**<Hash value of previous sequence*/
+  int64 prev_hash_;
+  /**<Parameter used in calculation of hash function*/
+  int64 c_; 
+  /**<Mask used in the calculation of hash function. Hash values will
+     be in range [0,mask_] */
+  int64 mask_; 
 
 };
+
+} // namespace hash_functions
 
 } //namespace long_sequences
 } //namespace bwtc

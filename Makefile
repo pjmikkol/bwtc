@@ -38,8 +38,13 @@ bin/postprocessor.o : preprocessors/postprocessor.cc \
 	preprocessors/postprocessor.h utils.h
 	$(CC) $(FLAGS) preprocessors/postprocessor.cc -c -o bin/postprocessor.o
 
-bin/longsequences.o : preprocessors/longsequences.cc \
-	preprocessors/longsequences.h preprocessors/sequence_detector.h
+bin/sequence_detector.o : preprocessors/sequence_detector.h \
+	preprocessors/sequence_detector.cc
+	$(CC) $(FLAGS) preprocessors/sequence_detector.cc -c -o \
+	bin/sequence_detector.o
+
+#bin/longsequences.o : preprocessors/longsequences.cc \
+#	preprocessors/longsequences.h preprocessors/sequence_detector.h 
 #	$(CC) $(FLAGS) preprocessors/longsequences.cc -c -o bin/longsequences.o
 
 # Blocks and related things
@@ -48,6 +53,8 @@ bin/block.o : block.h block.cc
 
 bin/block_manager.o : block_manager.cc block_manager.h block.h 
 	$(CC) $(FLAGS) block_manager.cc -c -o bin/block_manager.o
+
+BASICUTILITIES = bin/stream.o bin/preprocessor.o bin/block_manager.o bin/block.o
 
 # Arithmetic range coding
 bin/coders.o : coders.cc coders.h bin/rl_compress.o probmodels/base_prob_model.h
@@ -91,22 +98,31 @@ clean :
 	rm -f test/testfile.txt
 
 # Rest of the file is for tests:
-tests : test/preproctest test/coderstest test/dcbwttest test/speedtest \
+tests : test/preproctest test/coderstest test/dcbwttest  \
 	test/preprocalgotest test/streamtest test/sa-is_test \
-	test/sequence_detector_test test/longsequencetest
+	test/prime_sequence_detector_test test/mask_sequence_detector_test
+	#test/longsequencetest #test/speedtest 
 	./test/streamtest
 	./test/preproctest
 	./test/coderstest
 	./test/dcbwttest
 	./test/preprocalgotest
-	./test/longsequencetest
+	#./test/longsequencetest
 	./test/sa-is_test
-	./test/seqdettest
+	./test/prime_sequence_detector_test
+	./test/mask_sequence_detector_test
 
-test/sequence_detector_test : preprocessors/sequence_detector.h \
-	test/seq_det_test.cc
-	$(CC) $(FLAGS) test/seq_det_test.cc -o test/seqdettest
+test/prime_sequence_detector_test : preprocessors/sequence_detector-inl.h \
+	test/seq_det_test.cc bin/sequence_detector.o $(BASICUTILITIES)
+	$(CC) $(FLAGS) -lboost_unit_test_framework test/seq_det_test.cc \
+	bin/sequence_detector.o $(BASICUTILITIES) -o \
+	test/prime_sequence_detector_test
 
+test/mask_sequence_detector_test : preprocessors/sequence_detector-inl.h \
+	test/mask_seq_det_test.cc bin/sequence_detector.o $(BASICUTILITIES)
+	$(CC) $(FLAGS) -lboost_unit_test_framework test/mask_seq_det_test.cc \
+	bin/sequence_detector.o $(BASICUTILITIES) -o \
+	test/mask_sequence_detector_test
 
 test/sa-is_test : test/sa-is_test.cc bwtransforms/sa-is-bwt.h \
 	bwtransforms/sais.hxx
@@ -126,16 +142,17 @@ test/coderstest : test/coders_test.cc test/testdefs.h bin/coders.o \
 	$(CC) $(FLAGS) bin/coders.o bin/rl_compress.o bin/stream.o \
 	test/coders_test.cc bin/prob_models.o bin/utils.o -o test/coderstest
 
-test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h bin/sa-is-bwt.o \
+test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
+	bin/sa-is-bwt.o \
 	bin/bw_transform.o bin/dcbwt.o bin/block.o bin/difference_cover.o
 	$(CC) $(FLAGS) bin/bw_transform.o bin/dcbwt.o test/dcbwt_test.cc \
 	bin/block.o bin/difference_cover.o bin/sa-is-bwt.o -o test/dcbwttest
 
-test/speedtest : test/bwt_and_preproctest.cc bin/testpreprocessor.o \
-	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
-	bin/difference_cover.o bin/longsequences.o bin/sa-is-bwt.o
-	$(CC) $(FLAGS) test/bwt_and_preproctest.cc bin/testpreprocessor.o \
+#test/speedtest : test/bwt_and_preproctest.cc bin/testpreprocessor.o \
+#	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+#	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
+#	bin/difference_cover.o bin/longsequences.o bin/sa-is-bwt.o
+#	$(CC) $(FLAGS) test/bwt_and_preproctest.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
 	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
 	bin/difference_cover.o bin/longsequences.o bin/sa-is-bwt.o \

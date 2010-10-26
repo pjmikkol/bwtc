@@ -33,7 +33,6 @@
 #include <cassert>
 #include <iostream>
 #include <vector>
-#include "../preprocessors/longsequences.h"
 #include "../globaldefs.h"
 
 #define BWTC_SEQ_DET_SCAN_CONSTS_
@@ -44,6 +43,7 @@ const uint32 kWindowSize = 8;
 }
 }
 
+#include "../preprocessors/longsequences.h"
 #include "../preprocessors/sequence_detector.h"
 #include "../preprocessors/sequence_detector-inl.h"
 

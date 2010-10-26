@@ -28,10 +28,14 @@
 #define BWTC_LONGSEQUENCES_H_
 
 #include <vector>
-
 #include "../globaldefs.h"
 
 namespace bwtc {
+
+#ifndef BWTC_SEQ_DET_SCAN_CONSTS_
+const uint32 kMinPeriod = 16;
+const uint32 kWindowSize = 33;
+#endif
 
 namespace long_sequences {
 
@@ -42,6 +46,7 @@ namespace long_sequences {
  * This struct is used by SequenceDetector- and Expander-objects.
  */
 struct chunk {
+  chunk() : position(0), hash_value(0) {}
   chunk(uint32 p, uint32 h) : position(p), hash_value(h) {}
   uint32 position;
   uint32 hash_value;

@@ -54,16 +54,26 @@ namespace tests {
 
 using namespace long_sequences;
 
-BOOST_AUTO_TEST_SUITE(FirstPhase)
+/**
+ * Arrays and vectors needed for SequenceDetector.
+ */
+struct Vectors {
+ public:
+  Vectors() { std::fill(freqs, freqs + 256, 0); }
+  std::vector<uint32> uints;
+  std::vector<chunk> chunks;
+  uint32 freqs[256];
+};
 
+BOOST_AUTO_TEST_SUITE(FirstPhase)
 
 BOOST_AUTO_TEST_CASE(MaskPeriodRecognition1) {
   /* Testing recognition of periodical string */
   byte *t_string = (byte*)
       "abcdefghi" "abcdefghiabcdefghiabcdefg";
-  uint32 freqs[256];
+  Vectors v;
   long_sequences::SequenceDetector<hash_functions::MaskHasher>
-      seq_det(t_string, 1030, freqs);
+      seq_det(t_string, 1030, v.freqs, &v.chunks, &v.uints);
   seq_det.ScanAndStore(30);
   BOOST_CHECK_EQUAL(4, seq_det.Count((byte*)"abcdefghi", 9));
 }
@@ -71,9 +81,9 @@ BOOST_AUTO_TEST_CASE(MaskPeriodRecognition1) {
 BOOST_AUTO_TEST_CASE(MaskPeriodRecognition2) {
   byte *t_string = (byte*)
       "abcdefgab" "cdefghabcdefghabc";
-  uint32 freqs[256];
+  Vectors v;
   long_sequences::SequenceDetector<hash_functions::MaskHasher>
-      seq_det(t_string, 1030, freqs);
+      seq_det(t_string, 1030, v.freqs, &v.chunks, &v.uints);
   seq_det.ScanAndStore(26);
   BOOST_CHECK_EQUAL(2, seq_det.Count((byte*)"cdefghabc", 9));
 }
@@ -81,9 +91,9 @@ BOOST_AUTO_TEST_CASE(MaskPeriodRecognition2) {
 BOOST_AUTO_TEST_CASE(MaskPeriodRecognition3) {
   byte *t_string = (byte*)
       "abcdeabcd" "eabcdeabcdeabcdeab";
-  uint32 freqs[256];
+  Vectors v;
   long_sequences::SequenceDetector<hash_functions::MaskHasher>
-      seq_det(t_string, 1030, freqs);
+      seq_det(t_string, 1030, v.freqs, &v.chunks, &v.uints);
   seq_det.ScanAndStore(27);
   BOOST_CHECK_EQUAL(3, seq_det.Count((byte*)"abcdeabcd", 9));
 }
@@ -91,9 +101,9 @@ BOOST_AUTO_TEST_CASE(MaskPeriodRecognition3) {
 BOOST_AUTO_TEST_CASE(MaskChoosingRightValues) {
   byte *t_string = (byte*)
       "aaaAffffg" "efsa6seaaaAffffgwqc26faaaAffffgwqvnaaaAffffg";
-  uint32 freqs[256];
+  Vectors v;
   long_sequences::SequenceDetector<hash_functions::MaskHasher>
-      seq_det(t_string, 1030, freqs);
+      seq_det(t_string, 1030, v.freqs, &v.chunks, &v.uints);
   seq_det.ScanAndStore(53);
   BOOST_CHECK_EQUAL(4, seq_det.Count((byte*)"aaaAffffg", 9));
 }
@@ -102,15 +112,29 @@ BOOST_AUTO_TEST_CASE(MaskDifferentValues) {
   byte *t_string = (byte*)
       "abcdefghhjabcdllkksnwlsdfiwpasdklnvnca2qlgfp43y2sdrc"
       "amnwa-dfsasd2lk4rfdshbdfdbsfdhbmna2epldmapspbvnsdagt";
-  uint32 freqs[256];
+  Vectors v;
   long_sequences::SequenceDetector<hash_functions::MaskHasher>
-      seq_det(t_string, 1030, freqs);
+      seq_det(t_string, 1030, v.freqs, &v.chunks, &v.uints);
   seq_det.ScanAndStore(104);
   BOOST_CHECK_EQUAL(7, seq_det.ChunksCount());
   BOOST_CHECK_EQUAL(1, seq_det.Count((byte*)"abcdefghh", 9));
   BOOST_CHECK_EQUAL(1, seq_det.Count((byte*)"ksnwlsdfi", 9));
   BOOST_CHECK_EQUAL(1, seq_det.Count((byte*)"vnca2qlgf", 9));
   BOOST_CHECK_EQUAL(1, seq_det.Count((byte*)"rfdshbdfd", 9));
+}
+
+BOOST_AUTO_TEST_CASE(CorrectFreqCounts) {
+  byte *t_string = (byte*)
+      "a4cdefghhjabcdllkksnwlsdfiwpwsdklrvnca2qlgfp4302sdf"
+      "cxmnwaedfsasd2lk4rfdshbdfdbsfdhbmna2epldmapspbvnsda";
+  Vectors v;
+  long_sequences::SequenceDetector<hash_functions::MaskHasher>
+      seq_det(t_string, 1030, v.freqs, &v.chunks, &v.uints);
+  seq_det.ScanAndStore(102);
+  BOOST_CHECK_EQUAL(v.freqs[(byte)'a'], 8);
+  BOOST_CHECK_EQUAL(v.freqs[(byte)'c'], 4);
+  BOOST_CHECK_EQUAL(v.freqs[(byte)'d'], 13);
+  BOOST_CHECK_EQUAL(v.freqs[(byte)'m'], 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

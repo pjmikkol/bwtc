@@ -35,6 +35,35 @@ namespace bwtc {
 
 namespace long_sequences {
 
+/**
+ * chunk is used to represent single (relatively small) fixed size block of
+ * input sequence.
+ *
+ * This struct is used by SequenceDetector- and Expander-objects.
+ */
+struct chunk {
+  chunk(uint32 p, uint32 h) : position(p), hash_value(h) {}
+  uint32 position;
+  uint32 hash_value;
+};
+
+struct cmp_chunk {
+  cmp_chunk(uint32 *c) : counts(c) {}
+  bool operator()(const chunk& a, const chunk& b) {
+    if (counts[a.hash_value] < counts[b.hash_value])
+      return true;
+    else if (counts[a.hash_value] > counts[b.hash_value])
+      return false;
+    else if (a.hash_value < b.hash_value)
+      return true;
+    else if (a.hash_value > b.hash_value)
+      return false;
+    else return a.position < b.position;
+  }
+  uint32 *counts;
+};
+
+
 /** Calculates frequencies from range [source_begin, source_end)
  *
  *  @param target where the frequency information is stored

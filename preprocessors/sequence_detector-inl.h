@@ -37,39 +37,9 @@
 namespace bwtc {
 namespace long_sequences {
 
-/**
- * Namespace for struct-definitions and other helpers used in SequenceDetector.
- */
-namespace {
-
-//TODO: name...
-struct chunk {
-  chunk(uint32 p, uint32 h) : position(p), hash_value(h) {}
-  uint32 position;
-  uint32 hash_value;
-};
-
-struct cmp_chunk {
-  cmp_chunk(uint32 *c) : counts(c) {}
-  bool operator()(const chunk& a, const chunk& b) {
-    if (counts[a.hash_value] < counts[b.hash_value])
-      return true;
-    else if (counts[a.hash_value] > counts[b.hash_value])
-      return false;
-    else if (a.hash_value < b.hash_value)
-      return true;
-    else if (a.hash_value > b.hash_value)
-      return false;
-    else return a.position < b.position;
-  }
-  uint32 *counts;
-};
-
-} //empty namespace
-
 #ifndef BWTC_SEQ_DET_SCAN_CONSTS_
 const uint32 kMinPeriod = 16;
-const uint32 kWindowSize = 32;
+const uint32 kWindowSize = 33;
 #endif
 
 /**
@@ -84,11 +54,14 @@ class SequenceDetector {
  public:
   // note that only 32-bit lengths are supported
   // period_threshold (kMinPeriod) and window_size are compile time constants
-  SequenceDetector(byte *from, uint32 h_table_size, uint32 *freqs) {
+  SequenceDetector(byte *from, uint32 h_table_size, uint32 *freqs,
+                   std::vector<chunk> *chunks, std::vector<uint32> *h_table) :
+      chunks_(*chunks), h_table_(*h_table)
+  {
     source_ = from;
     h_.Initialize(h_table_size, kWindowSize);
-    h_table_ = new uint32[h_.Size()];
-    std::fill(h_table_, h_table_ + h_.Size(), 0);
+    h_table_.resize(h_.Size());
+    std::fill(h_table_.begin(), h_table_.end(), 0);
     chunks_.reserve(h_table_size);
     position_ = 0;
     freqs_ = freqs;
@@ -127,11 +100,7 @@ class SequenceDetector {
     return position_; //TODO: fix this
   }
 
-  ~SequenceDetector() {
-    delete [] h_table_;
-  }
-
-    size_t ChunksCount() {
+  size_t ChunksCount() {
     return chunks_.size();
   }
 
@@ -161,7 +130,7 @@ class SequenceDetector {
       h_val = h_.Update(source_[position_], source_[position_ + kWindowSize]);
       temp_chunks.push_back(chunk(++position_, h_val));
     }
-    std::sort(temp_chunks.begin(), temp_chunks.end(), cmp_chunk(h_table_));
+    std::sort(temp_chunks.begin(), temp_chunks.end(), cmp_chunk(&h_table_[0]));
     std::pair<uint32, uint32> m = MaxDuplicates(temp_chunks);
     for(size_t i = m.first; i < m.first + m.second; ++i) {
       InsertToHashTable(temp_chunks[i]);
@@ -194,20 +163,16 @@ class SequenceDetector {
   /**<Hasher-object which computes the rolling-hash function.
      @see hash_functions */
   Hasher h_; 
+  //TODO: Used at least in first phase ..
+  std::vector<chunk>& chunks_;
   /**<Table indexed by hash-values. Contains an index of
      link-table of the chain of this hash-value.*/
-  uint32 *h_table_;
+  std::vector<uint32>& h_table_;
   /**<Pointer to the current spot of the sequence.*/
   byte *source_;
-  //TODO: Used at least in first phase ..
-  std::vector<chunk> chunks_;
   /**< */
   uint32 position_;
   uint32 *freqs_;
-  
-
-  
-  uint32 h_table_size_; //TARVITAANKO?
 };
 
 } //namespace long_sequences

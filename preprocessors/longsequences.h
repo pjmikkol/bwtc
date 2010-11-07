@@ -32,11 +32,6 @@
 
 namespace bwtc {
 
-#ifndef BWTC_SEQ_DET_SCAN_CONSTS_
-const uint32 kMinPeriod = 16;
-const uint32 kWindowSize = 33;
-#endif
-
 namespace long_sequences {
 
 /**

@@ -51,6 +51,12 @@ bin/expander.o : preprocessors/expander.cc preprocessors/expander.h \
 #	preprocessors/longsequences.h preprocessors/sequence_detector.h 
 #	$(CC) $(FLAGS) preprocessors/longsequences.cc -c -o bin/longsequences.o
 
+bin/long_sequences.o : preprocessors/long_sequences.cc \
+	preprocessors/longsequences.h preprocessors/long_sequences.h \
+	preprocessors/sequence_detector-inl.h 
+	$(CC) $(FLAGS) preprocessors/long_sequences.cc -c -o \
+	bin/long_sequences.o
+
 # Blocks and related things
 bin/block.o : block.h block.cc 
 	$(CC) $(FLAGS) block.cc -c -o bin/block.o
@@ -105,7 +111,7 @@ clean :
 tests : test/preproctest test/coderstest test/dcbwttest  \
 	test/preprocalgotest test/streamtest test/sa-is_test \
 	test/prime_sequence_detector_test test/mask_sequence_detector_test \
-	test/expander_test
+	test/expander_test test/long_sequences_test
 	#test/longsequencetest #test/speedtest 
 	./test/streamtest
 	./test/preproctest
@@ -117,6 +123,11 @@ tests : test/preproctest test/coderstest test/dcbwttest  \
 	./test/prime_sequence_detector_test
 	./test/mask_sequence_detector_test
 	./test/expander_test
+
+test/long_sequences_test : bin/long_sequences.o test/long_sequences_test.cc \
+	bin/sequence_detector.o $(BASICUTILITIES)
+	$(CC) $(FLAGS) bin/long_sequences.o test/long_sequences_test.cc \
+	bin/sequence_detector.o $(BASICUTILITIES) -o test/long_sequencestest
 
 test/expander_test : bin/expander.o  test/expander_test.cc
 	$(CC) $(FLAGS) -lboost_unit_test_framework test/expander_test.cc \

@@ -32,9 +32,10 @@
 namespace bwtc {
 namespace long_sequences {
 
+
 std::vector<uint32> *SortIntoBuckets(std::vector<uint32> *hash_values,
-                                    std::vector<chunk> *chunks,
-                                    std::vector<chunk> *buckets)
+                                     std::vector<chunk> *chunks,
+                                     std::vector<chunk> *buckets)
 {
   uint32 total = 0;
   std::vector<uint32> *bucket_limits = new std::vector<uint32>();

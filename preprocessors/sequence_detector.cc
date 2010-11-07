@@ -88,6 +88,10 @@ int64 PrimeHasher::Update(byte old_val, byte new_val) {
   return prev_hash_;
 }
 
+/* Used in hashing */
+const uint32 MAGIC = 37;
+//const uint32 MAGIC = 257;
+
 MaskHasher::MaskHasher() : prev_hash_(0) {}
 
 unsigned MaskHasher::Initialize(uint32 size_of_table, uint32 window_length)
@@ -96,19 +100,19 @@ unsigned MaskHasher::Initialize(uint32 size_of_table, uint32 window_length)
   mask_ = MostSignificantBit(size_of_table) - 1;
   c_ = 1;
   for(unsigned i = 1; i < window_length; ++i)
-    c_ = (c_*257) & mask_;
+    c_ = (c_*MAGIC) & mask_;
   return mask_ + 1;
 }
 
 int64 MaskHasher::InitValue(const byte *from, unsigned len) {
   prev_hash_ = *from++;
   for(unsigned i = 1; i < len; ++i)
-    prev_hash_ = ((prev_hash_*257) + *from++) & mask_;
+    prev_hash_ = ((prev_hash_*MAGIC) + *from++) & mask_;
   return prev_hash_;
 }
 
 int64 MaskHasher::Update(byte old_val, byte new_val) {
-  prev_hash_ = ((prev_hash_ - old_val*c_)*257 + new_val) & mask_;
+  prev_hash_ = ((prev_hash_ - old_val*c_)*MAGIC + new_val) & mask_;
   return prev_hash_;
 }
 } // namespace hash_functions

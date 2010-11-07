@@ -62,7 +62,7 @@ class CircularBuffer {
   }
 
   T Head() const {
-    return buffer_[head_];
+
   }
 
   const T& operator[](int i) const {

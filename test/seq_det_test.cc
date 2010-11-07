@@ -35,14 +35,6 @@
 #include <vector>
 #include "../globaldefs.h"
 
-#define BWTC_SEQ_DET_SCAN_CONSTS_
-namespace bwtc {
-namespace long_sequences {
-const uint32 kMinPeriod = 4;
-const uint32 kWindowSize = 8;
-}
-}
-
 #include "../preprocessors/longsequences.h"
 #include "../preprocessors/sequence_detector.h"
 #include "../preprocessors/sequence_detector-inl.h"
@@ -51,6 +43,8 @@ namespace bwtc {
 int verbosity = 0;
 
 namespace tests {
+
+const uint32 kWindowSize = 8;
 
 using namespace long_sequences;
 
@@ -80,7 +74,7 @@ BOOST_AUTO_TEST_CASE(PrimePeriodRecognition1) {
       "abcdabcd" "abcdabcdabcd" "abcdabcdab";
   Vectors v;
   long_sequences::SequenceDetector<hash_functions::PrimeHasher>
-      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints);
+      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(30);
   BOOST_CHECK_EQUAL(4, seq_det.Count((byte*)"abcdabcd", 8));
 }
@@ -90,7 +84,7 @@ BOOST_AUTO_TEST_CASE(PrimePeriodRecognition2) {
       "abcdefga" "bcdefghabcdefgha";
   Vectors v;
   long_sequences::SequenceDetector<hash_functions::PrimeHasher>
-      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints);
+      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(24);
   BOOST_CHECK_EQUAL(2, seq_det.Count((byte*)"bcdefgha", 8));
 }
@@ -100,7 +94,7 @@ BOOST_AUTO_TEST_CASE(PrimePeriodRecognition3) {
       "abcdeabc" "deabcdeabcdeabcde";
   Vectors v;
   long_sequences::SequenceDetector<hash_functions::PrimeHasher>
-      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints);
+      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(25);
   BOOST_CHECK_EQUAL(3, seq_det.Count((byte*)"abcdeabc", 8));
 }
@@ -110,7 +104,7 @@ BOOST_AUTO_TEST_CASE(PrimeChoosingRightValues) {
       "aaaaffff" "sfsaaseaaaaffffwqcaffaaaaffffwqvnaaaaffff";
   Vectors v;
   long_sequences::SequenceDetector<hash_functions::PrimeHasher>
-      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints);
+      seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(49);
   BOOST_CHECK_EQUAL(4, seq_det.Count((byte*)"aaaaffff", 8));
 }
@@ -123,7 +117,7 @@ BOOST_AUTO_TEST_CASE(PrimeDifferentValues) {
       "cxmnwaedfsasd2lk4rfdshbdfdbsfdhbmna2epldmapspbvnsda";
   Vectors v;
   long_sequences::SequenceDetector<hash_functions::PrimeHasher>
-      seq_det(t_string, 630, v.freqs, &v.chunks, &v.uints);
+      seq_det(t_string, 630, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(102);
   BOOST_CHECK_EQUAL(7, seq_det.ChunksCount());
   BOOST_CHECK_EQUAL(1, seq_det.Count((byte*)"a4cdefgh", 8));
@@ -138,7 +132,7 @@ BOOST_AUTO_TEST_CASE(CorrectFreqCounts) {
       "cxmnwaedfsasd2lk4rfdshbdfdbsfdhbmna2epldmapspbvnsda";
   Vectors v;
   long_sequences::SequenceDetector<hash_functions::PrimeHasher>
-      seq_det(t_string, 630, v.freqs, &v.chunks, &v.uints);
+      seq_det(t_string, 630, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(102);
   BOOST_CHECK_EQUAL(v.freqs[(byte)'a'], 8);
   BOOST_CHECK_EQUAL(v.freqs[(byte)'c'], 4);

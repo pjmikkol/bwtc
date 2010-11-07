@@ -28,6 +28,7 @@
 #define BWTC_SEQUENCE_DETECTOR_INL_H_
 
 #include <algorithm>
+#include <cassert>
 #include <vector>
 #include "../globaldefs.h"
 #include "longsequences.h"
@@ -50,11 +51,11 @@ class SequenceDetector {
   // note that only 32-bit lengths are supported
   // period_threshold (kMinPeriod) and window_size are compile time constants
   SequenceDetector(byte *from, uint32 h_table_size, uint32 *freqs,
-                   std::vector<chunk> *chunks, std::vector<uint32> *h_table) :
-      chunks_(*chunks), h_table_(*h_table)
+                   std::vector<chunk> *chunks, std::vector<uint32> *h_table,
+                   uint32 win_size) :
+      chunks_(*chunks), h_table_(*h_table), window_size(win_size), source_(from)
   {
-    source_ = from;
-    h_.Initialize(h_table_size, kWindowSize);
+    h_.Initialize(h_table_size, window_size);
     h_table_.resize(h_.Size());
     std::fill(h_table_.begin(), h_table_.end(), 0);
     chunks_.reserve(h_table_size);
@@ -76,21 +77,21 @@ class SequenceDetector {
    * @return how many bytes we proceeded.
    */
   uint32 ScanAndStore(uint32 length) {
-    assert(length >= kWindowSize);
+    assert(length >= window_size);
     length += position_;
-    int64 h_val = h_.InitValue(source_ + position_, kWindowSize);
+    int64 h_val = h_.InitValue(source_ + position_, window_size);
     InsertToHashTable(h_val, position_);
     CalculateFrequencies(freqs_, source_ + position_,
-                         source_ + position_ + kWindowSize);
-    position_ += kWindowSize;
-    while(position_ <= length - 2*kWindowSize - 1) {
+                         source_ + position_ + window_size);
+    position_ += window_size;
+    while(position_ <= length - 2*window_size - 1) {
       uint32 old_pos = position_;
-      ScanAndCompare(kWindowSize);
+      ScanAndCompare(window_size);
       CalculateFrequencies(freqs_, source_ + old_pos, source_ + position_);
     }
     CalculateFrequencies(freqs_, source_ + position_, source_ + length);
-    if(position_ <= length - kWindowSize - 1) {
-      ScanAndCompare((length - position_) - kWindowSize + 1);
+    if(position_ <= length - window_size - 1) {
+      ScanAndCompare((length - position_) - window_size + 1);
     }
     return position_; //TODO: fix this
   }
@@ -119,10 +120,10 @@ class SequenceDetector {
     // TODO: memory allocation optimization if needed
     std::vector<chunk> temp_chunks;
     temp_chunks.reserve(b);
-    int64 h_val = h_.InitValue(source_ + position_, kWindowSize);
+    int64 h_val = h_.InitValue(source_ + position_, window_size);
     temp_chunks.push_back(chunk(position_, h_val));
     for(uint32 i = 1; i < b; ++i) {
-      h_val = h_.Update(source_[position_], source_[position_ + kWindowSize]);
+      h_val = h_.Update(source_[position_], source_[position_ + window_size]);
       temp_chunks.push_back(chunk(++position_, h_val));
     }
     std::sort(temp_chunks.begin(), temp_chunks.end(), cmp_chunk(&h_table_[0]));
@@ -130,7 +131,7 @@ class SequenceDetector {
     for(size_t i = m.first; i < m.first + m.second; ++i) {
       InsertToHashTable(temp_chunks[i]);
     }
-    position_ = temp_chunks[m.first + m.second-1].position + kWindowSize;
+    position_ = temp_chunks[m.first + m.second-1].position + window_size;
   }
 
   /**
@@ -168,6 +169,7 @@ class SequenceDetector {
   /**< */
   uint32 position_;
   uint32 *freqs_;
+  uint32 window_size;
 };
 
 } //namespace long_sequences

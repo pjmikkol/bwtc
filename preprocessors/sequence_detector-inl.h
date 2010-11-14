@@ -53,7 +53,8 @@ class SequenceDetector {
   SequenceDetector(byte *from, uint32 h_table_size, uint32 *freqs,
                    std::vector<chunk> *chunks, std::vector<uint32> *h_table,
                    uint32 win_size) :
-      chunks_(*chunks), h_table_(*h_table), window_size(win_size), source_(from)
+      chunks_(*chunks), h_table_(*h_table), chunk_buffer_(2*win_size),
+      source_(from), window_size(win_size)
   {
     h_.Initialize(h_table_size, window_size);
     h_table_.resize(h_.Size());
@@ -117,21 +118,19 @@ class SequenceDetector {
    *
    */
   void ScanAndCompare(uint32 b) {
-    // TODO: memory allocation optimization if needed
-    std::vector<chunk> temp_chunks;
-    temp_chunks.reserve(b);
     int64 h_val = h_.InitValue(source_ + position_, window_size);
-    temp_chunks.push_back(chunk(position_, h_val));
-    for(uint32 i = 1; i < b; ++i) {
+    chunk_buffer_[0] = chunk(position_, h_val);
+    uint32 i = 1;
+    for(; i < b; ++i) {
       h_val = h_.Update(source_[position_], source_[position_ + window_size]);
-      temp_chunks.push_back(chunk(++position_, h_val));
+      chunk_buffer_[i] = chunk(++position_, h_val);
     }
-    std::sort(temp_chunks.begin(), temp_chunks.end(), cmp_chunk(&h_table_[0]));
-    std::pair<uint32, uint32> m = MaxDuplicates(temp_chunks);
-    for(size_t i = m.first; i < m.first + m.second; ++i) {
-      InsertToHashTable(temp_chunks[i]);
+    std::sort(&chunk_buffer_[0], &chunk_buffer_[i], cmp_chunk(&h_table_[0]));
+    std::pair<uint32, uint32> m = MaxDuplicates(i);
+    for(size_t j = m.first; j < m.first + m.second; ++j) {
+      InsertToHashTable(chunk_buffer_[j]);
     }
-    position_ = temp_chunks[m.first + m.second-1].position + window_size;
+    position_ = chunk_buffer_[m.first + m.second-1].position + window_size;
   }
 
   /**
@@ -140,31 +139,37 @@ class SequenceDetector {
    * @return Pair where second element is the count of duplicates and
    *         the first element tells the first index of the duplicate values.
    */
-  std::pair<uint32, uint32> MaxDuplicates(const std::vector<chunk>& chunks) {
-    uint32 ind = chunks.size() - 1, count = 1, max_pos = ind;
+  std::pair<uint32, uint32> MaxDuplicates(uint32 size)
+  {
+    uint32 ind = size - 1, count = 1, max_pos = ind;
     for(int i =  ind; i > 0; --i) {
       uint32 d_count = 1;
-      while(i > 0 && chunks[i].hash_value == chunks[i-1].hash_value) {
+      while(i > 0 &&
+            chunk_buffer_[i].hash_value == chunk_buffer_[i-1].hash_value)
+      {
         ++d_count; --i;
       }
       if(d_count > count) { count = d_count; ind = i; }
-      else if(h_table_[chunks[max_pos].hash_value] == 0 &&
-              chunks[max_pos].position < chunks[i].position) max_pos = i;
+      else if(h_table_[chunk_buffer_[max_pos].hash_value] == 0 &&
+              chunk_buffer_[max_pos].position < chunk_buffer_[i].position)
+        max_pos = i;
     }
     if(count == 1) ind = max_pos;
     return std::make_pair(ind, count);
   }
 
 
-  /**<Hasher-object which computes the rolling-hash function.
-     @see hash_functions */
   Hasher h_; 
+  /**<Pointer to the current spot of the sequence.*/
   //TODO: Used at least in first phase ..
   std::vector<chunk>& chunks_;
   /**<Table indexed by hash-values. Contains an index of
      link-table of the chain of this hash-value.*/
   std::vector<uint32>& h_table_;
-  /**<Pointer to the current spot of the sequence.*/
+  /**<We want to allocate array only once in ScanAndCompare-function. */
+  std::vector<chunk> chunk_buffer_;
+  /**<Hasher-object which computes the rolling-hash function.
+     @see hash_functions */
   byte *source_;
   /**< */
   uint32 position_;

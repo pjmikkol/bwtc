@@ -72,6 +72,9 @@ uint32 CompressPositionOrdered(const std::vector<uint32>& bucket_starts,
   return next;
 }
 
+/** Sorts entrys with the same hash value into ame bucket. At the same
+ *  time renames the positions (in buckets) to point into corresponding
+ *  entry of chunks-table. Also drops unused values at chunks. */
 void SortIntoBuckets(std::vector<uint32> *hash_values,
                      std::vector<chunk> *chunks,
                      std::vector<bucket_struct> *buckets)
@@ -168,6 +171,7 @@ void SortBuckets(byte *from, uint32 win_length,
   }
 }
 
+#if 0
 void HandleBuckets(byte *from, uint32 win_size,
                    std::vector<bucket_struct> *buckets,
                    std::vector<chunk> *pos_ordered)
@@ -188,6 +192,7 @@ void HandleBuckets(byte *from, uint32 win_size,
   }
   
 }
+#endif
 
 uint64 CompressSequences(byte *from, uint32 length, uint32 window_size) {
   assert(length < error_val);
@@ -205,7 +210,7 @@ uint64 CompressSequences(byte *from, uint32 length, uint32 window_size) {
   assert(buckets.size() < (Max<uint32>::max & 0x7FFFFFFF));
   SortBuckets(from, window_size, *hash_counts, &buckets, pos_ordered);
   delete hash_counts;
-  HandleBuckets(from, window_size, &buckets, &pos_ordered);
+  //HandleBuckets(from, window_size, &buckets, &pos_ordered);
 
 }
 

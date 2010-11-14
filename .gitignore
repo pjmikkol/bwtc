@@ -14,3 +14,6 @@ bin/
 /test/speedtest
 /bwtc_docs/
 /test/seqdettest
+/test/mask_sequence_detector_test
+/test/prime_sequence_detector_test
+/test/long_sequencestest

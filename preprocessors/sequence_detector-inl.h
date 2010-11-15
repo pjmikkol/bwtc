@@ -91,7 +91,7 @@ class SequenceDetector {
       CalculateFrequencies(freqs_, source_ + old_pos, source_ + position_);
     }
     CalculateFrequencies(freqs_, source_ + position_, source_ + length);
-    if(position_ <= length - window_size - 1) {
+    if(position_ < length - window_size) {
       ScanAndCompare((length - position_) - window_size + 1);
     }
     return position_; //TODO: fix this
@@ -125,12 +125,49 @@ class SequenceDetector {
       h_val = h_.Update(source_[position_], source_[position_ + window_size]);
       chunk_buffer_[i] = chunk(++position_, h_val);
     }
-    std::sort(&chunk_buffer_[0], &chunk_buffer_[i], cmp_chunk(&h_table_[0]));
-    std::pair<uint32, uint32> m = MaxDuplicates(i);
-    for(size_t j = m.first; j < m.first + m.second; ++j) {
-      InsertToHashTable(chunk_buffer_[j]);
+    /* In optimized version we assume that every hash value has at
+     * most 2^31 - 1 entries (we store additional bit of information
+     * to highest bit).
+     *
+     * Recognizes only the first periodic string. And stores only
+     * twice entries for it.
+     *
+     * Note that in the case of tie we choose the last chunk*/
+
+    /* If we would like to choose first chunk in the case of tie
+     * then change <= to < inside for-loop */
+    uint32 max_entries = h_table_[chunk_buffer_[0].hash_value],
+        max_entries_ind = 0;
+        h_table_[chunk_buffer_[0].hash_value] |= 0x80000000;
+    uint32 j = 1;
+    for(; j < b; ++j) {
+      if( 0x80000000 & h_table_[chunk_buffer_[j].hash_value]) goto dupl;
+      else {
+        if (max_entries <= h_table_[chunk_buffer_[j].hash_value] ) {
+          max_entries = h_table_[chunk_buffer_[j].hash_value];
+          max_entries_ind = j;
+        }
+        h_table_[chunk_buffer_[j].hash_value] |= 0x80000000;
+      }
     }
-    position_ = chunk_buffer_[m.first + m.second-1].position + window_size;
+    /* Each hash value is unique */
+    for(int l = b - 1; l >= 0; --l)
+      h_table_[chunk_buffer_[l].hash_value] ^= 0x80000000;
+    InsertToHashTable(chunk_buffer_[max_entries_ind]);
+    position_ = chunk_buffer_[max_entries_ind].position + window_size;
+    return;
+
+ dupl: /* There is at least two entries with the same hash value */
+    /* Unmark the previous hash values */
+    for(int l = j - 1; l >= 0; --l)
+      h_table_[chunk_buffer_[l].hash_value] ^= 0x80000000;
+    /* Find the entry we were looking for. */
+    for(uint32 l = 0; l < j; ++l)
+      if(chunk_buffer_[l].hash_value == chunk_buffer_[j].hash_value) {
+        InsertToHashTable(chunk_buffer_[l]); break;
+      }
+    InsertToHashTable(chunk_buffer_[j]);
+    position_ = chunk_buffer_[j].position + window_size;
   }
 
   /**

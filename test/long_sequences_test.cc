@@ -130,7 +130,7 @@ void TestValidity(byte *from, unsigned length, unsigned win_size) {
   uint32 freqs[256];
   std::vector<chunk> pos_ordered;
   std::vector<uint32> hash_counts;
-  uint32 size_recommendation = length/(2*win_size);
+  uint32 size_recommendation = length/(win_size*2);
   SequenceDetector<Hasher> seq_det(from, size_recommendation, freqs,
                                    &pos_ordered, &hash_counts, win_size);
   std::cout << "Size of hash table: " << hash_counts.size() << std::endl;
@@ -167,7 +167,7 @@ void TestScanTime(byte *from, unsigned length, unsigned win_size) {
   uint32 freqs[256];
   std::vector<chunk> pos_ordered;
   std::vector<uint32> hash_counts;
-  uint32 size_recommendation = length/(2*win_size);
+  uint32 size_recommendation = length/(win_size*2);
   SequenceDetector<Hasher> seq_det(from, size_recommendation, freqs,
                                    &pos_ordered, &hash_counts, win_size);
   seq_det.ScanAndStore(length);
@@ -199,6 +199,6 @@ int main(int argc, char **argv) {
   if(argc > 2) win_size = atoi(argv[2]);
   std::vector<byte> input;
   ReadFile(input, argv[1]);
-  //bwtc::tests::TestValidity(&input[0], input.size(), win_size);
+  bwtc::tests::TestValidity(&input[0], input.size(), win_size);
   bwtc::tests::TestScanTime(&input[0], input.size(), win_size);
 }

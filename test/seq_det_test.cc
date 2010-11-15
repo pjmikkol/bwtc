@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(PrimePeriodRecognition3) {
   long_sequences::SequenceDetector<hash_functions::PrimeHasher>
       seq_det(t_string, 330, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(25);
-  BOOST_CHECK_EQUAL(3, seq_det.Count((byte*)"abcdeabc", 8));
+  BOOST_CHECK_EQUAL(2, seq_det.Count((byte*)"deabcdea", 8));
 }
 
 BOOST_AUTO_TEST_CASE(PrimeChoosingRightValues) {

@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(MaskPeriodRecognition3) {
   long_sequences::SequenceDetector<hash_functions::MaskHasher>
       seq_det(t_string, 1030, v.freqs, &v.chunks, &v.uints, kWindowSize);
   seq_det.ScanAndStore(27);
-  BOOST_CHECK_EQUAL(3, seq_det.Count((byte*)"abcdeabcd", 9));
+  BOOST_CHECK_EQUAL(2, seq_det.Count((byte*)"eabcdeabc", 9));
 }
 
 BOOST_AUTO_TEST_CASE(MaskChoosingRightValues) {

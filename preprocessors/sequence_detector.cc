@@ -29,6 +29,7 @@
 #include "sequence_detector.h"
 #include "preprocessor.h"
 #include "../globaldefs.h"
+#include "../utils.h"
 
 namespace bwtc {
 namespace long_sequences {
@@ -97,7 +98,7 @@ MaskHasher::MaskHasher() : prev_hash_(0) {}
 unsigned MaskHasher::Initialize(uint32 size_of_table, uint32 window_length)
 {
   //TODO: Put more care for choosing the mask_ and size of hash table
-  mask_ = MostSignificantBit(size_of_table) - 1;
+  mask_ = utils::MostSignificantBit(size_of_table) - 1;
   c_ = 1;
   for(unsigned i = 1; i < window_length; ++i)
     c_ = (c_*MAGIC) & mask_;

@@ -152,7 +152,7 @@ void TestValidity(byte *from, unsigned length, unsigned win_size) {
   std::cout << "Maximum number of collisions: " << *max_el << "\n";
   std::cout << "On average there were " <<
       ((1.0*std::accumulate(st.second->begin(), st.second->end(),0))/
-       st.second->size()) << " distinct elements on single bucket\n";
+       st.second->size()) << " distinct elements in single bucket\n";
   std::vector<uint32>::iterator max_c =  
       std::max_element(st.first->begin(), st.first->end());
   std::cout << "Largest bucket held " << *max_c << " elements, where were "

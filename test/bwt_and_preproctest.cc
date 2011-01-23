@@ -32,7 +32,6 @@
 #include <string>
 #include <vector>
 
-#include "../preprocessors/longsequences.h"
 #include "../preprocessors/test_preprocessor.h"
 #include "../preprocessors/postprocessor.h"
 #include "../globaldefs.h"
@@ -67,13 +66,14 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   clock_t prepr_start = clock();
   do {
     switch (preprocs[str_index]) {
-      case 'l': /* Replace long sequences */
+      /*
+      case 'l': // Replace long sequences 
         compressed_size = bwtc::CompressSequences(pp.curr_block_->begin()
                                                   ,pp.curr_block_->filled_
-                                                  ,mem_constr, 16 /*Window size*/
+                                                  ,mem_constr, 16 //Window size
                                                   ,threshold);
         pp.curr_block_->filled_ = compressed_size;
-        break;
+        break;*/
       case 'r': /* Replace runs of same byte */
         compressed_size -= pp.CompressRuns();
         break;
@@ -131,13 +131,14 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   int str_index = 0;
   do {
     switch (preprocs[str_index]) {
-      case 'l': /* Replace long sequences */
+      /*
+      case 'l': // Replace long sequences 
         compressed_size = bwtc::CompressSequences(pp.curr_block_->begin()
                                                   ,pp.curr_block_->filled_
-                                                  ,mem_constr, 16 /*Window size*/
+                                                  ,mem_constr, 16 //Window size
                                                   ,threshold);
         pp.curr_block_->filled_ = compressed_size;
-        break;
+        break;*/
       case 'r': /* Replace runs of same byte */
         compressed_size -= pp.CompressRuns();
         break;
@@ -153,11 +154,12 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   std::cout << "Postprocessing\n";
   do {
     switch(preprocs[str_index]) {
+      /*
       case 'l':
         uncompr_size = bwtc::UncompressSequences(pp.curr_block_->block_,
                                                  pp.curr_block_->filled_);
         pp.curr_block_->filled_ = uncompr_size;
-        break;
+        break;*/
       case 'r':
         uncompr_size = bwtc::UncompressLongRuns(pp.curr_block_->block_,
                                                 pp.curr_block_->filled_);

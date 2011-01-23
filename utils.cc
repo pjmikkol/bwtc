@@ -1,21 +1,28 @@
-/**************************************************************************
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file utils.cc
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Implementation of utility functions.
+ */
 
 #include <cassert>
 
@@ -23,6 +30,36 @@
 #include "utils.h"
 
 namespace utils {
+
+/* Floor of logarithm of base two */
+byte LogFloor(uint32 n) {
+  assert(n > 0);
+  byte log = 0;
+  while(n > 1) {
+    n >>= 1;
+    ++log;
+  }
+  return log;
+}
+
+uint32 MostSignificantBit16(uint32 n) {
+  assert(n < (1 << 16));
+  n |= (n >> 1);
+  n |= (n >> 2);
+  n |= (n >> 4);
+  n |= (n >> 8);
+  return n & (~(n >> 1));
+}
+
+uint32 MostSignificantBit(uint32 n) {
+  assert(sizeof(uint32) == 4);
+  n |= (n >> 1);
+  n |= (n >> 2);
+  n |= (n >> 4);
+  n |= (n >> 8);
+  n |= (n >> 16);
+  return n & (~(n >> 1));
+}
 
 static const uint64 kEightBit = 0x80;
 

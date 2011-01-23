@@ -1,21 +1,29 @@
-/**************************************************************************
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file preprocessor.h
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Header for preprocessor.
+ */
+
 
 #ifndef BWTC_PREPROCESSOR_H_
 #define BWTC_PREPROCESSOR_H_
@@ -31,11 +39,11 @@
 namespace bwtc {
 
 /* Floor of logarithm of base two */
-byte LogFloor(unsigned n);
+byte LogFloor(uint32 n);
 
-unsigned MostSignificantBit16(unsigned n);
+uint32 MostSignificantBit16(uint32 n);
 
-unsigned MostSignificantBit(unsigned n);
+uint32 MostSignificantBit(uint32 n);
 
 //TODO: Make this class to abstract class (interface for real implementations)
 class PreProcessor {
@@ -65,10 +73,10 @@ class FreqTable {
  public:
   FreqTable();
   FreqTable(uint64* frequencies); /* Constructs FreqTable from given freqs */
-  const uint64& operator[](unsigned i) const; /* Returns the i:th lowest freq*/
-  byte Key(unsigned i) const ; /* Returns the key which has i:th lowest freq*/
-  bool Decrease(unsigned key, uint64 decrement);
-  void Increase(unsigned key, uint64 increment);
+  const uint64& operator[](uint32 i) const; /* Returns the i:th lowest freq*/
+  byte Key(uint32 i) const ; /* Returns the key which has i:th lowest freq*/
+  bool Decrease(uint32 key, uint64 decrement);
+  void Increase(uint32 key, uint64 increment);
 
  private:
   void InitLocations();

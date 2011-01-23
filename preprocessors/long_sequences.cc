@@ -153,7 +153,7 @@ void StringSort(bucket_struct *begin, bucket_struct *end,
     return;
   }
   bucket_struct *pivot = end-1;
-  // First put values < pivot in place 
+  // First put values lesser than pivot in place 
   bucket_struct *i = begin - 1, *j = begin;
   for(; j < end - 1; ++j) {
     if(StrEq(pos_ordered[GetPosition(pivot)].position,
@@ -176,40 +176,6 @@ void StringSort(bucket_struct *begin, bucket_struct *end,
   StringSort(i, end, pos_ordered, from, str_len);
 }
   
-/* 
-void StringSort(bucket_struct *begin, bucket_struct *end,
-                const std::vector<chunk>& pos_ordered,
-                uint32 pre_len, byte *from, uint32 str_len)
-{
-#define ch(j,l) from[pos_ordered[GetPosition(j)].position + (l)]
-  if (begin >= end || pre_len >= str_len - 1) {
-    if(begin < end) SetBucketBeginFlag(begin); // Mark the start of new bucket     
-    return;
-  }
-  byte pivot = ch(end-1, pre_len);
-  // First put values < pivot in place 
-  bucket_struct *i = begin - 1, *j = begin;
-  for(; j < end - 1; ++j) {
-    if(pivot > ch(j, pre_len)) {
-      ++i;
-      std::swap(*i, *j);
-    }
-  }
-  StringSort(begin, i+1, pos_ordered, pre_len, from, str_len);
-  bucket_struct *sec = j = i + 1;
-  for(; j < end - 1; ++j) {
-    if(pivot == ch(j, pre_len)) {
-      ++i;
-      std::swap(*i, *j);
-    }
-  }
-  ++i; std::swap(*i,*j); ++i;
-
-  StringSort(sec, i, pos_ordered, pre_len + 1, from, str_len);
-  StringSort(i, end, pos_ordered, pre_len, from, str_len);
-  #undef ch
-}
-*/
 
 /* If pos is valid returns pos */
 uint32 NextValidPos(const std::vector<uint32>& bucket_starts, uint32 pos) {

@@ -25,7 +25,7 @@ bin/stream.o : stream.h stream.cc
 
 # Pre- and postprocessors
 bin/preprocessor.o : preprocessors/preprocessor.h preprocessors/preprocessor.cc\
-	 stream.h block.h block_manager.h
+	stream.h block.h block_manager.h utils.h
 	$(CC) $(FLAGS) preprocessors/preprocessor.cc -c -o bin/preprocessor.o
 
 bin/testpreprocessor.o : preprocessors/preprocessor.h block.h block_manager.h \
@@ -64,7 +64,8 @@ bin/block.o : block.h block.cc
 bin/block_manager.o : block_manager.cc block_manager.h block.h 
 	$(CC) $(FLAGS) block_manager.cc -c -o bin/block_manager.o
 
-BASICUTILITIES = bin/stream.o bin/preprocessor.o bin/block_manager.o bin/block.o
+BASICUTILITIES = bin/stream.o bin/preprocessor.o bin/block_manager.o \
+	bin/block.o bin/utils.o
 
 # Arithmetic range coding
 bin/coders.o : coders.cc coders.h bin/rl_compress.o probmodels/base_prob_model.h
@@ -111,7 +112,8 @@ clean :
 tests : test/preproctest test/coderstest test/dcbwttest  \
 	test/preprocalgotest test/streamtest test/sa-is_test \
 	test/prime_sequence_detector_test test/mask_sequence_detector_test \
-	test/expander_test test/long_sequences_test
+	test/expander_test test/long_sequences_test test/utils_test \
+	test/speedtest
 	#test/longsequencetest #test/speedtest 
 	./test/streamtest
 	./test/preproctest
@@ -123,6 +125,11 @@ tests : test/preproctest test/coderstest test/dcbwttest  \
 	./test/prime_sequence_detector_test
 	./test/mask_sequence_detector_test
 	./test/expander_test
+	./test/utils_test
+
+test/utils_test : test/utils_test.cc globaldefs.h bin/utils.o
+	$(CC) $(FLAGS) bin/utils.o test/utils_test.cc \
+	-lboost_unit_test_framework -o test/utils_test
 
 test/long_sequences_test : bin/long_sequences.o test/long_sequences_test.cc \
 	bin/sequence_detector.o $(BASICUTILITIES)
@@ -134,15 +141,15 @@ test/expander_test : bin/expander.o  test/expander_test.cc
 	bin/expander.o -o test/expander_test
 
 test/prime_sequence_detector_test : preprocessors/sequence_detector-inl.h \
-	test/seq_det_test.cc bin/sequence_detector.o $(BASICUTILITIES)
+	test/seq_det_test.cc bin/sequence_detector.o bin/utils.o
 	$(CC) $(FLAGS) -lboost_unit_test_framework test/seq_det_test.cc \
-	bin/sequence_detector.o $(BASICUTILITIES) -o \
+	bin/sequence_detector.o bin/utils.o -o \
 	test/prime_sequence_detector_test
 
 test/mask_sequence_detector_test : preprocessors/sequence_detector-inl.h \
-	test/mask_seq_det_test.cc bin/sequence_detector.o $(BASICUTILITIES)
+	test/mask_seq_det_test.cc bin/sequence_detector.o bin/utils.o
 	$(CC) $(FLAGS) -lboost_unit_test_framework test/mask_seq_det_test.cc \
-	bin/sequence_detector.o $(BASICUTILITIES) -o \
+	bin/sequence_detector.o bin/utils.o -o \
 	test/mask_sequence_detector_test
 
 test/sa-is_test : test/sa-is_test.cc bwtransforms/sa-is-bwt.h \
@@ -154,9 +161,10 @@ test/streamtest : test/stream_test.cc test/testdefs.h bin/stream.o
 	-o test/streamtest
 
 test/preproctest : test/preproc_test.cc test/testdefs.h bin/block.o \
-	bin/preprocessor.o bin/stream.o bin/block_manager.o
+	bin/preprocessor.o bin/stream.o bin/block_manager.o bin/utils.o
 	$(CC) $(FLAGS) bin/block.o bin/preprocessor.o bin/stream.o \
-	bin/block_manager.o test/preproc_test.cc -o test/preproctest
+	bin/block_manager.o bin/utils.o test/preproc_test.cc -o \
+	test/preproctest
 
 test/coderstest : test/coders_test.cc test/testdefs.h bin/coders.o \
 	bin/stream.o bin/rl_compress.o bin/prob_models.o bin/utils.o
@@ -169,15 +177,15 @@ test/dcbwttest : test/dcbwt_test.cc block.h bwtransforms/dcbwt.h \
 	$(CC) $(FLAGS) bin/bw_transform.o bin/dcbwt.o test/dcbwt_test.cc \
 	bin/block.o bin/difference_cover.o bin/sa-is-bwt.o -o test/dcbwttest
 
-#test/speedtest : test/bwt_and_preproctest.cc bin/testpreprocessor.o \
-#	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
-#	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
-#	bin/difference_cover.o bin/longsequences.o bin/sa-is-bwt.o
-#	$(CC) $(FLAGS) test/bwt_and_preproctest.cc bin/testpreprocessor.o \
+# When long sequences ready plug into this
+test/speedtest : test/bwt_and_preproctest.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
 	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
-	bin/difference_cover.o bin/longsequences.o bin/sa-is-bwt.o \
-	-o test/speedtest
+	bin/difference_cover.o bin/sa-is-bwt.o
+	$(CC) $(FLAGS) test/bwt_and_preproctest.cc bin/testpreprocessor.o \
+	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \
+	bin/utils.o bin/postprocessor.o bin/dcbwt.o bin/bw_transform.o \
+	bin/difference_cover.o bin/sa-is-bwt.o -o test/speedtest
 
 test/preprocalgotest : test/preproc_algo_test.cc bin/testpreprocessor.o \
 	bin/block_manager.o bin/preprocessor.o bin/stream.o bin/block.o \

@@ -24,7 +24,6 @@
  * Testing for detecting and replacing long repetitive sequences.
  */
 
-
 #include "../preprocessors/long_sequences.h"
 #include "../preprocessors/sequence_detector.h"
 #include "../preprocessors/sequence_detector-inl.h"
@@ -171,10 +170,20 @@ void TestScanTime(byte *from, unsigned length, unsigned win_size) {
   SequenceDetector<Hasher> seq_det(from, size_recommendation, freqs,
                                    &pos_ordered, &hash_counts, win_size);
   seq_det.ScanAndStore(length);
+  clock_t end = clock();
+  std::cout << "Time spent on scanning: "
+            << (end-start)/static_cast<double>(CLOCKS_PER_SEC) << "\n";
   std::vector<bucket_struct> buckets;
   SortIntoBuckets(&hash_counts, &pos_ordered, &buckets);
+  clock_t t = clock();
+  std::cout << "Time spent on sorting into buckets: "
+            << (t-end)/static_cast<double>(CLOCKS_PER_SEC) << "\n";
+  end = t;
   SortBuckets(from, win_size, hash_counts, &buckets, pos_ordered);
-  clock_t end = clock();
+  t = clock();
+  std::cout << "Time spent on sorting the buckets: "
+            << (t-end)/static_cast<double>(CLOCKS_PER_SEC) << "\n";
+  end = t;
   std::cout << "Time spent on scanning and sorting buckets: "
             << (end-start)/static_cast<double>(CLOCKS_PER_SEC) << "\n";
 }

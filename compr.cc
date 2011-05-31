@@ -63,17 +63,17 @@ void compress(const std::string& input_name, const std::string& output_name,
     //Transformer could have some memory manager..
     transformer->Connect(block);
     transformer->BuildStats(); 
-    encoder.WriteBlockHeader(block->stats_); 
+    encoder.WriteBlockHeader(block->m_stats); 
     /* This may be altered if we want to use some memory manager,
      * because then it may be possible that we are havin bigger
      * vector than there exists data. Then we may have to return pair
      * (vector, data_length) from DoTransform. */
     while(std::vector<byte>* b =  transformer->DoTransform(&eob_byte)) {
-      encoder.EncodeData(b, block->stats_, b->size());
+      encoder.EncodeData(b, block->m_stats, b->size());
       delete b;
     }
     encoder.FinishBlock(eob_byte);
-    last_s = block->filled_;
+    last_s = block->m_filled;
     delete block;
   }
 

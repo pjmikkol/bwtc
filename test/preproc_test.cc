@@ -62,7 +62,7 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   std::streamsize total = 0;
   while (bwtc::MainBlock* b = prepr->ReadBlock()) {
     blocks++;
-    total += b->Size();
+    total += b->size();
     delete b;
   }
   delete prepr;

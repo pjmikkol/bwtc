@@ -144,6 +144,7 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
         break;
       default: /* Replace common pairs */
         compressed_size -= pp.CompressPairs();
+        
         break;
     }
   } while(preprocs[++str_index]);
@@ -161,19 +162,19 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
         pp.curr_block_->filled_ = uncompr_size;
         break;*/
       case 'r':
-        uncompr_size = bwtc::UncompressLongRuns(pp.curr_block_->block_,
-                                                pp.curr_block_->filled_);
-        pp.curr_block_->filled_ = uncompr_size;
+        uncompr_size = bwtc::UncompressLongRuns(pp.curr_block_->m_block,
+                                                pp.curr_block_->m_filled);
+        pp.curr_block_->m_filled = uncompr_size;
         break;
       default:
-        uncompr_size = bwtc::UncompressCommonPairs(pp.curr_block_->block_,
-                                                   pp.curr_block_->filled_);
-        pp.curr_block_->filled_ = uncompr_size; 
+        uncompr_size = bwtc::UncompressCommonPairs(pp.curr_block_->m_block,
+                                                   pp.curr_block_->m_filled);
+        pp.curr_block_->m_filled = uncompr_size; 
     }
       
   } while(--str_index >= 0);
 
-  std::vector<byte>& uncompressed = *pp.curr_block_->block_;
+  std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
   assert(uncompr_size == original.size());
   for(uint64 j = 0; j < original.size(); ++j) {
     assert(uncompressed[j] == original[j]);

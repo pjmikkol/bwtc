@@ -1,3 +1,4 @@
+
 /**************************************************************************
  *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
  *                                                                        *
@@ -24,7 +25,7 @@
 #include <string>
 #include <vector>
 
-#include "../block.h"
+#include "../MainBlock.hpp"
 #include "../bwtransforms/bw_transform.h"
 #include "../bwtransforms/dcbwt.h"
 

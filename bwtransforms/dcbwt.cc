@@ -23,7 +23,7 @@
 #include <iostream>
 #include <vector>
 
-#include "../block.h"
+#include "../MainBlock.hpp"
 #include "../globaldefs.h"
 #include "bw_transform.h"
 #include "dcbwt.h"
@@ -477,7 +477,7 @@ class DCSorter {
 std::vector<byte>* DCBWTransform::DoTransform(uint64* eob_byte) {
   if (!current_block_) return NULL;
 
-  uint64 block_size = current_block_->Size();
+  uint64 block_size = current_block_->size();
   byte* block = current_block_->begin();
   
   /* The whole transformation is complete at once */

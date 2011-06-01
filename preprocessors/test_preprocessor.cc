@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "../MainBlock.hpp"
-#include "../block_manager.h"
+#include "../BlockManager.hpp"
 #include "../globaldefs.h"
 #include "../stream.h"
 #include "preprocessor.h"

@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "block_manager.h"
+#include "BlockManager.hpp"
 #include "MainBlock.hpp"
 #include "globaldefs.h"
 

@@ -28,7 +28,7 @@
 #ifndef DCBW_TRANSFORM_H_
 #define DCBW_TRANSFORM_H_
 
-#include "../block.h"
+#include "../MainBlock.hpp"
 #include "bw_transform.h"
 
 namespace bwtc {

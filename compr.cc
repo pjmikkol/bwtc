@@ -25,8 +25,8 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include "block.h"
-#include "block_manager.h"
+#include "MainBlock.hpp"
+#include "BlockManager.hpp"
 #include "coders.h"
 #include "preprocessors/preprocessor.h"
 #include "stream.h"

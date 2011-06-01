@@ -23,8 +23,8 @@
 #include <iostream> /* for std::streamsize*/
 #include <string>
 
-#include "../block.h"
-#include "../block_manager.h"
+#include "../MainBlock.hpp"
+#include "../BlockManager.hpp"
 #include "../globaldefs.h"
 #include "../stream.h"
 #include "preprocessor.h"

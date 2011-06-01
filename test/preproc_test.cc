@@ -33,8 +33,8 @@
 #include <string>
 #include <vector>
 
-#include "../block.h"
-#include "../block_manager.h"
+#include "../MainBlock.hpp"
+#include "../BlockManager.hpp"
 #include "../globaldefs.h"
 #include "../preprocessors/preprocessor.h"
 #include "testdefs.h"

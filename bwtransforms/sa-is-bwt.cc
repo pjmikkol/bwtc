@@ -24,7 +24,7 @@
 #include "bw_transform.h"
 #include "sa-is-bwt.h"
 #include "sais.hxx"
-#include "../block.h"
+#include "../MainBlock.hpp"
 #include "../globaldefs.h"
 
 namespace bwtc {
@@ -34,8 +34,8 @@ SAISBWTransform::SAISBWTransform() {}
 std::vector<byte>* SAISBWTransform::DoTransform(uint64 *eob_byte) {
   if(!current_block_) return NULL;
 
-  int block_size = current_block_->Size();
-  current_block_->Append(0);
+  int block_size = current_block_->size();
+  current_block_->append(0);
   byte *block = current_block_->begin();
   /* Whole transformation is done in single pass. */
   current_block_ = NULL;

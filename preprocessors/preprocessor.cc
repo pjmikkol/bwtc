@@ -33,8 +33,8 @@
 #include <string>
 #include <utility> /* for pair */
 
-#include "../block.h"
-#include "../block_manager.h"
+#include "../MainBlock.hpp"
+#include "../BlockManager.hpp"
 #include "../globaldefs.h"
 #include "../stream.h"
 #include "../utils.h"

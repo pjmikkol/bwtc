@@ -38,7 +38,7 @@
 namespace bwtc {
 
 TestPreProcessor::TestPreProcessor(uint64 block_size) :
-    PreProcessor(block_size), curr_block_(NULL) {}
+    PreProcessor(block_size), curr_block_(0) {}
 
 TestPreProcessor::~TestPreProcessor() {
   if(curr_block_) delete curr_block_;
@@ -72,7 +72,7 @@ uint64 TestPreProcessor::FillBuffer() {
   // TODO: Check the types
   assert(source_);
   assert(curr_block_);
-  assert(block_size_ <= curr_block_->block_->size());
+  assert(block_size_ <= curr_block_->m_block->size());
   if (curr_block_->m_filled == block_size_) return 0;
   std::streamsize read = source_->ReadBlock(
       curr_block_->begin() + curr_block_->size(),

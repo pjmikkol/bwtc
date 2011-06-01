@@ -30,7 +30,16 @@
 #include <limits>
 #include <boost/cstdint.hpp>
 
+#ifdef MAIN
+#define EXTERN
+#else
+#define EXTERN extern
+#endif
+
 namespace bwtc {
+
+EXTERN int verbosity;
+
 /* Common typedefs for different sizes of integers */
 typedef boost::int64_t int64;
 typedef boost::uint64_t uint64;
@@ -56,6 +65,8 @@ static const Probability kProbabilityScale = (1 << kLogProbabilityScale);
 
 typedef unsigned char byte;
 
+} // namespace bwtc
+
 /**
  * Name of the compressor program
  */
@@ -65,8 +76,5 @@ typedef unsigned char byte;
  * Name of the decompressor program
  */
 #define DECOMPRESSOR "uncompr"
-
-extern int verbosity;
-} // namespace bwtc
 
 #endif

@@ -17,3 +17,7 @@ bin/
 /test/mask_sequence_detector_test
 /test/prime_sequence_detector_test
 /test/long_sequencestest
+CMakeCache.txt
+CMakeFiles*
+cmake_install.cmake
+Makefile

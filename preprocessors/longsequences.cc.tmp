@@ -33,7 +33,7 @@
 
 #include "longsequences.h"
 #include "preprocessor.h"
-//#include "sequence_detector.h"
+#include "sequence_detector.h"
 #include "../coders.h"
 #include "../globaldefs.h"
 #include "../utils.h"

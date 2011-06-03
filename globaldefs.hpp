@@ -1,5 +1,5 @@
 /**
- * @file globaldefs.h
+ * @file globaldefs.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE

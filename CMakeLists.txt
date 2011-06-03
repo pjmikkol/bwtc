@@ -20,7 +20,8 @@ endif()
 set(EXECUTABLE_OUTPUT_PATH bin/)
 set(OBJECT_FILE_PATH ${bwtc_SOURCE_DIR}/${EXECUTABLE_OUTPUT_PATH})
 
-set(COMMON_SRC MainBlock.cpp BlockManager.cpp coders.cc rl_compress.cc utils.cc stream.cc)
+set(COMMON_SRC MainBlock.cpp BlockManager.cpp Coders.cpp BitCoders.cpp 
+  Utils.cpp Streams.cpp)
 add_library(common ${COMMON_SRC})
 
 set(PREPROCESSORS_SRC_DIR preprocessors)
@@ -32,17 +33,19 @@ add_subdirectory(${PREPROCESSORS_SRC_DIR})
 add_subdirectory(${BWTRANSFORMS_SRC_DIR})
 add_subdirectory(${PROBMODELS_SRC_DIR})
 
-set(COMPRESSOR_SRC compr.cc)
-set(DECOMPRESSOR_SRC uncompr.cc)
+set(COMPRESSOR_SRC compress.cpp)
+set(DECOMPRESSOR_SRC uncompress.cpp)
 
 link_directories(${Boost_LIBRARY_DIR})
 include_directories(${Boost_INCLUDE_DIR})
 
-add_executable(compr ${COMMON_SRC} ${COMPRESSOR_SRC})
-target_link_libraries(compr preprocessors probmodels bwtransforms ${Boost_LIBRARIES})
+add_executable(compress ${COMMON_SRC} ${COMPRESSOR_SRC})
+target_link_libraries(compress preprocessors probmodels bwtransforms 
+  ${Boost_LIBRARIES})
 
-add_executable(uncompr ${COMMON_SRC} ${DECOMPRESSOR_SRC})
-target_link_libraries(uncompr preprocessors probmodels bwtransforms  ${Boost_LIBRARIES})
+add_executable(uncompress ${COMMON_SRC} ${DECOMPRESSOR_SRC})
+target_link_libraries(uncompress preprocessors probmodels bwtransforms 
+  ${Boost_LIBRARIES})
 
 enable_testing()
 

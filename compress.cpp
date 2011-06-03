@@ -37,10 +37,10 @@ namespace po = boost::program_options;
 
 #include "MainBlock.hpp"
 #include "BlockManager.hpp"
-#include "coders.h"
+#include "Coders.hpp"
 #include "preprocessors/preprocessor.h"
-#include "stream.h"
-#include "globaldefs.h"
+#include "Streams.hpp"
+#include "globaldefs.hpp"
 #include "bwtransforms/bw_transform.h"
 
 using bwtc::verbosity;

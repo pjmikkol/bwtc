@@ -28,7 +28,7 @@
 
 #include "BlockManager.hpp"
 #include "MainBlock.hpp"
-#include "globaldefs.h"
+#include "globaldefs.hpp"
 
 namespace bwtc {
 

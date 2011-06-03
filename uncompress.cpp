@@ -21,7 +21,7 @@
  *
  * @section DESCRIPTION
  *
- * Main progrma for decompression.
+ * Main program for decompression.
  */
 
 /**Needed for allocating space for the bwtc::verbosity. */
@@ -34,9 +34,9 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include "coders.h"
-#include "stream.h"
-#include "globaldefs.h"
+#include "Coders.hpp"
+#include "Streams.hpp"
+#include "globaldefs.hpp"
 #include "bwtransforms/inverse_bwt.h"
 
 using bwtc::verbosity;

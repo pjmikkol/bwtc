@@ -24,7 +24,7 @@
  * Header for detecting and replacing long repetitive sequences.
  */
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 #include "longsequences.h"
 #include "sequence_detector.h"
 #include <vector>

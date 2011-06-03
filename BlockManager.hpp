@@ -29,7 +29,7 @@
 #define BWTC_BLOCK_MANAGER_H_
 
 #include "MainBlock.hpp"
-#include "globaldefs.h"
+#include "globaldefs.hpp"
 
 namespace bwtc {
 

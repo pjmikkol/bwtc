@@ -1,5 +1,5 @@
 /**
- * @file preprocessor.h
+ * @file Preprocessor.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -33,8 +33,8 @@
 
 #include "../MainBlock.hpp"
 #include "../BlockManager.hpp"
-#include "../globaldefs.h"
-#include "../stream.h"
+#include "../globaldefs.hpp"
+#include "../Streams.hpp"
 
 namespace bwtc {
 

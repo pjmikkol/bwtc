@@ -29,9 +29,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
-#include "../utils.h"
+#include "../Utils.hpp"
 
 namespace bwtc {
 int verbosity = 0;

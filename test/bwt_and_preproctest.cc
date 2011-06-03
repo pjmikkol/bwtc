@@ -34,8 +34,7 @@
 
 #include "../preprocessors/test_preprocessor.h"
 #include "../preprocessors/postprocessor.h"
-#include "../globaldefs.h"
-#include "../bwtransforms/dcbwt.h"
+#include "../globaldefs.hpp"
 #include "../bwtransforms/bw_transform.h"
 
 namespace bwtc {

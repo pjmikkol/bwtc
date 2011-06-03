@@ -31,23 +31,20 @@
 #include <vector>
 
 #include "MainBlock.hpp"
-#include "coders.h"
-#include "globaldefs.h"
-#include "utils.h"
+#include "Coders.hpp"
+#include "globaldefs.hpp"
+#include "Utils.hpp"
 #include "probmodels/base_prob_model.h"
 
 namespace bwtc {
 
 Encoder::Encoder(const std::string& destination, char prob_model)
-    : out_(NULL), destination_(NULL), pm_(NULL), header_position_(0),
-      compressed_block_length_(0), current_stat_handled_(0),
-      current_stat_index_(0)
+    : m_out(new OutStream(destination)), m_destination(new dcsbwt::BitEncoder()),
+      m_probModel(GiveProbabilityModel(prob_model)), m_headerPosition(0),
+      m_compressedBlockLength(0), m_currentStatHandled(0),
+      m_currentStatIndex(0)
 {
-  out_ = new OutStream(destination);
-  destination_ = new dcsbwt::BitEncoder();
-  destination_->Connect(out_);
-  /* Add new probability models here: */
-  pm_ = GiveProbabilityModel(prob_model);
+  m_destination->Connect(m_out);
 }
 
 /************************************************************************
@@ -59,14 +56,14 @@ Encoder::Encoder(const std::string& destination, char prob_model)
 void Encoder::WriteGlobalHeader(char preproc, char encoding) {
   /* At the moment dummy implementation. In future should use
    * bit-fields of a bytes as a flags. */
-  out_->WriteByte(static_cast<byte>(preproc));
-  out_->WriteByte(static_cast<byte>(encoding));
+  m_out->WriteByte(static_cast<byte>(preproc));
+  m_out->WriteByte(static_cast<byte>(encoding));
 }
 
 char Decoder::ReadGlobalHeader() {
-  char preproc = static_cast<char>(in_->ReadByte());
-  char probmodel = static_cast<char>(in_->ReadByte());
-  pm_ = GiveProbabilityModel(probmodel);
+  char preproc = static_cast<char>(m_in->ReadByte());
+  char probmodel = static_cast<char>(m_in->ReadByte());
+  m_probModel = GiveProbabilityModel(probmodel);
   return preproc;
 }
 /***************** Global header for file-section ends ******************/
@@ -74,8 +71,8 @@ char Decoder::ReadGlobalHeader() {
 void Encoder::EncodeByte(byte b) {
   for(int i = 0; i < 8; ++i, b <<= 1) {
     bool bit = b & 0x80;
-    destination_->Encode(bit, pm_->ProbabilityOfOne());
-    pm_->Update(bit);
+    m_destination->Encode(bit, m_probModel->ProbabilityOfOne());
+    m_probModel->Update(bit);
   }
 }
 
@@ -87,19 +84,19 @@ void Encoder::EncodeRange(const byte* begin, const byte* end) {
 }
 
 Encoder::~Encoder() {
-  delete out_;
-  delete destination_;
-  delete pm_;
+  delete m_out;
+  delete m_destination;
+  delete m_probModel;
 }
 
 void Encoder::EndContextBlock() {
-  assert(pm_);
-  pm_->ResetModel();
+  assert(m_probModel);
+  m_probModel->ResetModel();
 }
 
 void Decoder::EndContextBlock() {
-  assert(pm_);
-  pm_->ResetModel();
+  assert(m_probModel);
+  m_probModel->ResetModel();
 }
 
 int Encoder::WriteTrailer(uint64 trailer) {
@@ -145,27 +142,27 @@ void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
   unsigned i = 0;
   /* This loop is quite tricky since we want to be prepared that context
    * blocks can be shattered around. */
-  if (current_stat_handled_ == 0) 
-    while((*stats)[current_stat_index_] == 0) ++current_stat_index_;
+  if (m_currentStatHandled == 0) 
+    while((*stats)[m_currentStatIndex] == 0) ++m_currentStatIndex;
   
-  for( ; ; ++current_stat_index_) {
+  for( ; ; ++m_currentStatIndex) {
     if (i == block_size) return;
-    assert(current_stat_index_ < stats->size());
-    for( ; current_stat_handled_ < (*stats)[current_stat_index_];
-         ++i, ++current_stat_handled_) {
+    assert(m_currentStatIndex < stats->size());
+    for( ; m_currentStatHandled < (*stats)[m_currentStatIndex];
+         ++i, ++m_currentStatHandled) {
       if (i == block_size) return;
       EncodeByte((*block)[i]);
     }
-    current_stat_handled_ = 0;
+    m_currentStatHandled = 0;
     EndContextBlock();
   }
 }
 
 void Encoder::FinishBlock(uint64 eob_byte) {
-  destination_->Finish();
-  compressed_block_length_ += destination_->Counter();
-  compressed_block_length_ +=  WriteTrailer(eob_byte);
-  out_->Write48bits(compressed_block_length_, header_position_);
+  m_destination->Finish();
+  m_compressedBlockLength += m_destination->Counter();
+  m_compressedBlockLength +=  WriteTrailer(eob_byte);
+  m_out->Write48bits(m_compressedBlockLength, m_headerPosition);
 }
 
 /*********************************************************************
@@ -177,24 +174,24 @@ void Encoder::FinishBlock(uint64 eob_byte) {
  * - 2 sentinel bytes 0x80 and 0x00 for notifying end of the header  *
  *********************************************************************/
 void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
-  uint64 header_length = 0;
-  header_position_ = out_->GetPos();
-  for (unsigned i = 0; i < 6; ++i) out_->WriteByte(0x00); //fill 48 bits
+  uint64 headerLength = 0;
+  m_headerPosition = m_out->GetPos();
+  for (unsigned i = 0; i < 6; ++i) m_out->WriteByte(0x00); //fill 48 bits
   for (unsigned i = 0; i < stats->size(); ++i) {
     int bytes;
     // TODO: At the moment we are not printing numbers in increasing order
     //       It has to be fixed at BWTransform and here
     if((*stats)[i] > 0) {
       uint64 packed_cblock_size = utils::PackInteger((*stats)[i], &bytes);
-      header_length += bytes;
+      headerLength += bytes;
       WritePackedInteger(packed_cblock_size);
     }
   }
-  header_length += FinishBlockHeader();
-  compressed_block_length_ = header_length;
-  current_stat_handled_ = current_stat_index_ = 0;
+  headerLength += FinishBlockHeader();
+  m_compressedBlockLength = headerLength;
+  m_currentStatHandled = m_currentStatIndex = 0;
 
-  destination_->ResetCounter();
+  m_destination->ResetCounter();
 }
 
 /* Integer is written in reversal fashion so that it can be read easier.*/
@@ -202,20 +199,20 @@ void Encoder::WritePackedInteger(uint64 packed_integer) {
   do {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
-    out_->WriteByte(to_written);
+    m_out->WriteByte(to_written);
   } while (packed_integer);
 }
 
 int Encoder::FinishBlockHeader() {
-  out_->WriteByte(0x80);
-  out_->WriteByte(0x00);
+  m_out->WriteByte(0x80);
+  m_out->WriteByte(0x00);
   return 2;
 }
 
 uint64 Decoder::ReadBlockHeader(std::vector<uint64>* stats) {
   static const uint64 kErrorMask = static_cast<uint64>(1) << 63;
 
-  uint64 compressed_length = in_->Read48bits();
+  uint64 compressed_length = m_in->Read48bits();
   while(1) {
     uint64 value = ReadPackedInteger();
     if(value & kErrorMask) break;
@@ -225,7 +222,7 @@ uint64 Decoder::ReadBlockHeader(std::vector<uint64>* stats) {
 }
 
 std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
-  if(in_->CompressedDataEnding()) return NULL;
+  if(m_in->CompressedDataEnding()) return NULL;
 
   std::vector<uint64> context_lengths;
   uint64 compr_len = ReadBlockHeader(&context_lengths);
@@ -236,7 +233,7 @@ std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
 
   uint64 block_size = std::accumulate(
       context_lengths.begin(), context_lengths.end(), static_cast<uint64>(0));
-  source_->Start();
+  m_source->Start();
   std::vector<byte>* data = new std::vector<byte>(block_size);
   int j = 0;
   for(std::vector<uint64>::const_iterator it = context_lengths.begin();
@@ -259,7 +256,7 @@ uint64 Decoder::ReadPackedInteger() {
   bool bits_left = true;
   int i;
   for(i = 0; bits_left; ++i) {
-    uint64 read = static_cast<uint64>(in_->ReadByte());
+    uint64 read = static_cast<uint64>(m_in->ReadByte());
     bits_left = (read & kEndMask) != 0;
     packed_integer |= (read << i*8);
   }
@@ -268,36 +265,35 @@ uint64 Decoder::ReadPackedInteger() {
 }
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
-Decoder::Decoder(const std::string& source, char prob_model) :
-    in_(NULL), source_(NULL), pm_(NULL) {
-  in_ = new InStream(source);
-  source_ = new dcsbwt::BitDecoder();
-  source_->Connect(in_);
-  pm_ = GiveProbabilityModel(prob_model);
+Decoder::Decoder(const std::string& source, char prob_model)
+    : m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
+      m_probModel(GiveProbabilityModel(prob_model))
+{
+  m_source->Connect(m_in);
 }
 
 Decoder::Decoder(const std::string& source) :
-    in_(NULL), source_(NULL), pm_(NULL) {
-  in_ = new InStream(source);
-  source_ = new dcsbwt::BitDecoder();
-  source_->Connect(in_);
+    m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
+    m_probModel(0)
+{
+  m_source->Connect(m_in);
 }
 
 Decoder::~Decoder() {
-  delete in_;
-  delete source_;
-  delete pm_;
+  delete m_in;
+  delete m_source;
+  delete m_probModel;
 }
 
 byte Decoder::DecodeByte() {
   byte b = 0x00;
   for(int i = 0; i < 8; ++i) {
     b <<= 1;
-    if (source_->Decode(pm_->ProbabilityOfOne())) {
+    if (m_source->Decode(m_probModel->ProbabilityOfOne())) {
       b |= 1;
-      pm_->Update(true);
+      m_probModel->Update(true);
     } else {
-      pm_->Update(false);
+      m_probModel->Update(false);
     }
   }
   return b;

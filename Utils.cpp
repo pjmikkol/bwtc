@@ -1,5 +1,5 @@
 /**
- * @file utils.cc
+ * @file Utils.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -26,8 +26,8 @@
 
 #include <cassert>
 
-#include "globaldefs.h"
-#include "utils.h"
+#include "globaldefs.hpp"
+#include "Utils.hpp"
 
 namespace utils {
 

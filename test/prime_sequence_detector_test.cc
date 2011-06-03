@@ -33,7 +33,7 @@
 #include <cassert>
 #include <iostream>
 #include <vector>
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 #include "../preprocessors/longsequences.h"
 #include "../preprocessors/sequence_detector.h"

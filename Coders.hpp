@@ -24,16 +24,16 @@
  * Header for coders.
  */
 
-#ifndef BWTC_CODERS_H_
-#define BWTC_CODERS_H_
+#ifndef BWTC_CODERS_HPP_
+#define BWTC_CODERS_HPP_
 
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include "MainBlock.hpp"
-#include "globaldefs.h"
-#include "rl_compress.h"
+#include "globaldefs.hpp"
+#include "BitCoders.hpp"
 #include "probmodels/base_prob_model.h"
 
 namespace bwtc {
@@ -65,15 +65,15 @@ class Encoder {
   void FinishBlock(uint64 eob_byte); //TODO: this calls write trailer
 
  private:
-  OutStream* out_;
-  dcsbwt::BitEncoder* destination_;
-  ProbabilityModel* pm_;
-  std::streampos header_position_;
-  uint64 compressed_block_length_;
+  OutStream* m_out;
+  dcsbwt::BitEncoder* m_destination;
+  ProbabilityModel* m_probModel;
+  std::streampos m_headerPosition;
+  uint64 m_compressedBlockLength;
   /* We may have to encode result of the transformation in pieces so we
    * have track down the progress of handling single MainBlock. */
-  uint64 current_stat_handled_;
-  unsigned current_stat_index_;
+  uint64 m_currentStatHandled;
+  unsigned m_currentStatIndex;
 
 
   Encoder(const Encoder&);
@@ -89,7 +89,7 @@ class Decoder {
    * It changes the used probability model automatically. */
   char ReadGlobalHeader();
   byte DecodeByte();
-  void Start() { source_->Start(); }
+  void Start() { m_source->Start(); }
   /* If end symbol is encountered, then the most significant bit is activated */
   uint64 ReadPackedInteger();
   /* Allocates memory for block, reads and decodes it. */
@@ -100,9 +100,9 @@ class Decoder {
   void EndContextBlock();
 
  private:
-  InStream* in_;
-  dcsbwt::BitDecoder* source_;
-  ProbabilityModel* pm_;
+  InStream* m_in;
+  dcsbwt::BitDecoder* m_source;
+  ProbabilityModel* m_probModel;
 
   Decoder(const Decoder&);
   Decoder& operator=(const Decoder&);

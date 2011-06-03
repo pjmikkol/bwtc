@@ -1,5 +1,5 @@
 /**
- * @file utils.h
+ * @file Utils.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -24,13 +24,13 @@
  * Header for utility-functions which aren't related to any class that much.
  */
 
-#ifndef BWTC_UTILS_H_
-#define BWTC_UTILS_H_
+#ifndef BWTC_UTILS_HPP_
+#define BWTC_UTILS_HPP_
 
 #include <iostream>
 #include <stack>
 
-#include "globaldefs.h"
+#include "globaldefs.hpp"
 
 using bwtc::uint64;
 using bwtc::byte;

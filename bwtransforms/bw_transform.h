@@ -24,8 +24,8 @@
  * Base classes (interfaces) for Burrows-Wheeler transform and its reversal.
  */
 
-#ifndef BWTC_BW_TRANSFORM_H_
-#define BWTC_BW_TRANSFORM_H_
+#ifndef BWTC_BWTRANSFORM_HPP_
+#define BWTC_BWTRANSFORM_HPP_
 
 #include <cassert>
 
@@ -33,7 +33,7 @@
 #include <vector>
 
 #include "../MainBlock.hpp"
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 namespace bwtc {
 

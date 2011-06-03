@@ -36,9 +36,9 @@
 #include <string>
 #include <vector>
 
-#include "../coders.h"
-#include "../globaldefs.h"
-#include "../utils.h"
+#include "../Coders.hpp"
+#include "../globaldefs.hpp"
+#include "../Utils.hpp"
 
 #undef NDEBUG
 
@@ -54,7 +54,7 @@ void TestArithmeticCoding(char prob_model) {
   bwtc::Encoder enc(test_fname, prob_model);
   enc.EncodeByte('a');
   enc.EncodeByte('b');
-  enc.destination_->Finish();
+  enc.m_destination->Finish();
   bwtc::Decoder dec(test_fname, prob_model);
   dec.Start();
   byte b = dec.DecodeByte();

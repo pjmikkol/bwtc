@@ -28,7 +28,7 @@
 #define BWTC_LONGSEQUENCES_H_
 
 #include <vector>
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 namespace bwtc {
 

@@ -29,7 +29,7 @@
 #define BWTC_SEQUENCE_DETECTOR_H_
 
 #include <list>
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 namespace bwtc {
 namespace long_sequences {

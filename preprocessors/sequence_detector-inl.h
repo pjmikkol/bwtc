@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <cassert>
 #include <vector>
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 #include "longsequences.h"
 #include "sequence_detector.h"
 #include <utility>

@@ -28,7 +28,7 @@
 #include <boost/cstdint.hpp>
 
 #include "MainBlock.hpp"
-#include "globaldefs.h"
+#include "globaldefs.hpp"
 
 namespace bwtc {
 

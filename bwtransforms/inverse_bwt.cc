@@ -23,7 +23,7 @@
 #include <numeric>  // for partial_sum
 #include <vector>
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 #include "inverse_bwt.h"
 
 /*************************************************************

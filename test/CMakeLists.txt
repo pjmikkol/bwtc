@@ -10,13 +10,13 @@ find_package(Boost COMPONENTS system)
 link_directories(${Boost_LIBRARY_DIR} ${OBJECT_FILE_PATH})
 include_directories(${Boost_INCLUDE_DIR})
 
-set(BOOST_UNIT_TESTS utils_test expander_test prime_sequence_detector_test
+set(BOOST_UNIT_TESTS utils_test prime_sequence_detector_test
   mask_sequence_detector_test)
 
 foreach(program ${BOOST_UNIT_TESTS})
   add_executable(${program} ${program}.cc)
   target_link_libraries(${program} common boost_unit_test_framework preprocessors)
-  add_test(${program} ${CMAKE_CURRENT_BINARY_DIR}/${program})
+  add_test(${program} ${EXECUTABLE_OUTPUT_PATH}/${program})
   set_tests_properties(${program} PROPERTIES FAIL_REGULAR_EXPRESSION 
     "[.\n]*failure")
 endforeach(program)

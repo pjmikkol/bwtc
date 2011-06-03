@@ -22,7 +22,7 @@
 
 #include <vector>
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 namespace bwtc {
 /**************************************************************************

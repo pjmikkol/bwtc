@@ -28,8 +28,8 @@
 #include <cassert>
 #include "sequence_detector.h"
 #include "preprocessor.h"
-#include "../globaldefs.h"
-#include "../utils.h"
+#include "../globaldefs.hpp"
+#include "../Utils.hpp"
 
 namespace bwtc {
 namespace long_sequences {

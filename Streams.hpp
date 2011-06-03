@@ -1,31 +1,38 @@
-/**************************************************************************
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file Streams.hpp
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Header for InStream and OutStream.
+ */
 
-#ifndef BWTC_STREAM_H_
-#define BWTC_STREAM_H_
+#ifndef BWTC_STREAM_HPP_
+#define BWTC_STREAM_HPP_
 
 #include <iostream>
 #include <iterator>
 #include <string>
 #include <vector>
 
-#include "globaldefs.h"
+#include "globaldefs.hpp"
 
 namespace bwtc {
 
@@ -42,7 +49,6 @@ namespace bwtc {
  * @see Encoder
  * @see PostProcessor
  */
-//TODO: Check PostProcessor-ref above after class is created
 class OutStream {
  public:
   explicit OutStream(std::string file_name);
@@ -68,9 +74,9 @@ class OutStream {
   void Flush();
 
  private:
-  std::string name_;
-  std::ostream* to_;
-  std::ofstream* outfile_;
+  std::string m_name;
+  std::ostream* m_to;
+  std::ofstream* m_outfile;
   
   OutStream& operator=(const OutStream& os);
   OutStream(const OutStream& os);
@@ -83,23 +89,23 @@ class InStream {
   /* Copies block from stream to given char array.
    * Returns the number of read chars. */
   std::streamsize ReadBlock(byte* to, std::streamsize max_block_size);
-  byte ReadByte() { return static_cast<byte>(from_->get()); }
+  byte ReadByte() { return static_cast<byte>(m_from->get()); }
   uint64 Read48bits();
   bool CompressedDataEnding() {
     /* Quick workaround. For some mysterious reason there is single
      * additional byte in the end of compressed file. It seems that
      * BitEncoder is responsible for this. */
-    if (from_->eof()) return true;
+    if (m_from->eof()) return true;
     ReadByte();
-    if (from_->eof()) return true;
-    from_->unget();
+    if (m_from->eof()) return true;
+    m_from->unget();
     return false;
   }
 
  private:
-  std::string name_;
-  std::istream* from_;
-  std::ifstream* infile_;
+  std::string m_name;
+  std::istream* m_from;
+  std::ifstream* m_infile;
 
   InStream& operator=(const InStream& os);
   InStream(const InStream& os);

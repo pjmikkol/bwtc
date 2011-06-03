@@ -32,7 +32,7 @@
 
 #include <cassert>
 #include <iostream>
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 #include "../preprocessors/sequence_detector.h"
 #include "../preprocessors/sequence_detector-inl.h"

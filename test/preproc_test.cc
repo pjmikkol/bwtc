@@ -35,7 +35,7 @@
 
 #include "../MainBlock.hpp"
 #include "../BlockManager.hpp"
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 #include "../preprocessors/preprocessor.h"
 
 #undef NDEBUG

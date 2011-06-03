@@ -24,13 +24,13 @@
  * Header for MainBlock-class.
  */
 
-#ifndef BWTC_BLOCK_H_
-#define BWTC_BLOCK_H_
+#ifndef BWTC_MAINBLOCK_HPP_
+#define BWTC_MAINBLOCK_HPP_
 
 #include <cassert>
 #include <vector>
 
-#include "globaldefs.h"
+#include "globaldefs.hpp"
 
 namespace bwtc {
 

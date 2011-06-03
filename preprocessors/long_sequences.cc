@@ -24,7 +24,7 @@
  * Implementation for detecting and replacing long repetitive sequences.
  */
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 #include "long_sequences.h"
 #include "longsequences.h"
 #include "sequence_detector-inl.h"
@@ -72,7 +72,7 @@ uint32 CompressPositionOrdered(const std::vector<uint32>& bucket_starts,
   return next;
 }
 
-/** Sorts entrys with the same hash value into ame bucket. At the same
+/** Sorts entrys with the same hash value into same bucket. At the same
  *  time renames the positions (in buckets) to point into corresponding
  *  entry of chunks-table. Also drops unused values at chunks. */
 void SortIntoBuckets(std::vector<uint32> *hash_values,

@@ -25,7 +25,7 @@
 #include "sa-is-bwt.h"
 #include "sais.hxx"
 #include "../MainBlock.hpp"
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 namespace bwtc {
 

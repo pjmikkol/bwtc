@@ -25,9 +25,9 @@
 #include <utility>
 #include <vector>
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 #include "postprocessor.h"
-#include "../utils.h"
+#include "../Utils.hpp"
 
 namespace bwtc {
 

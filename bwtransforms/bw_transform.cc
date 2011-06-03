@@ -21,9 +21,8 @@
 
 #include <vector>
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 #include "bw_transform.h"
-#include "dcbwt.h"
 #include "sa-is-bwt.h"
 
 namespace bwtc {
@@ -44,10 +43,6 @@ std::vector<byte>* BWTransform::AllocateMemory(uint64 size) {
 }
 
 BWTransform* GiveTransformer(char transform) {
-  /*When there are multiple ways to do transform this is to place to add them*/
-  if(transform == 'd')
-    return new DCBWTransform(8);
-  else
     return new SAISBWTransform();
 }
 

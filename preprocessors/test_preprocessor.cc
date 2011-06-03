@@ -30,8 +30,8 @@
 
 #include "../MainBlock.hpp"
 #include "../BlockManager.hpp"
-#include "../globaldefs.h"
-#include "../stream.h"
+#include "../globaldefs.hpp"
+#include "../Streams.hpp"
 #include "preprocessor.h"
 #include "test_preprocessor.h"
 

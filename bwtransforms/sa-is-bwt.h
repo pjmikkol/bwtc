@@ -1,4 +1,3 @@
-
 /**************************************************************************
  *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
  *                                                                        *
@@ -33,7 +32,7 @@
 #include <vector>
 
 #include "bw_transform.h"
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
 using bwtc::uint64;
 using bwtc::int64;

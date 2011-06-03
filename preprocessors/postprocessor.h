@@ -22,9 +22,9 @@
 
 #include <vector>
 
-#include "../globaldefs.h"
+#include "../globaldefs.hpp"
 
-//TODO: PostProcessor-class since aAt the moment only algorithms for
+//TODO: PostProcessor-class since at the moment only algorithms for
 //      postprocessing exists
 
 namespace bwtc {

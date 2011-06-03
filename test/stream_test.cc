@@ -34,8 +34,8 @@
 #include <boost/filesystem/operations.hpp>
 namespace fs = boost::filesystem;
 
-#include "../globaldefs.h"
-#include "../stream.h"
+#include "../globaldefs.hpp"
+#include "../Streams.hpp"
 
 #undef NDEBUG
 

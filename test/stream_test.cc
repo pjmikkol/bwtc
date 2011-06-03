@@ -1,21 +1,29 @@
-/**************************************************************************
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file stream_test.cc
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Testing of InStream and OutStream.
+ *
+ */
 
 #include <cassert>
 
@@ -28,12 +36,15 @@ namespace fs = boost::filesystem;
 
 #include "../globaldefs.h"
 #include "../stream.h"
-#include "testdefs.h"
+
+#undef NDEBUG
 
 using bwtc::uint64;
 using bwtc::byte;
 
 namespace tests {
+
+std::string test_fname;
 
 void BlockWriteTest();
 void WriteToFile(const std::string& fname, unsigned characters);
@@ -115,15 +126,17 @@ void ReadFromFileTest() {
 } //namespace tests
 
 
-int main() {
+int main(int argc, char **argv) {
+  if(argc < 2) {
+    std::cout << "Fail: Give test file as a first argument.\n";
+    return 1;
+  }
+  tests::test_fname = argv[1];  
   tests::BlockFileWriteTest();
   tests::WriteToStreamTest();
   tests::EmptyWriteTest();
   tests::SimpleWriteReadTest();
-  std::cout << "OutStream passed all tests.\n";
   tests::ReadFromFileTest();
-  std::cout << "InStream passed all tests.\n";
+  std::cout << "Streams passed all tests.\n";
   return 0;
 }
-
-

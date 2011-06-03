@@ -1,21 +1,28 @@
-/**************************************************************************
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file longsequence_test.cc
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Testing for long sequences and border calculations.
+ */
 
 #include <cassert>
 #include <cstdlib>
@@ -29,7 +36,9 @@
 #include "../preprocessors/longsequences.h"
 #include "../preprocessors/postprocessor.h"
 #include "../globaldefs.h"
-#include "../block_manager.h"
+#include "../BlockManager.hpp"
+
+#undef NDEBUG
 
 namespace bwtc {
 int verbosity = 3;
@@ -101,23 +110,23 @@ void TestSequenceCompression(const std::string& source_name, int times,
   pp.Connect(source_name);
   pp.InitializeTarget();
   uint64 data_size = pp.FillBuffer();
-  std::vector<byte> original(pp.curr_block_->filled_);
+  std::vector<byte> original(pp.curr_block_->m_filled);
   std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
   uint64 compressed_size;
   for(int j = 0; j < times; ++j) {
     compressed_size = bwtc::CompressSequences(pp.curr_block_->begin(),
-                                              pp.curr_block_->filled_,
+                                              pp.curr_block_->m_filled,
                                               mem_constr, window_size,
                                               threshold);
-    pp.curr_block_->filled_ = compressed_size;
+    pp.curr_block_->m_filled = compressed_size;
   }
   uint64 uncompressed_size;
   for(int j = 0; j < times; ++j) {
-    uncompressed_size = bwtc::UncompressSequences(pp.curr_block_->block_,
-                                                  pp.curr_block_->filled_);
-    pp.curr_block_->filled_ = uncompressed_size;
+    uncompressed_size = bwtc::UncompressSequences(pp.curr_block_->m_block,
+                                                  pp.curr_block_->m_filled);
+    pp.curr_block_->m_filled = uncompressed_size;
   }
-  std::vector<byte>& uncompressed = *pp.curr_block_->block_;
+  std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
 
   assert(uncompressed_size == original.size());
   for(uint64 j = 0; j < data_size; ++j) {

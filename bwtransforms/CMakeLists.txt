@@ -5,7 +5,6 @@ project(bwtranforms)
 FILE(GLOB cppSourceFiles *.cpp *.cc)
 FILE(GLOB hppHeaders *.hpp *.h)
 
-set(sources ${cppSourceFiles} ${hppHeaders})
-set (EXECUTABLE_OUTPUT_PATH bin/)
+set(BWT_SOURCES ${cppSourceFiles} ${hppHeaders})
 
 add_library(bwtransforms ${cppSourceFiles})

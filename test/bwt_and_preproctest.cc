@@ -205,7 +205,11 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
 int main(int argc, char **argv) {
   uint64 block_size = 259715200;
   unsigned mem_constr = 2;
-  if (argc < 4) return 0;
+  if (argc < 4) {
+    std::cout << "Usage: ./" << argv[0] << "[lpr]+ <n> input_file "
+              << "[mem_constr] [buffer]\n";
+    return 0;
+  }
   if (argc > 4) mem_constr = atoi(argv[4]);
   if (argc > 5) block_size = atoi(argv[5]);
   tests::PreprocBWTSpeed(argv[1], atoi(argv[2]), std::string(argv[3]),

@@ -37,13 +37,16 @@
 #include "../BlockManager.hpp"
 #include "../globaldefs.h"
 #include "../preprocessors/preprocessor.h"
-#include "testdefs.h"
+
+#undef NDEBUG
 
 namespace bwtc {
 int verbosity = 0;
 }
 
 namespace tests {
+
+std::string test_fname;
 
 /*********** begin: TestDefaultPreProcBlockReads() ***********/
 void TestDefaultPreProcBlockRead(int fsize, int block_size) {
@@ -74,7 +77,7 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
 
 void TestDefaultPreProcBlockReads() {
   TestDefaultPreProcBlockRead(1000, 1000);
-  srand(time(NULL));
+  srand(time(0));
   for (int i = 0; i < 100; ++i) {
     TestDefaultPreProcBlockRead(rand() % 100000, rand() % 100000);
   }
@@ -85,7 +88,12 @@ void TestDefaultPreProcBlockReads() {
 
 } //namespace tests
 
-int main() {
+int main(int argc, char **argv) {
+  if(argc < 2) {
+    std::cout << "Fail: Give test file as a first argument.\n";
+    return 1;
+  }
+  tests::test_fname = argv[1];
   tests::TestDefaultPreProcBlockReads();
   std::cout << "PreProcessor passed all tests\n";
   return 0;

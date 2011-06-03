@@ -37,6 +37,8 @@
 #include "../bwtransforms/dcbwt.h"
 #include "../bwtransforms/bw_transform.h"
 
+#undef NDEBUG
+
 namespace bwtc {
 int verbosity = 2;
 }

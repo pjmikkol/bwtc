@@ -32,7 +32,7 @@
 namespace bwtc {
 namespace long_sequences {
 
-
+#if 0
 std::vector<uint32> *SortIntoBuckets(std::vector<uint32> *hash_values,
                                      std::vector<chunk> *chunks,
                                      std::vector<chunk> *buckets)
@@ -67,6 +67,6 @@ void FormBucketsAndNamePositions(std::vector<uint32> *names,
       buckets_[--n_vec[it->hash_value]] = chunk(it->position, position++);
   }
 }
-
+#endif
 } //namespace bwtc
 } //namespace long_sequences

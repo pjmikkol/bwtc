@@ -5,7 +5,8 @@ project(preprocessors)
 FILE(GLOB cppSourceFiles *.cpp *.cc)
 FILE(GLOB hppHeaders *.hpp *.h)
 
-set(sources ${cppSourceFiles} ${hppHeaders})
-set (EXECUTABLE_OUTPUT_PATH bin/)
+set(PREPROCESSOR_SOURCES ${cppSourceFiles} ${hppHeaders})
 
 add_library(preprocessors ${cppSourceFiles})
+
+target_link_libraries(preprocessors common)

@@ -32,7 +32,7 @@
 namespace utils {
 
 /* Floor of logarithm of base two */
-byte LogFloor(uint32 n) {
+byte logFloor(uint32 n) {
   assert(n > 0);
   byte log = 0;
   while(n > 1) {

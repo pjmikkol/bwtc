@@ -32,35 +32,35 @@
 #include "../BlockManager.hpp"
 #include "../globaldefs.hpp"
 #include "../Streams.hpp"
-#include "preprocessor.h"
-#include "test_preprocessor.h"
+#include "Preprocessor.hpp"
+#include "TestPreprocessor.hpp"
 
 namespace bwtc {
 
-TestPreProcessor::TestPreProcessor(uint64 block_size) :
-    PreProcessor(block_size), curr_block_(0) {}
+TestPreprocessor::TestPreprocessor(uint64 block_size) :
+    Preprocessor(block_size), curr_block_(0) {}
 
-TestPreProcessor::~TestPreProcessor() {
+TestPreprocessor::~TestPreprocessor() {
   if(curr_block_) delete curr_block_;
 }
 
-uint64 TestPreProcessor::CompressPairs() {
-  uint64 filled = CompressCommonPairs(&(*curr_block_->m_block)[0],
+uint64 TestPreprocessor::compressPairs() {
+  uint64 filled = compressCommonPairs(&(*curr_block_->m_block)[0],
                                       curr_block_->m_filled);
   uint64 result = curr_block_->m_filled - filled;
   curr_block_->m_filled = filled;
   return result;
 }
 
-uint64 TestPreProcessor::CompressRuns() {
-  uint64 filled = CompressLongRuns(&(*curr_block_->m_block)[0],
+uint64 TestPreprocessor::compressRuns() {
+  uint64 filled = compressLongRuns(&(*curr_block_->m_block)[0],
                                    curr_block_->m_filled);
   uint64 result = curr_block_->m_filled - filled;
   curr_block_->m_filled = filled;
   return result;
 }
 
-void TestPreProcessor::InitializeTarget() {
+void TestPreprocessor::InitializeTarget() {
   assert(block_manager_);
   std::vector<byte>* target = block_manager_->GetFreeBuffer();
   target->resize(block_size_);
@@ -68,7 +68,7 @@ void TestPreProcessor::InitializeTarget() {
   curr_block_ = block_manager_->MakeBlock(target, stats, 0UL);
 }
 
-uint64 TestPreProcessor::FillBuffer() {
+uint64 TestPreprocessor::FillBuffer() {
   // TODO: Check the types
   assert(source_);
   assert(curr_block_);

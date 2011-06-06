@@ -1,22 +1,30 @@
-/**************************************************************************
- *  Copyright 2007, Google Inc.                                           *
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file InverseBWT.cpp
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Implementation for the inverse of BWT. This particular implementation
+ * is released originally here:
+ * @see http://code.google.com/p/dcs-bwt-compressor/
+ */
 
 #include <cassert>
 
@@ -24,31 +32,25 @@
 #include <vector>
 
 #include "../globaldefs.hpp"
-#include "inverse_bwt.h"
-
-/*************************************************************
- * Parts of this code have been previously released here:    *
- * http://code.google.com/p/dcs-bwt-compressor/              *
- *************************************************************/
+#include "InverseBWT.hpp"
 
 namespace bwtc {
 
-InverseBWTransform* GiveInverseTransformer() {
+InverseBWTransform* giveInverseTransformer() {
   return new FastInverseBWTransform();
 }
 
-std::vector<byte>* InverseBWTransform::AllocateMemory(uint64 block_size) {
+std::vector<byte>* InverseBWTransform::allocateMemory(uint64 block_size) {
   return new std::vector<byte>(block_size);
 }
 
-uint64 FastInverseBWTransform::MaxBlockSize(uint64 memory_budget) const {
+uint64 FastInverseBWTransform::maxBlockSize(uint64 memory_budget) const {
   memory_budget -= kMemoryOverhead;
   return memory_budget / sizeof(uint32);
 }
 
-std::vector<byte>* FastInverseBWTransform::DoTransform(const byte* bwt,
-                                                       uint64 bwt_size,
-                                                       uint64 eob_position)
+std::vector<byte>* FastInverseBWTransform::doTransform(
+    const byte* bwt, uint64 bwt_size, uint64 eob_position)
 {
   // rank[i] will be the number of occurrences of bwt[i] in bwt[0..i-1]
   std::vector<uint32> bwt_rank_low24(bwt_size);
@@ -86,7 +88,7 @@ std::vector<byte>* FastInverseBWTransform::DoTransform(const byte* bwt,
     rank_milestone_buffer[ch].push_back(bwt_size);
   }
 
-  std::vector<byte>* result = AllocateMemory(bwt_size - 1);
+  std::vector<byte>* result = allocateMemory(bwt_size - 1);
   uint32 index = 0;
 
   uint32 position = 0;

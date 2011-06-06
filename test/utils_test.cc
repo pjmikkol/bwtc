@@ -60,10 +60,10 @@ BOOST_AUTO_TEST_CASE(MostSigBit16) {
 }
 
 BOOST_AUTO_TEST_CASE(LogFlr) {
-  BOOST_CHECK_EQUAL(7, LogFloor(0xff));
-  BOOST_CHECK_EQUAL(26, LogFloor(0x61adf3f));
-  BOOST_CHECK_EQUAL(30, LogFloor(0x561adf3f));
-  BOOST_CHECK_EQUAL(31, LogFloor(0xf61adf3f));
+  BOOST_CHECK_EQUAL(7, logFloor(0xff));
+  BOOST_CHECK_EQUAL(26, logFloor(0x61adf3f));
+  BOOST_CHECK_EQUAL(30, logFloor(0x561adf3f));
+  BOOST_CHECK_EQUAL(31, logFloor(0xf61adf3f));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

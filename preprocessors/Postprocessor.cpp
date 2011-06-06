@@ -1,21 +1,28 @@
-/**************************************************************************
- *  Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi           *
- *                                                                        *
- *  This file is part of bwtc.                                            *
- *                                                                        *
- *  bwtc is free software: you can redistribute it and/or modify          *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation, either version 3 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  bwtc is distributed in the hope that it will be useful,               *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with bwtc.  If not, see <http://www.gnu.org/licenses/>.         *
- **************************************************************************/
+/**
+ * @file Postprocessor.cpp
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ *
+ * @section LICENSE
+ *
+ * This file is part of bwtc.
+ *
+ * bwtc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bwtc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @section DESCRIPTION
+ *
+ * Implementations for the inverses of preprocessing algorithms.
+ */
 
 #include <cassert>
 
@@ -26,12 +33,12 @@
 #include <vector>
 
 #include "../globaldefs.hpp"
-#include "postprocessor.h"
+#include "Postprocessor.hpp"
 #include "../Utils.hpp"
 
 namespace bwtc {
 
-uint64 UncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
+uint64 uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   static const unsigned no_repl = 70000;
   std::vector<byte>& data = *compressed;
   assert(length > 2);
@@ -82,7 +89,7 @@ uint64 UncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   return result.size();
 }
 
-uint64 UncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
+uint64 uncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
   std::vector<byte>& data = *compressed;
   assert(length > 2);
   std::vector<byte> result;
@@ -150,7 +157,7 @@ uint64 UncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
   return result.size();
 }
 
-uint64 UncompressSequences(std::vector<byte> *compressed, uint64 length) {
+uint64 uncompressSequences(std::vector<byte> *compressed, uint64 length) {
   std::vector<byte>& data = *compressed;
   std::vector<byte> result;
   result.reserve(length/2);

@@ -36,7 +36,7 @@
 #include "../MainBlock.hpp"
 #include "../BlockManager.hpp"
 #include "../globaldefs.hpp"
-#include "../preprocessors/preprocessor.h"
+#include "../preprocessors/Preprocessor.hpp"
 
 #undef NDEBUG
 
@@ -56,14 +56,14 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   std::copy(data.begin(), data.end(), std::ostream_iterator<char>(f));
   f.flush(); f.close();
   /* Then the actual test */
-  bwtc::PreProcessor* prepr = bwtc::GivePreProcessor(
+  bwtc::Preprocessor* prepr = bwtc::givePreprocessor(
       'n', block_size, test_fname);
   bwtc::BlockManager bm(block_size, 1);
-  prepr->AddBlockManager(&bm);
+  prepr->addBlockManager(&bm);
   
   int blocks = 0;
   std::streamsize total = 0;
-  while (bwtc::MainBlock* b = prepr->ReadBlock()) {
+  while (bwtc::MainBlock* b = prepr->readBlock()) {
     blocks++;
     total += b->size();
     delete b;
@@ -95,6 +95,6 @@ int main(int argc, char **argv) {
   }
   tests::test_fname = argv[1];
   tests::TestDefaultPreProcBlockReads();
-  std::cout << "PreProcessor passed all tests\n";
+  std::cout << "Preprocessor passed all tests\n";
   return 0;
 }

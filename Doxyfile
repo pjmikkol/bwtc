@@ -9,4 +9,4 @@ GENERATE_HTML           = YES
 GENERATE_LATEX          = YES
 RECURSIVE               = YES
 GENERATE_TREEVIEW       = YES
-FILE_PATTERNS           = *.cc *.h *.hxx
+FILE_PATTERNS           = *.cc *.cpp *.h *.hpp *.hxx

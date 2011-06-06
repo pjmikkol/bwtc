@@ -32,10 +32,10 @@
 #include <string>
 #include <vector>
 
-#include "../preprocessors/test_preprocessor.h"
-#include "../preprocessors/postprocessor.h"
+#include "../preprocessors/TestPreprocessor.hpp"
+#include "../preprocessors/Postprocessor.hpp"
 #include "../globaldefs.hpp"
-#include "../bwtransforms/bw_transform.h"
+#include "../bwtransforms/BWTransform.hpp"
 
 namespace bwtc {
 int verbosity = 0;
@@ -52,10 +52,10 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
                      uint64 block_size, unsigned mem_constr)
 {
   bwtc::BlockManager bm(block_size, 1);
-  bwtc::TestPreProcessor pp(block_size);
-  bwtc::BWTransform *transformer = bwtc::GiveTransformer('s');
-  pp.AddBlockManager(&bm);
-  pp.Connect(input);
+  bwtc::TestPreprocessor pp(block_size);
+  bwtc::BWTransform *transformer = bwtc::giveTransformer('s');
+  pp.addBlockManager(&bm);
+  pp.connect(input);
   pp.InitializeTarget();
   uint64 orig_size = pp.FillBuffer();
   uint64 compressed_size = orig_size;
@@ -67,17 +67,17 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
     switch (preprocs[str_index]) {
       /*
       case 'l': // Replace long sequences 
-        compressed_size = bwtc::CompressSequences(pp.curr_block_->begin()
+        compressed_size = bwtc::compressSequences(pp.curr_block_->begin()
                                                   ,pp.curr_block_->filled_
                                                   ,mem_constr, 16 //Window size
                                                   ,threshold);
         pp.curr_block_->filled_ = compressed_size;
         break;*/
       case 'r': /* Replace runs of same byte */
-        compressed_size -= pp.CompressRuns();
+        compressed_size -= pp.compressRuns();
         break;
       case 'p': /* Replace common pairs */
-        compressed_size -= pp.CompressPairs();
+        compressed_size -= pp.compressPairs();
         break;
       default:
         break;
@@ -87,9 +87,9 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
 
   /* Burrows-Wheeler Transform */
   uint64 eob;
-  transformer->Connect(pp.curr_block_);
+  transformer->connect(pp.curr_block_);
   clock_t bwt_start = clock();
-  std::vector<byte> *result = transformer->DoTransform(&eob);
+  std::vector<byte> *result = transformer->doTransform(&eob);
   clock_t bwt_end = clock();
   delete result;
   delete transformer;
@@ -114,9 +114,9 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
 {
   bwtc::verbosity = 3;
   bwtc::BlockManager bm(block_size, 1);
-  bwtc::TestPreProcessor pp(block_size);
-  pp.AddBlockManager(&bm);
-  pp.Connect(input);
+  bwtc::TestPreprocessor pp(block_size);
+  pp.addBlockManager(&bm);
+  pp.connect(input);
   pp.InitializeTarget();
   uint64 orig_size = pp.FillBuffer();
   uint64 compressed_size = orig_size;
@@ -132,17 +132,17 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
     switch (preprocs[str_index]) {
       /*
       case 'l': // Replace long sequences 
-        compressed_size = bwtc::CompressSequences(pp.curr_block_->begin()
+        compressed_size = bwtc::compressSequences(pp.curr_block_->begin()
                                                   ,pp.curr_block_->filled_
                                                   ,mem_constr, 16 //Window size
                                                   ,threshold);
         pp.curr_block_->filled_ = compressed_size;
         break;*/
       case 'r': /* Replace runs of same byte */
-        compressed_size -= pp.CompressRuns();
+        compressed_size -= pp.compressRuns();
         break;
       default: /* Replace common pairs */
-        compressed_size -= pp.CompressPairs();
+        compressed_size -= pp.compressPairs();
         
         break;
     }
@@ -156,17 +156,17 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
     switch(preprocs[str_index]) {
       /*
       case 'l':
-        uncompr_size = bwtc::UncompressSequences(pp.curr_block_->block_,
+        uncompr_size = bwtc::uncompressSequences(pp.curr_block_->block_,
                                                  pp.curr_block_->filled_);
         pp.curr_block_->filled_ = uncompr_size;
         break;*/
       case 'r':
-        uncompr_size = bwtc::UncompressLongRuns(pp.curr_block_->m_block,
+        uncompr_size = bwtc::uncompressLongRuns(pp.curr_block_->m_block,
                                                 pp.curr_block_->m_filled);
         pp.curr_block_->m_filled = uncompr_size;
         break;
       default:
-        uncompr_size = bwtc::UncompressCommonPairs(pp.curr_block_->m_block,
+        uncompr_size = bwtc::uncompressCommonPairs(pp.curr_block_->m_block,
                                                    pp.curr_block_->m_filled);
         pp.curr_block_->m_filled = uncompr_size; 
     }

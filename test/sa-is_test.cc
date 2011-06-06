@@ -31,7 +31,7 @@
 #include <iostream>
 
 #include "../globaldefs.hpp"
-#include "../bwtransforms/sa-is-bwt.h"
+#include "../bwtransforms/SA-IS-bwt.hpp"
 #include "../bwtransforms/sais.hxx"
 
 #undef NDEBUG

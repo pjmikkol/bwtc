@@ -39,8 +39,8 @@ using bwtc::uint32;
 /* Useful functions for debugging activites etc. */
 namespace utils {
 
-/* Floor of logarithm of base two */
-byte LogFloor(uint32 n);
+/** Floor of logarithm of base two */
+byte logFloor(uint32 n);
 
 uint32 MostSignificantBit16(uint32 n);
 

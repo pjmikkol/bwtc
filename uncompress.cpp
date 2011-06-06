@@ -37,7 +37,7 @@ namespace po = boost::program_options;
 #include "Coders.hpp"
 #include "Streams.hpp"
 #include "globaldefs.hpp"
-#include "bwtransforms/inverse_bwt.h"
+#include "bwtransforms/InverseBWT.hpp"
 
 using bwtc::verbosity;
 
@@ -53,13 +53,13 @@ void decompress(const std::string& input_name, const std::string& output_name,
   char preproc = decoder.ReadGlobalHeader();
   bwtc::OutStream out(output_name);
 
-  bwtc::InverseBWTransform* transformer = bwtc::GiveInverseTransformer();
+  bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
 
   unsigned blocks = 0;
   uint64 eob_byte; // eob_byte position in BWT
   while (std::vector<byte>* bwt_block = decoder.DecodeBlock(&eob_byte)) {
     ++blocks;
-    std::vector<byte>* unbwt_block = transformer->DoTransform(&(*bwt_block)[0],
+    std::vector<byte>* unbwt_block = transformer->doTransform(&(*bwt_block)[0],
                                                               bwt_block->size(),
                                                               eob_byte);
     // PostProcess

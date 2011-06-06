@@ -38,22 +38,15 @@
 
 namespace bwtc {
 
-/* Floor of logarithm of base two */
-byte LogFloor(uint32 n);
-
-uint32 MostSignificantBit16(uint32 n);
-
-uint32 MostSignificantBit(uint32 n);
-
 //TODO: Make this class to abstract class (interface for real implementations)
-class PreProcessor {
+class Preprocessor {
  public:
-  PreProcessor(uint64 block_size);
-  virtual ~PreProcessor();
-  virtual void Connect(std::string source_name);
-  virtual void AddBlockManager(BlockManager* bm);
+  Preprocessor(uint64 block_size);
+  virtual ~Preprocessor();
+  virtual void connect(std::string source_name);
+  virtual void addBlockManager(BlockManager* bm);
   /* Reads and preprocesses data to byte array provided by block_manager_*/
-  virtual MainBlock* ReadBlock();
+  virtual MainBlock* readBlock();
 
  protected:
   InStream* source_;
@@ -62,10 +55,10 @@ class PreProcessor {
 
  private:
   /* This should be done during preprocessing*/
-  void BuildStats(std::vector<byte>* data, std::vector<uint64>* stats,
+  void buildStats(std::vector<byte>* data, std::vector<uint64>* stats,
                   uint64 data_size);
-  PreProcessor& operator=(const PreProcessor& p);
-  PreProcessor(const PreProcessor&);
+  Preprocessor& operator=(const Preprocessor& p);
+  Preprocessor(const Preprocessor&);
 };
 
 /* Data structure for holding the frequencies of bytes. */
@@ -74,23 +67,23 @@ class FreqTable {
   FreqTable();
   FreqTable(uint64* frequencies); /* Constructs FreqTable from given freqs */
   const uint64& operator[](uint32 i) const; /* Returns the i:th lowest freq*/
-  byte Key(uint32 i) const ; /* Returns the key which has i:th lowest freq*/
-  bool Decrease(uint32 key, uint64 decrement);
-  void Increase(uint32 key, uint64 increment);
+  byte key(uint32 i) const ; /* Returns the key which has i:th lowest freq*/
+  bool decrease(uint32 key, uint64 decrement);
+  void increase(uint32 key, uint64 increment);
 
  private:
-  void InitLocations();
-  bool Test();
+  void initLocations();
+  bool test();
   std::pair<byte, uint64> freq_[256];
   byte location_[256];
 };
 
 /* This function returns chosen preprocessor */ 
-PreProcessor* GivePreProcessor(
+Preprocessor* givePreprocessor(
     char choice, uint64 block_size, const std::string& input);
 
-uint64 CompressCommonPairs(byte *from, uint64 length);
-uint64 CompressLongRuns(byte *from, uint64 length);
+uint64 compressCommonPairs(byte *from, uint64 length);
+uint64 compressLongRuns(byte *from, uint64 length);
 
 } // namespace bwtc
 

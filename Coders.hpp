@@ -34,7 +34,7 @@
 #include "MainBlock.hpp"
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
-#include "probmodels/base_prob_model.h"
+#include "probmodels/ProbabilityModel.hpp"
 
 namespace bwtc {
 

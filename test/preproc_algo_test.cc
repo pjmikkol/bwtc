@@ -31,10 +31,9 @@
 #include <string>
 #include <vector>
 
-#include "../preprocessors/test_preprocessor.h"
-#include "../preprocessors/postprocessor.h"
+#include "../preprocessors/TestPreprocessor.hpp"
+#include "../preprocessors/Postprocessor.hpp"
 #include "../globaldefs.hpp"
-#include "../bwtransforms/bw_transform.h"
 
 #undef NDEBUG
 
@@ -55,9 +54,9 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
 
   bwtc::BlockManager bm(block_size, 1);
   for(int i = 0; i < kTimes; ++i) {
-    bwtc::TestPreProcessor pp(block_size);
-    pp.AddBlockManager(&bm);
-    pp.Connect(source);
+    bwtc::TestPreprocessor pp(block_size);
+    pp.addBlockManager(&bm);
+    pp.connect(source);
     pp.InitializeTarget();
     total_data = pp.FillBuffer();
     std::vector<byte> original(pp.curr_block_->m_filled);
@@ -66,7 +65,7 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     assert(total_data == original.size());
     uint64 reduction = 0;
     for(int j = 0; j < times; ++j) {
-      reduction += pp.CompressRuns();
+      reduction += pp.compressRuns();
     }
     
     total_reduction = reduction;
@@ -74,10 +73,10 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::UncompressLongRuns(pp.curr_block_->m_block,
+      uncompressed_size = bwtc::uncompressLongRuns(pp.curr_block_->m_block,
                                                    pp.curr_block_->m_filled);
       /* This one should be done in same kind of wrapper than
-       * Preprocessor::CompressPairs*/
+       * Preprocessor::compressPairs*/
       pp.curr_block_->m_filled = uncompressed_size; 
     }
     std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
@@ -104,9 +103,9 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
 {
   bwtc::BlockManager bm(block_size, 1);
   for(int i = 0; i < kTimes; ++i) {
-    bwtc::TestPreProcessor pp(block_size);
-    pp.AddBlockManager(&bm);
-    pp.Connect(source);
+    bwtc::TestPreprocessor pp(block_size);
+    pp.addBlockManager(&bm);
+    pp.connect(source);
     pp.InitializeTarget();
     uint64 data_size = 0;
     data_size = pp.FillBuffer();
@@ -116,16 +115,16 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
     assert(data_size == original.size());
     uint64 compressed = 0;
     for(int j = 0; j < times; ++j) {
-      compressed += pp.CompressPairs();
+      compressed += pp.compressPairs();
     }
     assert(compressed == data_size - pp.curr_block_->filled_);
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::UncompressCommonPairs(pp.curr_block_->m_block,
+      uncompressed_size = bwtc::uncompressCommonPairs(pp.curr_block_->m_block,
                                                       pp.curr_block_->m_filled);
       /* This one should be done in same kind of wrapper than
-       * Preprocessor::CompressPairs*/
+       * Preprocessor::compressPairs*/
       pp.curr_block_->m_filled = uncompressed_size; 
     }
     std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
@@ -149,15 +148,15 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
   bwtc::BlockManager bm(block_size, 1);
   //bwtc::BWTransform *transformer = bwtc::GiveTransformer(); 
   for(int i = 0; i < kTimes; ++i) {
-    bwtc::TestPreProcessor pp(block_size);
-    pp.AddBlockManager(&bm);
-    pp.Connect(source_name);
+    bwtc::TestPreprocessor pp(block_size);
+    pp.addBlockManager(&bm);
+    pp.connect(source_name);
     pp.InitializeTarget();
     uint64 data_size = 0;
     uint64 data_reduction = 0;
     for(int j = 0; j < times; ++j) {
       data_size += pp.FillBuffer();
-      data_reduction += pp.CompressPairs();
+      data_reduction += pp.compressPairs();
     }
     total_data = data_size;
     total_reduction = data_reduction;
@@ -193,27 +192,27 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
 
   bwtc::BlockManager bm(block_size, 1);
   for(int i = 0; i < kTimes; ++i) {
-    bwtc::TestPreProcessor pp(block_size);
-    pp.AddBlockManager(&bm);
-    pp.Connect(source_name);
+    bwtc::TestPreprocessor pp(block_size);
+    pp.addBlockManager(&bm);
+    pp.connect(source_name);
     pp.InitializeTarget();
     uint64 data_size = pp.FillBuffer();
     std::vector<byte> original(data_size);
     std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
     uint64 data_reduction = 0;
     for(int j = 0; j < times; ++j) {
-      data_reduction += pp.CompressPairs();
-      data_reduction += pp.CompressRuns();
+      data_reduction += pp.compressPairs();
+      data_reduction += pp.compressRuns();
     }
     total_data = data_size;
     total_reduction = data_reduction;
 
     uint64 uncompressed_size = 0;
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::UncompressLongRuns(pp.curr_block_->m_block,
+      uncompressed_size = bwtc::uncompressLongRuns(pp.curr_block_->m_block,
                                                    pp.curr_block_->m_filled);
       pp.curr_block_->m_filled = uncompressed_size; 
-      uncompressed_size = bwtc::UncompressCommonPairs(pp.curr_block_->m_block,
+      uncompressed_size = bwtc::uncompressCommonPairs(pp.curr_block_->m_block,
                                                       pp.curr_block_->m_filled);
       pp.curr_block_->m_filled = uncompressed_size; 
     }

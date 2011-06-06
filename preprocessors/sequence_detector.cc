@@ -27,7 +27,7 @@
 
 #include <cassert>
 #include "sequence_detector.h"
-#include "preprocessor.h"
+#include "Preprocessor.hpp"
 #include "../globaldefs.hpp"
 #include "../Utils.hpp"
 

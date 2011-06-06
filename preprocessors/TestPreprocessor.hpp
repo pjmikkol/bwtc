@@ -35,20 +35,20 @@
 #include "../BlockManager.hpp"
 #include "../globaldefs.hpp"
 #include "../Streams.hpp"
-#include "preprocessor.h"
+#include "Preprocessor.hpp"
 
 namespace bwtc {
 /* This class is meant for testing the different preprocessor-options.
  * It can be done by using the available public-functions such as
- * CompressPairs */
-class TestPreProcessor : public PreProcessor {
+ * compressPairs */
+class TestPreprocessor : public Preprocessor {
  public:
-  TestPreProcessor(uint64 block_size);
-  virtual ~TestPreProcessor();
+  TestPreprocessor(uint64 block_size);
+  virtual ~TestPreprocessor();
   /* Reads and preprocesses data to byte array provided by block_manager_*/
-  uint64 CompressPairs();
+  uint64 compressPairs();
   /* Same as above, but different compression algorithm */
-  uint64 CompressRuns();
+  uint64 compressRuns();
   /* Initialize target-array for reading */
   void InitializeTarget();
   /* Fills the buffer from instream. returns true if something is read*/

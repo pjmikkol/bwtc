@@ -1,5 +1,5 @@
 /**
- * @file BaseProbModel.hpp
+ * @file ProbabilityModel.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -25,8 +25,8 @@
  */
 
 /* Base class acting as an interface for probability models. */
-#ifndef BWTC_BASE_PROB_MODEL_HPP_
-#define BWTC_BASE_PROB_MODEL_HPP_
+#ifndef BWTC_PROBABILITY_MODEL_HPP_
+#define BWTC_PROBABILITY_MODEL_HPP_
 
 #include "../globaldefs.hpp" /* Important definitions */
 

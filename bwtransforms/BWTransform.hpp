@@ -46,34 +46,34 @@ namespace bwtc {
  *
  * Transform will be used in the following way:
  *
- *   BWTransform* tranform = GiveTransform(...);
+ *   BWTransform* tranform = GiveTransformer(...);
  *   MainBlock* data; uint64 eob_byte;
  *   transform->Connect(data);
- *   transform->BuildStats();
+ *   transform->buildStats();
  *   while( std::vector<byte>* result = transform->DoTransform(&eob_byte) {
  *     ...do something with stats and a part of a transform
  *
  */
 class BWTransform {
  public:
-  BWTransform() : current_block_(NULL) {}
+  BWTransform() : m_currentBlock(NULL) {}
   virtual ~BWTransform() {}
   
-  virtual void Connect(MainBlock* block) {
-    current_block_ = block;
-    std::reverse(current_block_->begin(), current_block_->end());
+  virtual void connect(MainBlock* block) {
+    m_currentBlock = block;
+    std::reverse(m_currentBlock->begin(), m_currentBlock->end());
   }
-  virtual std::vector<byte>* DoTransform(uint64* eob_byte) = 0;
-  virtual void BuildStats();
+  virtual std::vector<byte>* doTransform(uint64* eob_byte) = 0;
+  virtual void buildStats();
 
-  virtual uint64 MaxSizeInBytes(uint64 block_size) const = 0;
-  virtual uint64 MaxBlockSize(uint64 memory_budget) const = 0;
-  virtual uint64 SuggestedBlockSize(uint64 memory_budget) const = 0;
+  virtual uint64 maxSizeInBytes(uint64 block_size) const = 0;
+  virtual uint64 maxBlockSize(uint64 memory_budget) const = 0;
+  virtual uint64 suggestedBlockSize(uint64 memory_budget) const = 0;
 
  protected:
   // If some later stage we want to implement external memory manager ...
-  virtual std::vector<byte>* AllocateMemory(uint64 block_size);
-  MainBlock* current_block_;
+  virtual std::vector<byte>* allocateMemory(uint64 block_size);
+  MainBlock* m_currentBlock;
 
  private:
   BWTransform(const BWTransform&);
@@ -81,7 +81,7 @@ class BWTransform {
 };
 
 // Block size and memory budget would probably be suitable parameters...
-BWTransform* GiveTransformer(char transform);
+BWTransform* giveTransformer(char transform);
 
 /**Computes the BWT from the suffix array and writes it to output.
  * 
@@ -95,7 +95,7 @@ BWTransform* GiveTransformer(char transform);
  * @return Position of the end-of-block character in output.
  */
 template <typename Integer>
-uint64 BwtFromSuffixArray(const byte* block, int64 block_size,
+uint64 BWTFromSuffixArray(const byte* block, int64 block_size,
                           const Integer* suffix_array, byte* output)
 {
   byte ch = '\0';

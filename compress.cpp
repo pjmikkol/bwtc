@@ -1,5 +1,5 @@
 /**
- * @file compr.cpp
+ * @file compress.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -38,10 +38,10 @@ namespace po = boost::program_options;
 #include "MainBlock.hpp"
 #include "BlockManager.hpp"
 #include "Coders.hpp"
-#include "preprocessors/preprocessor.h"
+#include "preprocessors/Preprocessor.hpp"
 #include "Streams.hpp"
 #include "globaldefs.hpp"
-#include "bwtransforms/bw_transform.h"
+#include "bwtransforms/BWTransform.hpp"
 
 using bwtc::verbosity;
 
@@ -54,30 +54,30 @@ void compress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::PreProcessor* preprocessor = bwtc::GivePreProcessor(
-      preproc,block_size, input_name);
+  bwtc::Preprocessor* preprocessor = bwtc::givePreprocessor(
+      preproc, block_size, input_name);
   bwtc::BlockManager block_manager(block_size, 1);
-  preprocessor->AddBlockManager(&block_manager);
+  preprocessor->addBlockManager(&block_manager);
 
-  bwtc::BWTransform* transformer = bwtc::GiveTransformer('s');
+  bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
 
   bwtc::Encoder encoder(output_name, encoding);
   encoder.WriteGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
   uint64 last_s = 0;
-  while( bwtc::MainBlock* block = preprocessor->ReadBlock() ) {
+  while( bwtc::MainBlock* block = preprocessor->readBlock() ) {
     uint64 eob_byte;
     ++blocks;
     //Transformer could have some memory manager..
-    transformer->Connect(block);
-    transformer->BuildStats(); 
+    transformer->connect(block);
+    transformer->buildStats(); 
     encoder.WriteBlockHeader(block->m_stats); 
     /* This may be altered if we want to use some memory manager,
-     * because then it may be possible that we are havin bigger
+     * because then it may be possible that we are having bigger
      * vector than there exists data. Then we may have to return pair
-     * (vector, data_length) from DoTransform. */
-    while(std::vector<byte>* b =  transformer->DoTransform(&eob_byte)) {
+     * (vector, data_length) from doTransform. */
+    while(std::vector<byte>* b =  transformer->doTransform(&eob_byte)) {
       encoder.EncodeData(b, block->m_stats, b->size());
       delete b;
     }

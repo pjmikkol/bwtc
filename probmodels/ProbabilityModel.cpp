@@ -1,5 +1,5 @@
 /**
- * @file BaseProbModel.cpp
+ * @file ProbabilityModel.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -28,7 +28,7 @@
 #include <iostream>
 
 #include "../globaldefs.hpp"
-#include "base_prob_model.h"
+#include "ProbabilityModel.hpp"
 
 namespace bwtc {
 

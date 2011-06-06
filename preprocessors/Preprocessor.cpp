@@ -57,10 +57,10 @@ Preprocessor* givePreprocessor(char choice, uint64 block_size,
 }
 
 Preprocessor::Preprocessor(uint64 block_size) :
-    source_(NULL), block_size_(block_size), block_manager_(NULL) { }
+    m_source(0), m_blockSize(block_size), m_blockManager(0) { }
 
 Preprocessor::~Preprocessor() {
-  delete source_;
+  delete m_source;
 }
 
 void Preprocessor::buildStats(std::vector<byte>* data,
@@ -72,19 +72,19 @@ void Preprocessor::buildStats(std::vector<byte>* data,
 }
 
 void Preprocessor::connect(std::string source_name) {
-  source_ = new InStream(source_name);
+  m_source = new InStream(source_name);
 }
 
 void Preprocessor::addBlockManager(BlockManager* manager) {
-  block_manager_ = manager;
+  m_blockManager = manager;
 }
 
 /* We append sentinel to the block here */
 MainBlock* Preprocessor::readBlock() {
-  assert(source_);
-  assert(block_manager_);
-  std::vector<byte>* to = block_manager_->GetFreeBuffer();
-  std::vector<uint64>* stats = block_manager_->GetFreeStats();
+  assert(m_source);
+  assert(m_blockManager);
+  std::vector<byte>* to = m_blockManager->getFreeBuffer();
+  std::vector<uint64>* stats = m_blockManager->getFreeStats();
   /* TODO:
    * streamsize type has as many bits as long. Since the preprocessor gets
    * blocksize as an uint64 we may end up in problems if user is on 32-bit
@@ -92,10 +92,10 @@ MainBlock* Preprocessor::readBlock() {
    * represent block size is more than 32)?? */
   /*** Stub implementation ***/
   /* We leave on unused byte to the block so that we can use SA-IS-transformer */
-  std::streamsize read = source_->ReadBlock(
-      &(*to)[0], static_cast<std::streamsize>(block_size_ - 1));
-  if (!read) return NULL;
-  return block_manager_->MakeBlock(to, stats, static_cast<uint64>(read));
+  std::streamsize read = m_source->readBlock(
+      &(*to)[0], static_cast<std::streamsize>(m_blockSize - 1));
+  if (!read) return 0;
+  return m_blockManager->makeBlock(to, stats, static_cast<uint64>(read));
 }
 
 /*#################### Preprocessing algorithms #############################*/

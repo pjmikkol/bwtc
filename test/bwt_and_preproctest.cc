@@ -56,8 +56,8 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   bwtc::BWTransform *transformer = bwtc::giveTransformer('s');
   pp.addBlockManager(&bm);
   pp.connect(input);
-  pp.InitializeTarget();
-  uint64 orig_size = pp.FillBuffer();
+  pp.initializeTarget();
+  uint64 orig_size = pp.fillBuffer();
   uint64 compressed_size = orig_size;
 
   /* Preprocessing */
@@ -117,8 +117,8 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   bwtc::TestPreprocessor pp(block_size);
   pp.addBlockManager(&bm);
   pp.connect(input);
-  pp.InitializeTarget();
-  uint64 orig_size = pp.FillBuffer();
+  pp.initializeTarget();
+  uint64 orig_size = pp.fillBuffer();
   uint64 compressed_size = orig_size;
 
   std::vector<byte> original(orig_size);

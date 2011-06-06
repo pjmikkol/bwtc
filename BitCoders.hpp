@@ -63,7 +63,7 @@ class BitEncoder {
   BitEncoder();
   ~BitEncoder();
 
-  void Connect(bwtc::OutStream* out) { m_output = out; }
+  void connect(bwtc::OutStream* out) { m_output = out; }
   //TODO: Figure out what Disconnect should do if needed
   //bwtc::OutStream* Disconnect() { return output_.Disconnect(); }
 
@@ -72,15 +72,15 @@ class BitEncoder {
    * bit==0(false), probability_of_one==kProbabilityScale are legal.
    * In these cases, up to four bytes of output is generated
    * from the single bit.  */
-  void Encode(bool bit, Probability probability_of_one);
+  void encode(bool bit, Probability probability_of_one);
 
   /* Must be called to finish the encoding of a sequence.
    * After the call, BitEncoder is ready to start encoding a new sequence. */
-  void Finish();
+  void finish();
 
   /* Measures length of compressed sequence in bytes */
-  inline void ResetCounter() { m_counter = 0; }
-  inline uint64 Counter() { return m_counter; }
+  inline void resetCounter() { m_counter = 0; }
+  inline uint64 counter() { return m_counter; }
 
  private:
   uint32 m_low;
@@ -88,8 +88,8 @@ class BitEncoder {
   uint64 m_counter;
   bwtc::OutStream* m_output;
 
-  inline void EmitByte(unsigned char byte) {
-    m_output->WriteByte(byte);
+  inline void emitByte(unsigned char byte) {
+    m_output->writeByte(byte);
     ++m_counter;
   }
   BitEncoder(const BitEncoder&);
@@ -105,19 +105,19 @@ class BitDecoder {
   ~BitDecoder();
 
   /* The compressed data is read from an InStreamBuffer. */
-  void Connect(bwtc::InStream* in) { m_input = in; }
+  void connect(bwtc::InStream* in) { m_input = in; }
   //TODO: Do we need Disconnect()
   //bwtc::InStream* Disconnect() { return input_.Disconnect(); }
 
   /* Start() must be called to start the decoding of a sequence.
    * Nothing needs to be called to finish the decoding, but Start()
    * must be called again when starting to decode a new sequence.  */
-  void Start();
+  void start();
 
   /* Get the next bit of the uncompressed sequence.
    * The probability distribution must be the same as the one used
    * when encoding the same bit. */
-  bool Decode(Probability probability_of_one);
+  bool decode(Probability probability_of_one);
 
  private:
   uint32 m_low;
@@ -125,7 +125,7 @@ class BitDecoder {
   uint32 m_next;
   bwtc::InStream* m_input;
 
-  byte ReadByte() { return m_input->ReadByte(); }
+  byte readByte() { return m_input->readByte(); }
   BitDecoder(const BitDecoder&);
   BitDecoder& operator=(const BitDecoder&);
 };

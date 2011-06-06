@@ -45,16 +45,16 @@ BlockManager::~BlockManager() {
   delete m_frequencyBuffer;
 }
 
-std::vector<byte>* BlockManager::GetFreeBuffer() {
+std::vector<byte>* BlockManager::getFreeBuffer() {
   return m_dataBuffer;
 }
 
-std::vector<uint64>* BlockManager::GetFreeStats() {
+std::vector<uint64>* BlockManager::getFreeStats() {
   return m_frequencyBuffer;
 }
 
 /* When adding concurrency to the program this one needs re-implementation*/
-MainBlock* BlockManager::MakeBlock(std::vector<byte>* data,
+MainBlock* BlockManager::makeBlock(std::vector<byte>* data,
                                    std::vector<uint64>* stats, uint64 filled)
 {
   return new MainBlock(data, stats, filled);

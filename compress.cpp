@@ -62,7 +62,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
 
   bwtc::Encoder encoder(output_name, encoding);
-  encoder.WriteGlobalHeader(preproc, encoding);
+  encoder.writeGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
   uint64 last_s = 0;
@@ -72,16 +72,16 @@ void compress(const std::string& input_name, const std::string& output_name,
     //Transformer could have some memory manager..
     transformer->connect(block);
     transformer->buildStats(); 
-    encoder.WriteBlockHeader(block->m_stats); 
+    encoder.writeBlockHeader(block->m_stats); 
     /* This may be altered if we want to use some memory manager,
      * because then it may be possible that we are having bigger
      * vector than there exists data. Then we may have to return pair
      * (vector, data_length) from doTransform. */
     while(std::vector<byte>* b =  transformer->doTransform(&eob_byte)) {
-      encoder.EncodeData(b, block->m_stats, b->size());
+      encoder.encodeData(b, block->m_stats, b->size());
       delete b;
     }
-    encoder.FinishBlock(eob_byte);
+    encoder.finishBlock(eob_byte);
     last_s = block->m_filled;
     delete block;
   }
@@ -95,7 +95,7 @@ void compress(const std::string& input_name, const std::string& output_name,
 }
 
 /* Notifier function for preprocessing option choice */
-void ValidatePreprocOption(char c) {
+void validatePreprocOption(char c) {
   if (c == 'n' /* || c == <other option> */) return;
 
   class PreprocException : public std::exception {
@@ -109,7 +109,7 @@ void ValidatePreprocOption(char c) {
 
 
 /* Notifier function for encoding option choice */
-void ValidateEncodingOption(char c) {
+void validateEncodingOption(char c) {
   if (c == 'n' || c == 'm' || c == 'M'/* || c == <other option> */) return;
 
   class EncodingExc : public std::exception {
@@ -143,11 +143,11 @@ int main(int argc, char** argv) {
          "file to compress, defaults to stdin")
         ("output-file", po::value<std::string>(&output_name),"target file")
         ("pre,p", po::value<char>(&preproc)->default_value('n')->
-         notifier(&ValidatePreprocOption),
+         notifier(&validatePreprocOption),
          "pre-processing algorithm, options:\n"
          "  n -- does nothing")
         ("enc,e", po::value<char>(&encoding)->default_value('n')->
-         notifier(&ValidateEncodingOption),
+         notifier(&validateEncodingOption),
          "entropy encoding scheme, options:\n"
          "  n -- does nothing")
         ;

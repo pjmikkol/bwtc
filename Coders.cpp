@@ -44,7 +44,7 @@ Encoder::Encoder(const std::string& destination, char prob_model)
       m_compressedBlockLength(0), m_currentStatHandled(0),
       m_currentStatIndex(0)
 {
-  m_destination->Connect(m_out);
+  m_destination->connect(m_out);
 }
 
 /************************************************************************
@@ -53,32 +53,32 @@ Encoder::Encoder(const std::string& destination, char prob_model)
  * Write- and ReadGlobalHeader defines global header and its format for *
  * the compressed file.                                                 *
  ************************************************************************/
-void Encoder::WriteGlobalHeader(char preproc, char encoding) {
+void Encoder::writeGlobalHeader(char preproc, char encoding) {
   /* At the moment dummy implementation. In future should use
    * bit-fields of a bytes as a flags. */
-  m_out->WriteByte(static_cast<byte>(preproc));
-  m_out->WriteByte(static_cast<byte>(encoding));
+  m_out->writeByte(static_cast<byte>(preproc));
+  m_out->writeByte(static_cast<byte>(encoding));
 }
 
-char Decoder::ReadGlobalHeader() {
-  char preproc = static_cast<char>(m_in->ReadByte());
-  char probmodel = static_cast<char>(m_in->ReadByte());
+char Decoder::readGlobalHeader() {
+  char preproc = static_cast<char>(m_in->readByte());
+  char probmodel = static_cast<char>(m_in->readByte());
   m_probModel = GiveProbabilityModel(probmodel);
   return preproc;
 }
 /***************** Global header for file-section ends ******************/
 
-void Encoder::EncodeByte(byte b) {
+void Encoder::encodeByte(byte b) {
   for(int i = 0; i < 8; ++i, b <<= 1) {
     bool bit = b & 0x80;
-    m_destination->Encode(bit, m_probModel->ProbabilityOfOne());
-    m_probModel->Update(bit);
+    m_destination->encode(bit, m_probModel->probabilityOfOne());
+    m_probModel->update(bit);
   }
 }
 
-void Encoder::EncodeRange(const byte* begin, const byte* end) {
+void Encoder::encodeRange(const byte* begin, const byte* end) {
   while(begin != end) {
-    EncodeByte(*begin);
+    encodeByte(*begin);
     ++begin;
   }
 }
@@ -89,20 +89,20 @@ Encoder::~Encoder() {
   delete m_probModel;
 }
 
-void Encoder::EndContextBlock() {
+void Encoder::endContextBlock() {
   assert(m_probModel);
-  m_probModel->ResetModel();
+  m_probModel->resetModel();
 }
 
-void Decoder::EndContextBlock() {
+void Decoder::endContextBlock() {
   assert(m_probModel);
-  m_probModel->ResetModel();
+  m_probModel->resetModel();
 }
 
-int Encoder::WriteTrailer(uint64 trailer) {
+int Encoder::writeTrailer(uint64 trailer) {
   int bytes;
   uint64 packed_integer = utils::PackInteger(trailer, &bytes);
-  WritePackedInteger(packed_integer);
+  writePackedInteger(packed_integer);
   return bytes;
 }
 
@@ -132,7 +132,7 @@ int Encoder::WriteTrailer(uint64 trailer) {
 //       temporary file or huge buffer for each mainblock, so that
 //       we can write the size of the compressed block in the beginning (1a)
 // At the moment the implementation is done only for compressing into file
-void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
+void Encoder::encodeData(std::vector<byte>* block, std::vector<uint64>* stats,
                          uint64 block_size)
 {
   /* At the moment the context block-lengths are written in same order than   *
@@ -151,18 +151,18 @@ void Encoder::EncodeData(std::vector<byte>* block, std::vector<uint64>* stats,
     for( ; m_currentStatHandled < (*stats)[m_currentStatIndex];
          ++i, ++m_currentStatHandled) {
       if (i == block_size) return;
-      EncodeByte((*block)[i]);
+      encodeByte((*block)[i]);
     }
     m_currentStatHandled = 0;
-    EndContextBlock();
+    endContextBlock();
   }
 }
 
-void Encoder::FinishBlock(uint64 eob_byte) {
-  m_destination->Finish();
-  m_compressedBlockLength += m_destination->Counter();
-  m_compressedBlockLength +=  WriteTrailer(eob_byte);
-  m_out->Write48bits(m_compressedBlockLength, m_headerPosition);
+void Encoder::finishBlock(uint64 eob_byte) {
+  m_destination->finish();
+  m_compressedBlockLength += m_destination->counter();
+  m_compressedBlockLength +=  writeTrailer(eob_byte);
+  m_out->write48bits(m_compressedBlockLength, m_headerPosition);
 }
 
 /*********************************************************************
@@ -173,10 +173,10 @@ void Encoder::FinishBlock(uint64 eob_byte) {
  *   result of BWT. Lengths are coded with utils::PackInteger        *
  * - 2 sentinel bytes 0x80 and 0x00 for notifying end of the header  *
  *********************************************************************/
-void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
+void Encoder::writeBlockHeader(std::vector<uint64>* stats) {
   uint64 headerLength = 0;
-  m_headerPosition = m_out->GetPos();
-  for (unsigned i = 0; i < 6; ++i) m_out->WriteByte(0x00); //fill 48 bits
+  m_headerPosition = m_out->getPos();
+  for (unsigned i = 0; i < 6; ++i) m_out->writeByte(0x00); //fill 48 bits
   for (unsigned i = 0; i < stats->size(); ++i) {
     int bytes;
     // TODO: At the moment we are not printing numbers in increasing order
@@ -184,48 +184,48 @@ void Encoder::WriteBlockHeader(std::vector<uint64>* stats) {
     if((*stats)[i] > 0) {
       uint64 packed_cblock_size = utils::PackInteger((*stats)[i], &bytes);
       headerLength += bytes;
-      WritePackedInteger(packed_cblock_size);
+      writePackedInteger(packed_cblock_size);
     }
   }
-  headerLength += FinishBlockHeader();
+  headerLength += finishBlockHeader();
   m_compressedBlockLength = headerLength;
   m_currentStatHandled = m_currentStatIndex = 0;
 
-  m_destination->ResetCounter();
+  m_destination->resetCounter();
 }
 
 /* Integer is written in reversal fashion so that it can be read easier.*/
-void Encoder::WritePackedInteger(uint64 packed_integer) {
+void Encoder::writePackedInteger(uint64 packed_integer) {
   do {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
-    m_out->WriteByte(to_written);
+    m_out->writeByte(to_written);
   } while (packed_integer);
 }
 
-int Encoder::FinishBlockHeader() {
-  m_out->WriteByte(0x80);
-  m_out->WriteByte(0x00);
+int Encoder::finishBlockHeader() {
+  m_out->writeByte(0x80);
+  m_out->writeByte(0x00);
   return 2;
 }
 
-uint64 Decoder::ReadBlockHeader(std::vector<uint64>* stats) {
+uint64 Decoder::readBlockHeader(std::vector<uint64>* stats) {
   static const uint64 kErrorMask = static_cast<uint64>(1) << 63;
 
-  uint64 compressed_length = m_in->Read48bits();
+  uint64 compressed_length = m_in->read48bits();
   while(1) {
-    uint64 value = ReadPackedInteger();
+    uint64 value = readPackedInteger();
     if(value & kErrorMask) break;
     stats->push_back(utils::UnpackInteger(value));
   }
   return compressed_length;
 }
 
-std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
-  if(m_in->CompressedDataEnding()) return NULL;
+std::vector<byte>* Decoder::decodeBlock(uint64* eof_byte) {
+  if(m_in->compressedDataEnding()) return NULL;
 
   std::vector<uint64> context_lengths;
-  uint64 compr_len = ReadBlockHeader(&context_lengths);
+  uint64 compr_len = readBlockHeader(&context_lengths);
 
   if (verbosity > 2) {
     std::clog << "Size of compressed block = " << compr_len << "\n";
@@ -233,22 +233,22 @@ std::vector<byte>* Decoder::DecodeBlock(uint64* eof_byte) {
 
   uint64 block_size = std::accumulate(
       context_lengths.begin(), context_lengths.end(), static_cast<uint64>(0));
-  m_source->Start();
+  m_source->start();
   std::vector<byte>* data = new std::vector<byte>(block_size);
   int j = 0;
   for(std::vector<uint64>::const_iterator it = context_lengths.begin();
       it != context_lengths.end(); ++it) {
     for(uint64 i = 0; i < *it; ++i) {
-      (*data)[j++] = DecodeByte();
+      (*data)[j++] = decodeByte();
     }
-    EndContextBlock();
+    endContextBlock();
   }
-  uint64 packed_integer = ReadPackedInteger();
+  uint64 packed_integer = readPackedInteger();
   *eof_byte = utils::UnpackInteger(packed_integer);
   return data;
 }
 
-uint64 Decoder::ReadPackedInteger() {
+uint64 Decoder::readPackedInteger() {
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
 
@@ -256,7 +256,7 @@ uint64 Decoder::ReadPackedInteger() {
   bool bits_left = true;
   int i;
   for(i = 0; bits_left; ++i) {
-    uint64 read = static_cast<uint64>(m_in->ReadByte());
+    uint64 read = static_cast<uint64>(m_in->readByte());
     bits_left = (read & kEndMask) != 0;
     packed_integer |= (read << i*8);
   }
@@ -269,14 +269,14 @@ Decoder::Decoder(const std::string& source, char prob_model)
     : m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
       m_probModel(GiveProbabilityModel(prob_model))
 {
-  m_source->Connect(m_in);
+  m_source->connect(m_in);
 }
 
 Decoder::Decoder(const std::string& source) :
     m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
     m_probModel(0)
 {
-  m_source->Connect(m_in);
+  m_source->connect(m_in);
 }
 
 Decoder::~Decoder() {
@@ -285,15 +285,15 @@ Decoder::~Decoder() {
   delete m_probModel;
 }
 
-byte Decoder::DecodeByte() {
+byte Decoder::decodeByte() {
   byte b = 0x00;
   for(int i = 0; i < 8; ++i) {
     b <<= 1;
-    if (m_source->Decode(m_probModel->ProbabilityOfOne())) {
+    if (m_source->decode(m_probModel->probabilityOfOne())) {
       b |= 1;
-      m_probModel->Update(true);
+      m_probModel->update(true);
     } else {
-      m_probModel->Update(false);
+      m_probModel->update(false);
     }
   }
   return b;

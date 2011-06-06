@@ -59,7 +59,7 @@ class OutStream {
    *
    *@param b byte to be written
    */
-  void WriteByte(byte b);
+  void writeByte(byte b);
 
   /**
    * Writes bytes from range [begin, end) to stream
@@ -67,11 +67,11 @@ class OutStream {
    * @param begin iterator to the start of the range to be written
    * @param end iterator to the one past last of the range to be written
    */
-  void WriteBlock(std::vector<byte>::const_iterator begin,
+  void writeBlock(std::vector<byte>::const_iterator begin,
                   std::vector<byte>::const_iterator end);
-  std::streampos GetPos() const; 
-  void Write48bits(uint64 to_written, std::streampos position);
-  void Flush();
+  std::streampos getPos() const; 
+  void write48bits(uint64 to_written, std::streampos position);
+  void flush();
 
  private:
   std::string m_name;
@@ -88,15 +88,15 @@ class InStream {
   ~InStream();
   /* Copies block from stream to given char array.
    * Returns the number of read chars. */
-  std::streamsize ReadBlock(byte* to, std::streamsize max_block_size);
-  byte ReadByte() { return static_cast<byte>(m_from->get()); }
-  uint64 Read48bits();
-  bool CompressedDataEnding() {
+  std::streamsize readBlock(byte* to, std::streamsize max_block_size);
+  byte readByte() { return static_cast<byte>(m_from->get()); }
+  uint64 read48bits();
+  bool compressedDataEnding() {
     /* Quick workaround. For some mysterious reason there is single
      * additional byte in the end of compressed file. It seems that
      * BitEncoder is responsible for this. */
     if (m_from->eof()) return true;
-    ReadByte();
+    readByte();
     if (m_from->eof()) return true;
     m_from->unget();
     return false;

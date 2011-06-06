@@ -81,7 +81,7 @@ BitEncoder::BitEncoder()
 
 BitEncoder::~BitEncoder() { }
 
-void BitEncoder::Encode(bool bit, Probability probability_of_one) {
+void BitEncoder::encode(bool bit, Probability probability_of_one) {
   if (verbosity > 7) {
     std::clog << "Encoding bit " << int(bit) << " with probability "
               << (bit ? probability_of_one :
@@ -92,21 +92,21 @@ void BitEncoder::Encode(bool bit, Probability probability_of_one) {
   /* Choose the subrange. */
   if (bit) m_high = split; else m_low = split + 1;
   while (((m_low ^ m_high) & 0xFF000000) == 0) {
-    EmitByte(m_low >> 24);
+    emitByte(m_low >> 24);
     m_low <<= 8;
     m_high = (m_high << 8) + 255;
   }
   assert(m_low < m_high);
 }
 
-void BitEncoder::Finish() {
+void BitEncoder::finish() {
   /* Emit 4 bytes representing any value in [m_low,m_high]
    * These are needed for BitDecoder lookahead. */
-  EmitByte(m_low >> 24);
-  EmitByte(255);
-  EmitByte(255);
-  EmitByte(255);
-  m_output->Flush();
+  emitByte(m_low >> 24);
+  emitByte(255);
+  emitByte(255);
+  emitByte(255);
+  m_output->flush();
   /* Prepare to encode another sequence. */
   m_low = 0;
   m_high = 0xFFFFFFFF;
@@ -117,23 +117,23 @@ BitDecoder::BitDecoder() :
 
 BitDecoder::~BitDecoder() { }
 
-void BitDecoder::Start() {
+void BitDecoder::start() {
   m_low = 0;
   m_high = 0xFFFFFFFF;
-  m_next = ReadByte();
-  m_next = (m_next << 8) + ReadByte();
-  m_next = (m_next << 8) + ReadByte();
-  m_next = (m_next << 8) + ReadByte();
+  m_next = readByte();
+  m_next = (m_next << 8) + readByte();
+  m_next = (m_next << 8) + readByte();
+  m_next = (m_next << 8) + readByte();
 }
 
-bool BitDecoder::Decode(Probability probability_of_one) {
+bool BitDecoder::decode(Probability probability_of_one) {
   uint32 split = Split(m_low, m_high, probability_of_one);
   bool bit = (m_next <= split);
   if (bit) m_high = split; else m_low = split + 1;
   while (((m_low ^ m_high) & 0xFF000000) == 0) {
     m_low <<= 8;
     m_high = (m_high << 8) + 255;
-    m_next = (m_next << 8) + ReadByte();
+    m_next = (m_next << 8) + readByte();
   }
   assert(m_low < m_high);
   assert(m_next >= m_low);

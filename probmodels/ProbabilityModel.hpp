@@ -34,21 +34,21 @@ namespace bwtc {
 
 class ProbabilityModel {
  public:
-  ProbabilityModel() : prev_(true) {}
+  ProbabilityModel() : m_prev(true) {}
   virtual ~ProbabilityModel() {}
   /* This will be called each time after single bit is coded. Updates to
    * model should be done here. */
-  virtual void Update(bool bit) { prev_ = bit; }
+  virtual void update(bool bit) { m_prev = bit; }
   /* This probability will be used for coding each bit of the source. */
-  virtual Probability ProbabilityOfOne() {
-    if( prev_) return kProbabilityScale - 1;
+  virtual Probability probabilityOfOne() {
+    if(m_prev) return kProbabilityScale - 1;
     else return  1;
   }
   /* This will called when the context of data changes. */
-  virtual void ResetModel() { prev_ = true; }
+  virtual void resetModel() { m_prev = true; }
 
  private:
-  bool prev_;
+  bool m_prev;
 };
 
 /* Example how to integrate new probability model to program */
@@ -57,13 +57,13 @@ class SimpleMarkov : public ProbabilityModel {
  public:
   SimpleMarkov();
   virtual ~SimpleMarkov();
-  virtual void Update(bool bit);
-  virtual Probability ProbabilityOfOne();
-  virtual void ResetModel();
+  virtual void update(bool bit);
+  virtual Probability probabilityOfOne();
+  virtual void resetModel();
 
  private:
-  UnsignedInt prev_;
-  char* history_;
+  UnsignedInt m_prev;
+  char* m_history;
 };
 
 ProbabilityModel* GiveProbabilityModel(char choice);

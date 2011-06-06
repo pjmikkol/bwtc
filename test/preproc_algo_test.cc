@@ -57,11 +57,11 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     bwtc::TestPreprocessor pp(block_size);
     pp.addBlockManager(&bm);
     pp.connect(source);
-    pp.InitializeTarget();
-    total_data = pp.FillBuffer();
+    pp.initializeTarget();
+    total_data = pp.fillBuffer();
     std::vector<byte> original(pp.curr_block_->m_filled);
     std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
-    assert(total_data == pp.curr_block_->filled_);
+    assert(total_data == pp.curr_block_->m_filled);
     assert(total_data == original.size());
     uint64 reduction = 0;
     for(int j = 0; j < times; ++j) {
@@ -69,7 +69,7 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     }
     
     total_reduction = reduction;
-    assert(total_reduction == total_data - pp.curr_block_->filled_);
+    assert(total_reduction == total_data - pp.curr_block_->m_filled);
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
@@ -106,18 +106,18 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
     bwtc::TestPreprocessor pp(block_size);
     pp.addBlockManager(&bm);
     pp.connect(source);
-    pp.InitializeTarget();
+    pp.initializeTarget();
     uint64 data_size = 0;
-    data_size = pp.FillBuffer();
+    data_size = pp.fillBuffer();
     std::vector<byte> original(pp.curr_block_->m_filled);
     std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
-    assert(data_size == pp.curr_block_->filled_);
+    assert(data_size == pp.curr_block_->m_filled);
     assert(data_size == original.size());
     uint64 compressed = 0;
     for(int j = 0; j < times; ++j) {
       compressed += pp.compressPairs();
     }
-    assert(compressed == data_size - pp.curr_block_->filled_);
+    assert(compressed == data_size - pp.curr_block_->m_filled);
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
@@ -151,11 +151,11 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
     bwtc::TestPreprocessor pp(block_size);
     pp.addBlockManager(&bm);
     pp.connect(source_name);
-    pp.InitializeTarget();
+    pp.initializeTarget();
     uint64 data_size = 0;
     uint64 data_reduction = 0;
     for(int j = 0; j < times; ++j) {
-      data_size += pp.FillBuffer();
+      data_size += pp.fillBuffer();
       data_reduction += pp.compressPairs();
     }
     total_data = data_size;
@@ -195,8 +195,8 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
     bwtc::TestPreprocessor pp(block_size);
     pp.addBlockManager(&bm);
     pp.connect(source_name);
-    pp.InitializeTarget();
-    uint64 data_size = pp.FillBuffer();
+    pp.initializeTarget();
+    uint64 data_size = pp.fillBuffer();
     std::vector<byte> original(data_size);
     std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
     uint64 data_reduction = 0;

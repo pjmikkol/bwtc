@@ -25,8 +25,8 @@
  */
 
 
-#ifndef BWTC_PREPROCESSOR_H_
-#define BWTC_PREPROCESSOR_H_
+#ifndef BWTC_PREPROCESSOR_HPP_
+#define BWTC_PREPROCESSOR_HPP_
 
 #include <iostream> /* for std::streamsize*/
 #include <string>
@@ -49,9 +49,9 @@ class Preprocessor {
   virtual MainBlock* readBlock();
 
  protected:
-  InStream* source_;
-  uint64 block_size_;
-  BlockManager* block_manager_;
+  InStream* m_source;
+  uint64 m_blockSize;
+  BlockManager* m_blockManager;
 
  private:
   /* This should be done during preprocessing*/

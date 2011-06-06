@@ -52,17 +52,17 @@ class Encoder {
  public:
   Encoder(const std::string& destination, char prob_model);
   ~Encoder();
-  void WriteGlobalHeader(char preproc, char encoding);
-  void EncodeByte(byte b);
-  void EncodeData(std::vector<byte>* data, std::vector<uint64>* stats,
+  void writeGlobalHeader(char preproc, char encoding);
+  void encodeByte(byte b);
+  void encodeData(std::vector<byte>* data, std::vector<uint64>* stats,
                   uint64 data_size);
-  void EncodeRange(const byte* begin, const byte* end);
-  void WriteBlockHeader(std::vector<uint64>* stats);
-  void WritePackedInteger(uint64 packed_integer);
-  int FinishBlockHeader();
-  void EndContextBlock();
-  int WriteTrailer(uint64 trailer_value);
-  void FinishBlock(uint64 eob_byte); //TODO: this calls write trailer
+  void encodeRange(const byte* begin, const byte* end);
+  void writeBlockHeader(std::vector<uint64>* stats);
+  void writePackedInteger(uint64 packed_integer);
+  int finishBlockHeader();
+  void endContextBlock();
+  int writeTrailer(uint64 trailer_value);
+  void finishBlock(uint64 eob_byte); //TODO: this calls write trailer
 
  private:
   OutStream* m_out;
@@ -87,17 +87,17 @@ class Decoder {
   ~Decoder();
   /* ReadGlobalHeader returns char denoting the preprocessing algorithm.
    * It changes the used probability model automatically. */
-  char ReadGlobalHeader();
-  byte DecodeByte();
-  void Start() { m_source->Start(); }
+  char readGlobalHeader();
+  byte decodeByte();
+  void start() { m_source->start(); }
   /* If end symbol is encountered, then the most significant bit is activated */
-  uint64 ReadPackedInteger();
+  uint64 readPackedInteger();
   /* Allocates memory for block, reads and decodes it. */
-  std::vector<byte>* DecodeBlock(uint64* eof_byte_in_bwt);
+  std::vector<byte>* decodeBlock(uint64* eof_byte_in_bwt);
   /* Returns length of the compressed sequence and stores lengths of the context
    * blocks into stats-array.*/
-  uint64 ReadBlockHeader(std::vector<uint64>* stats);
-  void EndContextBlock();
+  uint64 readBlockHeader(std::vector<uint64>* stats);
+  void endContextBlock();
 
  private:
   InStream* m_in;

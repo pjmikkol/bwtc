@@ -50,21 +50,21 @@ void decompress(const std::string& input_name, const std::string& output_name,
     else std::clog << "Output: stdout" << std::endl;
   }
   bwtc::Decoder decoder(input_name);
-  char preproc = decoder.ReadGlobalHeader();
+  char preproc = decoder.readGlobalHeader();
   bwtc::OutStream out(output_name);
 
   bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
 
   unsigned blocks = 0;
   uint64 eob_byte; // eob_byte position in BWT
-  while (std::vector<byte>* bwt_block = decoder.DecodeBlock(&eob_byte)) {
+  while (std::vector<byte>* bwt_block = decoder.decodeBlock(&eob_byte)) {
     ++blocks;
     std::vector<byte>* unbwt_block = transformer->doTransform(&(*bwt_block)[0],
                                                               bwt_block->size(),
                                                               eob_byte);
     // PostProcess
-    out.WriteBlock(unbwt_block->begin(), unbwt_block->end());
-    out.Flush();
+    out.writeBlock(unbwt_block->begin(), unbwt_block->end());
+    out.flush();
     delete bwt_block;
     delete unbwt_block;
   }

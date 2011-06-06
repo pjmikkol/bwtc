@@ -52,14 +52,14 @@ void TestFileSize(const std::string& fname, unsigned characters);
 
 void SimpleWriteReadTest() {
   bwtc::OutStream out(test_fname);
-  out.WriteByte('a');
-  out.WriteByte('b');
-  out.WriteByte('c');
-  out.Flush();
+  out.writeByte('a');
+  out.writeByte('b');
+  out.writeByte('c');
+  out.flush();
   bwtc::InStream in(test_fname);
-  assert(in.ReadByte() == 'a');
-  assert('b' == in.ReadByte());
-  assert('c' == in.ReadByte());
+  assert(in.readByte() == 'a');
+  assert('b' == in.readByte());
+  assert('c' == in.readByte());
 }
 
 
@@ -67,7 +67,7 @@ void SimpleWriteReadTest() {
 void WriteToFile(const std::string& fname, unsigned characters) {
   bwtc::OutStream f(fname);
   std::vector<byte> data(characters,'a');
-  f.WriteBlock(data.begin(), data.end());
+  f.writeBlock(data.begin(), data.end());
 }
 
 void TestFileSize(const std::string& fname, unsigned characters) {
@@ -90,25 +90,25 @@ void WriteToStreamTest() {
   bwtc::OutStream f("");
   std::string str = std::string("test\n");
   std::vector<byte> data(str.begin(), str.end());
-  f.WriteBlock(data.begin(), data.end());  
+  f.writeBlock(data.begin(), data.end());  
 }
 
 void EmptyWriteTest() {
   bwtc::OutStream f(test_fname);
   std::vector<byte> data(0);
-  f.WriteBlock(data.begin(), data.end());  
+  f.writeBlock(data.begin(), data.end());  
 }
 
 /*********** begin: ReadFromFileTest ***********/
 void WriteAndRead(long fsize, long bsize) {  
   bwtc::OutStream o(test_fname);
   std::vector<byte> data(fsize, 'b');
-  o.WriteBlock(data.begin(), data.end());
-  o.Flush();
+  o.writeBlock(data.begin(), data.end());
+  o.flush();
   bwtc::InStream f(test_fname);
   std::vector<byte> block(bsize);
   long total = 0;
-  while (std::streamsize read = f.ReadBlock(&block[0], 1000)) total += read;
+  while (std::streamsize read = f.readBlock(&block[0], 1000)) total += read;
   assert(total == fsize);
 }
 

@@ -50,9 +50,9 @@ class TestPreprocessor : public Preprocessor {
   /* Same as above, but different compression algorithm */
   uint64 compressRuns();
   /* Initialize target-array for reading */
-  void InitializeTarget();
+  void initializeTarget();
   /* Fills the buffer from instream. returns true if something is read*/
-  uint64 FillBuffer();
+  uint64 fillBuffer();
 
   MainBlock *curr_block_;
 };

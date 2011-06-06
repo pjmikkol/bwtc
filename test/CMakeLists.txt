@@ -5,7 +5,7 @@ project(bwtc_tests)
 set(EXECUTABLE_OUTPUT_PATH bin/)
 
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost COMPONENTS system)
+find_package(Boost COMPONENTS system filesystem)
 
 link_directories(${Boost_LIBRARY_DIR} ${OBJECT_FILE_PATH})
 include_directories(${Boost_INCLUDE_DIR})
@@ -26,7 +26,6 @@ target_link_libraries(coders_test common probmodels)
 add_test(coders_test ${EXECUTABLE_OUTPUT_PATH}/coders_test "test_file")
 set_tests_properties(coders_test PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
-# TODO: Poista huono toteutus
 add_executable(sa-is_test sa-is_test.cc)
 target_link_libraries(sa-is_test common)
 add_test(sa-is_test ${EXECUTABLE_OUTPUT_PATH}/sa-is_test)

@@ -55,24 +55,24 @@ OutStream::~OutStream() {
   }
 }
 
-void OutStream::Flush() {
+void OutStream::flush() {
   m_to->flush();
 }
 
-void OutStream::WriteByte(byte b) {
+void OutStream::writeByte(byte b) {
   m_to->put(b);
 }
 
-std::streampos OutStream::GetPos() const {
+std::streampos OutStream::getPos() const {
   return m_to->tellp();
 }
 
-void OutStream::WriteBlock(std::vector<byte>::const_iterator begin,
+void OutStream::writeBlock(std::vector<byte>::const_iterator begin,
                            std::vector<byte>::const_iterator end) {
   std::copy(begin, end, std::ostream_iterator<byte>(*m_to));
 }
 
-void OutStream::Write48bits(uint64 to_written, std::streampos position) {
+void OutStream::write48bits(uint64 to_written, std::streampos position) {
   assert((to_written & (((uint64)0xFFFF) << 48)) == 0 );
   std::streampos current = m_to->tellp();
   m_to->seekp(position);
@@ -84,11 +84,11 @@ void OutStream::Write48bits(uint64 to_written, std::streampos position) {
   m_to->seekp(current);
 }
 
-uint64 InStream::Read48bits() {
+uint64 InStream::read48bits() {
   uint64 result = 0;
   for(int i = 0; i < 6; ++i) {
     result <<= 8;
-    result |= ReadByte();
+    result |= readByte();
   }
   return result;
 }
@@ -111,7 +111,7 @@ InStream::~InStream() {
   }
 }
 
-std::streamsize InStream::ReadBlock(byte* to, std::streamsize max_block_size) {
+std::streamsize InStream::readBlock(byte* to, std::streamsize max_block_size) {
   if(! *m_from) return 0; /* stream has reached EOF */
   m_from->read(reinterpret_cast<char*>(to), max_block_size);
   return m_from->gcount();

@@ -62,45 +62,45 @@ ProbabilityModel* GiveProbabilityModel(char choice) {
  *************************************************************************/
 template <typename UnsignedInt>
 SimpleMarkov<UnsignedInt>::SimpleMarkov() :
-    prev_(static_cast<UnsignedInt>(0)), history_(NULL)
+    m_prev(static_cast<UnsignedInt>(0)), m_history(0)
 {
   uint64 size = (static_cast<uint64>(1) << 8*sizeof(UnsignedInt)) - 1;
-  history_ = new char[size];
-  std::fill(history_, history_ + size, 0);
+  m_history = new char[size];
+  std::fill(m_history, m_history + size, 0);
 }
 
 template <typename UnsignedInt>
 SimpleMarkov<UnsignedInt>::~SimpleMarkov() {
-  delete [] history_;
+  delete [] m_history;
 }
 
 template <typename UnsignedInt>
-void SimpleMarkov<UnsignedInt>::Update(bool bit) {
+void SimpleMarkov<UnsignedInt>::update(bool bit) {
   if (bit) {
-    if (history_[prev_] < 2 )
-      ++history_[prev_];
+    if (m_history[m_prev] < 2 )
+      ++m_history[m_prev];
   }
   else {
-    if(history_[prev_] > -2)
-      --history_[prev_];
+    if(m_history[m_prev] > -2)
+      --m_history[m_prev];
   }
-  prev_ <<= 1;
-  prev_ |= (bit)? 1 : 0;
+  m_prev <<= 1;
+  m_prev |= (bit)? 1 : 0;
 }
 
 template <typename UnsignedInt>
-Probability SimpleMarkov<UnsignedInt>::ProbabilityOfOne() {
+Probability SimpleMarkov<UnsignedInt>::probabilityOfOne() {
   Probability val = kProbabilityScale >> (kLogProbabilityScale/2);
-  if (history_[prev_] > 0) return val << 2*history_[prev_];
-  else return val >> 2*history_[prev_];
+  if (m_history[m_prev] > 0) return val << 2*m_history[m_prev];
+  else return val >> 2*m_history[m_prev];
 }
 
 template <typename UnsignedInt>
-void SimpleMarkov<UnsignedInt>::ResetModel() {
+void SimpleMarkov<UnsignedInt>::resetModel() {
   /* Seems to work better when not resetting the model for different
    * contexts. */
   uint64 size = (static_cast<uint64>(1) << 8*sizeof(UnsignedInt)) - 1;
-  std::fill(history_, history_ + size, 0);
+  std::fill(m_history, m_history + size, 0);
 }
 
 } //namespace bwtc

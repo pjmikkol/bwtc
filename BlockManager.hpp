@@ -46,9 +46,9 @@ class BlockManager {
  public:
   BlockManager(uint64 block_size, int context_length);
   ~BlockManager();
-  std::vector<byte>* GetFreeBuffer();
-  std::vector<uint64>* GetFreeStats();
-  MainBlock* MakeBlock(std::vector<byte>* buffer, std::vector<uint64>* stats,
+  std::vector<byte>* getFreeBuffer();
+  std::vector<uint64>* getFreeStats();
+  MainBlock* makeBlock(std::vector<byte>* buffer, std::vector<uint64>* stats,
                        uint64 filled);
 
  private:

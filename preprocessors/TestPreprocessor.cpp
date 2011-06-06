@@ -60,23 +60,23 @@ uint64 TestPreprocessor::compressRuns() {
   return result;
 }
 
-void TestPreprocessor::InitializeTarget() {
-  assert(block_manager_);
-  std::vector<byte>* target = block_manager_->GetFreeBuffer();
-  target->resize(block_size_);
-  std::vector<uint64>* stats = block_manager_->GetFreeStats();
-  curr_block_ = block_manager_->MakeBlock(target, stats, 0UL);
+void TestPreprocessor::initializeTarget() {
+  assert(m_blockManager);
+  std::vector<byte>* target = m_blockManager->getFreeBuffer();
+  target->resize(m_blockSize);
+  std::vector<uint64>* stats = m_blockManager->getFreeStats();
+  curr_block_ = m_blockManager->makeBlock(target, stats, 0UL);
 }
 
-uint64 TestPreprocessor::FillBuffer() {
+uint64 TestPreprocessor::fillBuffer() {
   // TODO: Check the types
-  assert(source_);
+  assert(m_source);
   assert(curr_block_);
-  assert(block_size_ <= curr_block_->m_block->size());
-  if (curr_block_->m_filled == block_size_) return 0;
-  std::streamsize read = source_->ReadBlock(
+  assert(m_blockSize <= curr_block_->m_block->size());
+  if (curr_block_->m_filled == m_blockSize) return 0;
+  std::streamsize read = m_source->readBlock(
       curr_block_->begin() + curr_block_->size(),
-      static_cast<std::streamsize>(block_size_ - curr_block_->size()));
+      static_cast<std::streamsize>(m_blockSize - curr_block_->size()));
   curr_block_->m_filled += read;
   return static_cast<uint64>(read);
 }

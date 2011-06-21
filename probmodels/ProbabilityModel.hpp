@@ -40,7 +40,7 @@ class ProbabilityModel {
    * model should be done here. */
   virtual void update(bool bit) { m_prev = bit; }
   /* This probability will be used for coding each bit of the source. */
-  virtual Probability probabilityOfOne() {
+  virtual Probability probabilityOfOne() const {
     if(m_prev) return kProbabilityScale - 1;
     else return  1;
   }
@@ -58,7 +58,7 @@ class SimpleMarkov : public ProbabilityModel {
   SimpleMarkov();
   virtual ~SimpleMarkov();
   virtual void update(bool bit);
-  virtual Probability probabilityOfOne();
+  virtual Probability probabilityOfOne() const;
   virtual void resetModel();
 
  private:

@@ -29,6 +29,8 @@
 
 #include "../globaldefs.hpp"
 #include "ProbabilityModel.hpp"
+#include "BitPredictors.hpp"
+#include "FSM.hpp"
 
 namespace bwtc {
 
@@ -42,6 +44,14 @@ ProbabilityModel* GiveProbabilityModel(char choice) {
       if( verbosity > 1)
         std::clog << "Remembering 16 previous bits\n";
       return new SimpleMarkov<unsigned short int>();      
+    case 'b':
+      if( verbosity > 1)
+        std::clog << "Remembering 4 previous bits.\n";
+      return new BitPredictor<4>();
+    case 'B':
+      if( verbosity > 1)
+        std::clog << "Using FSM.\n";
+      return new FSM<6, BitPredictor<8> >();
     case 'n':
     default:
       if( verbosity > 1)
@@ -89,7 +99,7 @@ void SimpleMarkov<UnsignedInt>::update(bool bit) {
 }
 
 template <typename UnsignedInt>
-Probability SimpleMarkov<UnsignedInt>::probabilityOfOne() {
+Probability SimpleMarkov<UnsignedInt>::probabilityOfOne() const {
   Probability val = kProbabilityScale >> (kLogProbabilityScale/2);
   if (m_history[m_prev] > 0) return val << 2*m_history[m_prev];
   else return val >> 2*m_history[m_prev];

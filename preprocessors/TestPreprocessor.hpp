@@ -54,7 +54,7 @@ class TestPreprocessor : public Preprocessor {
   /* Fills the buffer from instream. returns true if something is read*/
   uint64 fillBuffer();
 
-  MainBlock *curr_block_;
+  MainBlock *m_currentBlock;
 };
 
 } // namespace bwtc

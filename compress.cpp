@@ -110,7 +110,7 @@ void validatePreprocOption(char c) {
 
 /* Notifier function for encoding option choice */
 void validateEncodingOption(char c) {
-  if (c == 'n' || c == 'm' || c == 'M'/* || c == <other option> */) return;
+  if (c == 'n' || c == 'm' || c == 'M' || c == 'b' || c == 'B'/* || c == <other option> */) return;
 
   class EncodingExc : public std::exception {
     virtual const char* what() const throw() {

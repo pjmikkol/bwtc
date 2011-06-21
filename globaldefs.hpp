@@ -61,6 +61,7 @@ Integer Max<Integer>::max = std::numeric_limits<Integer>::max();
 /* Definitions for probability models and arithmetic coding */
 typedef uint16 Probability;
 static const int kLogProbabilityScale = 12;
+/** Maximum probability for used in arithmetic coding. */
 static const Probability kProbabilityScale = (1 << kLogProbabilityScale);
 
 typedef unsigned char byte;
@@ -70,11 +71,11 @@ typedef unsigned char byte;
 /**
  * Name of the compressor program
  */
-#define COMPRESSOR "compr"
+#define COMPRESSOR "compress"
 
 /**
  * Name of the decompressor program
  */
-#define DECOMPRESSOR "uncompr"
+#define DECOMPRESSOR "uncompress"
 
 #endif

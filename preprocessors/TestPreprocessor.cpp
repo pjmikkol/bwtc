@@ -38,25 +38,25 @@
 namespace bwtc {
 
 TestPreprocessor::TestPreprocessor(uint64 block_size) :
-    Preprocessor(block_size), curr_block_(0) {}
+    Preprocessor(block_size), m_currentBlock(0) {}
 
 TestPreprocessor::~TestPreprocessor() {
-  if(curr_block_) delete curr_block_;
+  if(m_currentBlock) delete m_currentBlock;
 }
 
 uint64 TestPreprocessor::compressPairs() {
-  uint64 filled = compressCommonPairs(&(*curr_block_->m_block)[0],
-                                      curr_block_->m_filled);
-  uint64 result = curr_block_->m_filled - filled;
-  curr_block_->m_filled = filled;
+  uint64 filled = compressCommonPairs(&(*m_currentBlock->m_block)[0],
+                                      m_currentBlock->m_filled);
+  uint64 result = m_currentBlock->m_filled - filled;
+  m_currentBlock->m_filled = filled;
   return result;
 }
 
 uint64 TestPreprocessor::compressRuns() {
-  uint64 filled = compressLongRuns(&(*curr_block_->m_block)[0],
-                                   curr_block_->m_filled);
-  uint64 result = curr_block_->m_filled - filled;
-  curr_block_->m_filled = filled;
+  uint64 filled = compressLongRuns(&(*m_currentBlock->m_block)[0],
+                                   m_currentBlock->m_filled);
+  uint64 result = m_currentBlock->m_filled - filled;
+  m_currentBlock->m_filled = filled;
   return result;
 }
 
@@ -65,19 +65,19 @@ void TestPreprocessor::initializeTarget() {
   std::vector<byte>* target = m_blockManager->getFreeBuffer();
   target->resize(m_blockSize);
   std::vector<uint64>* stats = m_blockManager->getFreeStats();
-  curr_block_ = m_blockManager->makeBlock(target, stats, 0UL);
+  m_currentBlock = m_blockManager->makeBlock(target, stats, 0UL);
 }
 
 uint64 TestPreprocessor::fillBuffer() {
   // TODO: Check the types
   assert(m_source);
-  assert(curr_block_);
-  assert(m_blockSize <= curr_block_->m_block->size());
-  if (curr_block_->m_filled == m_blockSize) return 0;
+  assert(m_currentBlock);
+  assert(m_blockSize <= m_currentBlock->m_block->size());
+  if (m_currentBlock->m_filled == m_blockSize) return 0;
   std::streamsize read = m_source->readBlock(
-      curr_block_->begin() + curr_block_->size(),
-      static_cast<std::streamsize>(m_blockSize - curr_block_->size()));
-  curr_block_->m_filled += read;
+      m_currentBlock->begin() + m_currentBlock->size(),
+      static_cast<std::streamsize>(m_blockSize - m_currentBlock->size()));
+  m_currentBlock->m_filled += read;
   return static_cast<uint64>(read);
 }
 

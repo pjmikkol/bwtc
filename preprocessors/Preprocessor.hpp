@@ -74,8 +74,8 @@ class FreqTable {
  private:
   void initLocations();
   bool test();
-  std::pair<byte, uint64> freq_[256];
-  byte location_[256];
+  std::pair<byte, uint64> m_frequencies[256];
+  byte m_location[256];
 };
 
 /* This function returns chosen preprocessor */ 

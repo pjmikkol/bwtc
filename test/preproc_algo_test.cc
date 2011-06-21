@@ -59,9 +59,9 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     pp.connect(source);
     pp.initializeTarget();
     total_data = pp.fillBuffer();
-    std::vector<byte> original(pp.curr_block_->m_filled);
-    std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
-    assert(total_data == pp.curr_block_->m_filled);
+    std::vector<byte> original(pp.m_currentBlock->m_filled);
+    std::copy(pp.m_currentBlock->begin(), pp.m_currentBlock->end(), original.begin());
+    assert(total_data == pp.m_currentBlock->m_filled);
     assert(total_data == original.size());
     uint64 reduction = 0;
     for(int j = 0; j < times; ++j) {
@@ -69,17 +69,17 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     }
     
     total_reduction = reduction;
-    assert(total_reduction == total_data - pp.curr_block_->m_filled);
+    assert(total_reduction == total_data - pp.m_currentBlock->m_filled);
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::uncompressLongRuns(pp.curr_block_->m_block,
-                                                   pp.curr_block_->m_filled);
+      uncompressed_size = bwtc::uncompressLongRuns(pp.m_currentBlock->m_block,
+                                                   pp.m_currentBlock->m_filled);
       /* This one should be done in same kind of wrapper than
        * Preprocessor::compressPairs*/
-      pp.curr_block_->m_filled = uncompressed_size; 
+      pp.m_currentBlock->m_filled = uncompressed_size; 
     }
-    std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
+    std::vector<byte>& uncompressed = *pp.m_currentBlock->m_block;
 
     assert(uncompressed_size == original.size());
     for(uint64 j = 0; j < uncompressed_size; ++j) {
@@ -109,25 +109,25 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
     pp.initializeTarget();
     uint64 data_size = 0;
     data_size = pp.fillBuffer();
-    std::vector<byte> original(pp.curr_block_->m_filled);
-    std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
-    assert(data_size == pp.curr_block_->m_filled);
+    std::vector<byte> original(pp.m_currentBlock->m_filled);
+    std::copy(pp.m_currentBlock->begin(), pp.m_currentBlock->end(), original.begin());
+    assert(data_size == pp.m_currentBlock->m_filled);
     assert(data_size == original.size());
     uint64 compressed = 0;
     for(int j = 0; j < times; ++j) {
       compressed += pp.compressPairs();
     }
-    assert(compressed == data_size - pp.curr_block_->m_filled);
+    assert(compressed == data_size - pp.m_currentBlock->m_filled);
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::uncompressCommonPairs(pp.curr_block_->m_block,
-                                                      pp.curr_block_->m_filled);
+      uncompressed_size = bwtc::uncompressCommonPairs(pp.m_currentBlock->m_block,
+                                                      pp.m_currentBlock->m_filled);
       /* This one should be done in same kind of wrapper than
        * Preprocessor::compressPairs*/
-      pp.curr_block_->m_filled = uncompressed_size; 
+      pp.m_currentBlock->m_filled = uncompressed_size; 
     }
-    std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
+    std::vector<byte>& uncompressed = *pp.m_currentBlock->m_block;
 
     assert(uncompressed_size == original.size());
     for(uint64 j = 0; j < data_size; ++j) {
@@ -161,7 +161,7 @@ void TestPairCompression(std::string source_name, int times, uint64 block_size)
     total_data = data_size;
     total_reduction = data_reduction;
     /*    uint64 eob;
-    transformer->Connect(pp.curr_block_);
+    transformer->Connect(pp.m_currentBlock);
     transformer->BuildStats();
     std::vector<byte>* result = transformer->DoTransform(&eob);
     delete result;*/
@@ -198,7 +198,7 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
     pp.initializeTarget();
     uint64 data_size = pp.fillBuffer();
     std::vector<byte> original(data_size);
-    std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
+    std::copy(pp.m_currentBlock->begin(), pp.m_currentBlock->end(), original.begin());
     uint64 data_reduction = 0;
     for(int j = 0; j < times; ++j) {
       data_reduction += pp.compressPairs();
@@ -209,14 +209,14 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
 
     uint64 uncompressed_size = 0;
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::uncompressLongRuns(pp.curr_block_->m_block,
-                                                   pp.curr_block_->m_filled);
-      pp.curr_block_->m_filled = uncompressed_size; 
-      uncompressed_size = bwtc::uncompressCommonPairs(pp.curr_block_->m_block,
-                                                      pp.curr_block_->m_filled);
-      pp.curr_block_->m_filled = uncompressed_size; 
+      uncompressed_size = bwtc::uncompressLongRuns(pp.m_currentBlock->m_block,
+                                                   pp.m_currentBlock->m_filled);
+      pp.m_currentBlock->m_filled = uncompressed_size; 
+      uncompressed_size = bwtc::uncompressCommonPairs(pp.m_currentBlock->m_block,
+                                                      pp.m_currentBlock->m_filled);
+      pp.m_currentBlock->m_filled = uncompressed_size; 
     }
-    std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
+    std::vector<byte>& uncompressed = *pp.m_currentBlock->m_block;
 
     std::cout << uncompressed_size << " " << data_size << "\n";
     assert(uncompressed_size == original.size());

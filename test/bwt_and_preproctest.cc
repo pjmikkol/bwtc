@@ -67,11 +67,11 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
     switch (preprocs[str_index]) {
       /*
       case 'l': // Replace long sequences 
-        compressed_size = bwtc::compressSequences(pp.curr_block_->begin()
-                                                  ,pp.curr_block_->filled_
+        compressed_size = bwtc::compressSequences(pp.m_currentBlock->begin()
+                                                  ,pp.m_currentBlock->filled_
                                                   ,mem_constr, 16 //Window size
                                                   ,threshold);
-        pp.curr_block_->filled_ = compressed_size;
+        pp.m_currentBlock->filled_ = compressed_size;
         break;*/
       case 'r': /* Replace runs of same byte */
         compressed_size -= pp.compressRuns();
@@ -87,7 +87,7 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
 
   /* Burrows-Wheeler Transform */
   uint64 eob;
-  transformer->connect(pp.curr_block_);
+  transformer->connect(pp.m_currentBlock);
   clock_t bwt_start = clock();
   std::vector<byte> *result = transformer->doTransform(&eob);
   clock_t bwt_end = clock();
@@ -122,7 +122,7 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   uint64 compressed_size = orig_size;
 
   std::vector<byte> original(orig_size);
-  std::copy(pp.curr_block_->begin(), pp.curr_block_->end(), original.begin());
+  std::copy(pp.m_currentBlock->begin(), pp.m_currentBlock->end(), original.begin());
   
   /* Preprocessing */
   std::cout << "############################\n";
@@ -132,11 +132,11 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
     switch (preprocs[str_index]) {
       /*
       case 'l': // Replace long sequences 
-        compressed_size = bwtc::compressSequences(pp.curr_block_->begin()
-                                                  ,pp.curr_block_->filled_
+        compressed_size = bwtc::compressSequences(pp.m_currentBlock->begin()
+                                                  ,pp.m_currentBlock->filled_
                                                   ,mem_constr, 16 //Window size
                                                   ,threshold);
-        pp.curr_block_->filled_ = compressed_size;
+        pp.m_currentBlock->filled_ = compressed_size;
         break;*/
       case 'r': /* Replace runs of same byte */
         compressed_size -= pp.compressRuns();
@@ -156,24 +156,24 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
     switch(preprocs[str_index]) {
       /*
       case 'l':
-        uncompr_size = bwtc::uncompressSequences(pp.curr_block_->block_,
-                                                 pp.curr_block_->filled_);
-        pp.curr_block_->filled_ = uncompr_size;
+        uncompr_size = bwtc::uncompressSequences(pp.m_currentBlock->block_,
+                                                 pp.m_currentBlock->filled_);
+        pp.m_currentBlock->filled_ = uncompr_size;
         break;*/
       case 'r':
-        uncompr_size = bwtc::uncompressLongRuns(pp.curr_block_->m_block,
-                                                pp.curr_block_->m_filled);
-        pp.curr_block_->m_filled = uncompr_size;
+        uncompr_size = bwtc::uncompressLongRuns(pp.m_currentBlock->m_block,
+                                                pp.m_currentBlock->m_filled);
+        pp.m_currentBlock->m_filled = uncompr_size;
         break;
       default:
-        uncompr_size = bwtc::uncompressCommonPairs(pp.curr_block_->m_block,
-                                                   pp.curr_block_->m_filled);
-        pp.curr_block_->m_filled = uncompr_size; 
+        uncompr_size = bwtc::uncompressCommonPairs(pp.m_currentBlock->m_block,
+                                                   pp.m_currentBlock->m_filled);
+        pp.m_currentBlock->m_filled = uncompr_size; 
     }
       
   } while(--str_index >= 0);
 
-  std::vector<byte>& uncompressed = *pp.curr_block_->m_block;
+  std::vector<byte>& uncompressed = *pp.m_currentBlock->m_block;
   assert(uncompr_size == original.size());
   for(uint64 j = 0; j < original.size(); ++j) {
     assert(uncompressed[j] == original[j]);

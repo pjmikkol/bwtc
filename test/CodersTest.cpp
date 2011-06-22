@@ -73,7 +73,7 @@ void TestWritingAndReadingPackedIntegerList() {
   int bytes;
   for(unsigned i = 0; i < data.size(); ++i) {
     data[i] = static_cast<uint64>(rand());
-    uint64 packed_integer = utils::PackInteger(data[i], &bytes);
+    uint64 packed_integer = utils::packInteger(data[i], &bytes);
     enc->writePackedInteger(packed_integer);
   }
   enc->finishBlockHeader();
@@ -84,7 +84,7 @@ void TestWritingAndReadingPackedIntegerList() {
     uint64 value = dec.readPackedInteger();
     if(value & kErrorMask) break;
     assert(i < data.size());
-    assert(data[i] == utils::UnpackInteger(value));
+    assert(data[i] == utils::unpackInteger(value));
     ++i;
   }
   assert(i == data.size());
@@ -114,8 +114,8 @@ void TestPackingIntegers(int times) {
   int bytes_needed;
   for(int i = 0; i < times; ++i) {
     uint64 original = static_cast<uint64>(rand());
-    uint64 packed = utils::PackInteger(original, &bytes_needed);
-    uint64 result = utils::UnpackInteger(packed);
+    uint64 packed = utils::packInteger(original, &bytes_needed);
+    uint64 result = utils::unpackInteger(packed);
 
     assert(result == original);
     assert(original <= (kLongOne << (bytes_needed*8)));
@@ -167,7 +167,7 @@ void TestWritingAndReadingHeadersAndSimpleData() {
   encoder->out_->write48bits(0xFF, len_pos);
   
   int bytes;
-  uint64 packed_int = utils::PackInteger(0x0F, &bytes);
+  uint64 packed_int = utils::packInteger(0x0F, &bytes);
   assert(bytes == 1);
   encoder->writePackedInteger(packed_int);
   delete encoder;

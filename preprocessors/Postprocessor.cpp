@@ -177,7 +177,7 @@ uint64 uncompressSequences(std::vector<byte> *compressed, uint64 length) {
       if(prev == data[source_pos]) break;
       prev = data[source_pos++];
       uint64 len;
-      source_pos += utils::ReadAndUnpackInteger(&data[source_pos], &len);
+      source_pos += utils::readAndUnpackInteger(&data[source_pos], &len);
       repls[prev].second = len;
       repls[prev].first = source_pos;
       source_pos += len;

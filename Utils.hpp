@@ -42,9 +42,9 @@ namespace utils {
 /** Floor of logarithm of base two */
 byte logFloor(uint32 n);
 
-uint32 MostSignificantBit16(uint32 n);
+uint32 mostSignificantBit16(uint32 n);
 
-uint32 MostSignificantBit(uint32 n);
+uint32 mostSignificantBit(uint32 n);
 
 /*************************************************************************
  * PackInteger and UnpackInteger                                         *
@@ -58,18 +58,20 @@ uint32 MostSignificantBit(uint32 n);
  *   -- no overhead here because the most significant byte had leading   *
  *      zeroes                                                           *
  *************************************************************************/
-uint64 PackInteger(uint64 integer, int* bytes_needed);
+uint64 packInteger(uint64 integer, int* bytes_needed);
 
-uint64 UnpackInteger(uint64 packed_integer);
+uint64 unpackInteger(uint64 packed_integer);
 
-void WritePackedInteger(uint64 packed_integer, byte *to);
+void writePackedInteger(uint64 packed_integer, byte *to);
 
-unsigned PackAndWriteInteger(uint64 integer, byte *to);
+unsigned packAndWriteInteger(uint64 integer, byte *to);
 
-unsigned ReadAndUnpackInteger(byte *from, uint64 *to);
+unsigned readAndUnpackInteger(byte *from, uint64 *to);
+
+void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length);
 
 template <typename Integer>
-void PrintBitRepresentation(Integer word) {
+void printBitRepresentation(Integer word) {
   std::stack<Integer> bits;
   int bytes = sizeof(Integer);
   for(int j = 0; j < bytes; ++j) {

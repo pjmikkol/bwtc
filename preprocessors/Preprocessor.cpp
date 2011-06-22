@@ -698,7 +698,7 @@ void updateFreqs(std::map<uint32, uint32> *run_freq, byte symbol,
   length -= (length % 2);
   uint32 original = length;
   while(length) { /* Compute the number of sequences of length 2^k for some k */
-    uint32 longest = utils::MostSignificantBit16(length);
+    uint32 longest = utils::mostSignificantBit16(length);
     if (run_freq[symbol].count(longest))
       run_freq[symbol][longest] += original/longest;
     else run_freq[symbol][longest] = original/longest;

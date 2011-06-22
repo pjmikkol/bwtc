@@ -101,7 +101,7 @@ void Decoder::endContextBlock() {
 
 int Encoder::writeTrailer(uint64 trailer) {
   int bytes;
-  uint64 packed_integer = utils::PackInteger(trailer, &bytes);
+  uint64 packed_integer = utils::packInteger(trailer, &bytes);
   writePackedInteger(packed_integer);
   return bytes;
 }
@@ -182,7 +182,7 @@ void Encoder::writeBlockHeader(std::vector<uint64>* stats) {
     // TODO: At the moment we are not printing numbers in increasing order
     //       It has to be fixed at BWTransform and here
     if((*stats)[i] > 0) {
-      uint64 packed_cblock_size = utils::PackInteger((*stats)[i], &bytes);
+      uint64 packed_cblock_size = utils::packInteger((*stats)[i], &bytes);
       headerLength += bytes;
       writePackedInteger(packed_cblock_size);
     }
@@ -216,7 +216,7 @@ uint64 Decoder::readBlockHeader(std::vector<uint64>* stats) {
   while(1) {
     uint64 value = readPackedInteger();
     if(value & kErrorMask) break;
-    stats->push_back(utils::UnpackInteger(value));
+    stats->push_back(utils::unpackInteger(value));
   }
   return compressed_length;
 }
@@ -244,7 +244,7 @@ std::vector<byte>* Decoder::decodeBlock(uint64* eof_byte) {
     endContextBlock();
   }
   uint64 packed_integer = readPackedInteger();
-  *eof_byte = utils::UnpackInteger(packed_integer);
+  *eof_byte = utils::unpackInteger(packed_integer);
   return data;
 }
 

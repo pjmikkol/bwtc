@@ -42,7 +42,7 @@ byte logFloor(uint32 n) {
   return log;
 }
 
-uint32 MostSignificantBit16(uint32 n) {
+uint32 mostSignificantBit16(uint32 n) {
   assert(n < (1 << 16));
   n |= (n >> 1);
   n |= (n >> 2);
@@ -51,7 +51,7 @@ uint32 MostSignificantBit16(uint32 n) {
   return n & (~(n >> 1));
 }
 
-uint32 MostSignificantBit(uint32 n) {
+uint32 mostSignificantBit(uint32 n) {
   assert(sizeof(uint32) == 4);
   n |= (n >> 1);
   n |= (n >> 2);
@@ -63,7 +63,7 @@ uint32 MostSignificantBit(uint32 n) {
 
 static const uint64 kEightBit = 0x80;
 
-unsigned PackAndWriteInteger(uint64 integer, byte *to) {
+unsigned packAndWriteInteger(uint64 integer, byte *to) {
   unsigned bytes_used = 0;
   while(1) {
     if(integer) {
@@ -79,7 +79,7 @@ unsigned PackAndWriteInteger(uint64 integer, byte *to) {
 }
 
 /* Returns the bytes used for the integer */
-unsigned ReadAndUnpackInteger(byte *from, uint64 *to) {
+unsigned readAndUnpackInteger(byte *from, uint64 *to) {
   unsigned bytes_read = 0;
   uint64 result = 0;
   while(1) {
@@ -93,7 +93,7 @@ unsigned ReadAndUnpackInteger(byte *from, uint64 *to) {
   return bytes_read;
 }
 
-uint64 PackInteger(uint64 integer, int* bytes_needed) {
+uint64 packInteger(uint64 integer, int* bytes_needed) {
   uint64 result = 0; int i;
   // For optimization (if needed) two OR-operations could be merged
   for(i = 0; integer; ++i) {
@@ -106,7 +106,7 @@ uint64 PackInteger(uint64 integer, int* bytes_needed) {
   return result;
 }
 
-uint64 UnpackInteger(uint64 packed_integer) {
+uint64 unpackInteger(uint64 packed_integer) {
   uint64 result = 0; int bits_handled = 0;
   bool bits_left;
   do {
@@ -119,7 +119,19 @@ uint64 UnpackInteger(uint64 packed_integer) {
   return result;
 }
 
-void WritePackedInteger(uint64 packed_integer, byte *to) {
+void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length)
+{
+  const byte *prev = src;
+  const byte *curr = src+1;
+  do {
+    while(curr - src < length && *prev == *curr) ++curr;
+    ++runFreqs[*prev];
+    prev = curr++;
+  } while(curr - src < length);
+  ++runFreqs[*prev];
+}
+
+void writePackedInteger(uint64 packed_integer, byte *to) {
   do {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
@@ -127,7 +139,7 @@ void WritePackedInteger(uint64 packed_integer, byte *to) {
   } while (packed_integer);
 }
 
-uint64 ReadPackedInteger(byte *to) {
+uint64 readPackedInteger(byte *to) {
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
 

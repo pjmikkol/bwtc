@@ -53,7 +53,7 @@ int SufCmp(byte *str, uint32 s1, uint32 s2, unsigned n) {
 }
 
 void testSA_IS() {
-  unsigned size = (rand() & 0x000FFFFF) + 1;
+  unsigned size = (rand() & 0x0000FFFF) + 1;
   byte *str = new byte[size+1];
   for(unsigned i = 0; i < size + 1; ++i) {
     str[i] = rand() & 0xFF;
@@ -74,7 +74,7 @@ void testSA_IS() {
 }
 
 void test_sais() {
-  int size = (rand() & 0x000FFFFF) + 1;
+  int size = (rand() & 0x0000FFFF) + 1;
   byte *str = new byte[size+1];
   for(unsigned i = 0; i < size; ++i) {
     str[i] = rand() & 0xFF;

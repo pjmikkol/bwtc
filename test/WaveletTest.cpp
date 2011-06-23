@@ -28,6 +28,8 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+#include <cstring>
+#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -70,6 +72,13 @@ BOOST_AUTO_TEST_CASE(HeapTest2) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
+template <typename T>
+void checkEqual(const std::vector<T>& vec, const T *answ) {
+  for(size_t i = 0; i < vec.size(); ++i) {
+    BOOST_CHECK_EQUAL(vec[i], answ[i]);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE(TreeConstructionTests)
 
 template <typename BitVector>
@@ -77,7 +86,7 @@ int checkHuffmanShape(TreeNode<BitVector> *node, const char *answ, int *depths,
                       int curr, int depth)
 {
   if(node->m_left == 0 && node->m_right == 0) {
-    AlphabeticNode<BitVector>* n = (AlphabeticNode<BitVector>*) node;
+    AlphabeticNode<BitVector>* n = dynamic_cast<AlphabeticNode<BitVector>*>(node);
     BOOST_CHECK_EQUAL(n->m_symbol, answ[curr]);
     BOOST_CHECK_EQUAL(depth, depths[curr]);
     return curr+1;
@@ -91,12 +100,6 @@ int checkHuffmanShape(TreeNode<BitVector> *node, const char *answ, int *depths,
   return curr;
 }
 
-void checkEqual(const std::vector<bool>& vec, bool *answ) {
-  for(size_t i = 0; i < vec.size(); ++i) {
-    BOOST_CHECK_EQUAL(vec[i], answ[i]);
-  }
-}
-
 BOOST_AUTO_TEST_CASE(HuffmanShape1) {
   uint64 freqs[256] = {0};
   freqs['a'] = 4;
@@ -108,17 +111,14 @@ BOOST_AUTO_TEST_CASE(HuffmanShape1) {
   int depths[] = {1,2,2};
   checkHuffmanShape(root, answers, depths, 0, 0);
 
-  std::vector<bool> *codes[256];
+  std::vector<bool> codes[256];
   WaveletTree<std::vector<bool> >::collectCodes(codes, root);
   bool aCode[] = {false};
   bool bCode[] = {true, false};
   bool cCode[] = {true, true};
-  checkEqual(*codes['a'], aCode);
-  checkEqual(*codes['b'], bCode);
-  checkEqual(*codes['c'], cCode);
-  delete codes['a'];
-  delete codes['b'];
-  delete codes['c'];
+  checkEqual(codes['a'], aCode);
+  checkEqual(codes['b'], bCode);
+  checkEqual(codes['c'], cCode);
 }
 
 BOOST_AUTO_TEST_CASE(HuffmanShape2) {
@@ -133,46 +133,116 @@ BOOST_AUTO_TEST_CASE(HuffmanShape2) {
   int depths[] = {1, 3, 3, 2};  
   checkHuffmanShape(root, answers, depths, 0, 0);
 
-  std::vector<bool> *codes[256];
+  std::vector<bool> codes[256];
   WaveletTree<std::vector<bool> >::collectCodes(codes, root);
   bool dCode[] = {false};
   bool bCode[] = {true, false, false};
   bool cCode[] = {true, false, true};
   bool aCode[] = {true, true};
-  checkEqual(*codes['d'], dCode);
-  checkEqual(*codes['b'], bCode);
-  checkEqual(*codes['c'], cCode);
-  checkEqual(*codes['a'], aCode);
-  delete codes['a'];
-  delete codes['b'];
-  delete codes['c'];
-  delete codes['d'];
+  checkEqual(codes['d'], dCode);
+  checkEqual(codes['b'], bCode);
+  checkEqual(codes['c'], cCode);
+  checkEqual(codes['a'], aCode);
 }
 
 BOOST_AUTO_TEST_CASE(HuffmanShape3) {
   uint64 freqs[256] = {0};
   const char *str = "baaabaaabcb";
-  utils::calculateRunFrequencies(freqs, (const byte*) str, 11);
+  utils::calculateRunFrequencies(freqs, (const byte*) str, strlen(str));
   TreeNode<std::vector<bool> > *root =
       WaveletTree<std::vector<bool> >::createHuffmanShape(freqs);
   const char *answers = "bac";
   int depths[] = {1, 2, 2};
   checkHuffmanShape(root, answers, depths, 0, 0);
 
-  std::vector<bool> *codes[256];
+  std::vector<bool> codes[256];
   WaveletTree<std::vector<bool> >::collectCodes(codes, root);
   bool bCode[] = {false};
   bool aCode[] = {true, false};
   bool cCode[] = {true, true};
-  checkEqual(*codes['a'], aCode);
-  checkEqual(*codes['b'], bCode);
-  checkEqual(*codes['c'], cCode);
-  delete codes['a'];
-  delete codes['b'];
-  delete codes['c'];
+  checkEqual(codes['a'], aCode);
+  checkEqual(codes['b'], bCode);
+  checkEqual(codes['c'], cCode);
+}
+
+BOOST_AUTO_TEST_CASE(HuffmanShape4) {
+  uint64 freqs[256] = {0};
+  const char *str = "aaaa";
+  utils::calculateRunFrequencies(freqs, (const byte*) str, strlen(str));
+  TreeNode<std::vector<bool> > *root =
+      WaveletTree<std::vector<bool> >::createHuffmanShape(freqs);
+  const char *answers = "a";
+  int depths[] = {1};
+  checkHuffmanShape(root, answers, depths, 0, 0);
+
+  std::vector<bool> codes[256];
+  WaveletTree<std::vector<bool> >::collectCodes(codes, root);
+  bool aCode[] = {false};
+  checkEqual(codes['a'], aCode);
+}
+
+BOOST_AUTO_TEST_CASE(WholeConstruction1) {
+  const char *str = "aaabbaaacbcb";
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<byte> msg;
+  tree.message(std::back_inserter(msg));
+  checkEqual(msg, (const byte*) str);
+}
+
+BOOST_AUTO_TEST_CASE(WholeConstruction2) {
+  const char *str = "abbbabaagggffllslwerkfdskofdsksasdadsasdfgdfsmldsgklmesgfklmfeeeeeeeeeg";
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<byte> msg;
+  tree.message(std::back_inserter(msg));
+  checkEqual(msg, (const byte*) str);
+}
+
+BOOST_AUTO_TEST_CASE(WholeConstruction3) {
+  const char *str = "aaaaaaaaaaaaaac";
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<byte> msg;
+  tree.message(std::back_inserter(msg));
+  checkEqual(msg, (const byte*) str);
+}
+
+BOOST_AUTO_TEST_CASE(WholeConstruction4) {
+  const char *str = "aaaaaa"; 
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<byte> msg;
+  tree.message(std::back_inserter(msg));
+  checkEqual(msg, (const byte*) str);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+
+
+BOOST_AUTO_TEST_SUITE(GammaCodes)
+
+BOOST_AUTO_TEST_CASE(Construction1) {
+  std::vector<bool> one, five, seven, fifty;
+  WaveletTree<std::vector<bool> >::gammaCode(one, 1);
+  BOOST_CHECK_EQUAL(one.size(), 1);
+  WaveletTree<std::vector<bool> >::gammaCode(five, 5);
+  BOOST_CHECK_EQUAL(five.size(), 5);
+  WaveletTree<std::vector<bool> >::gammaCode(seven, 7);
+  BOOST_CHECK_EQUAL(seven.size(), 5);
+  WaveletTree<std::vector<bool> >::gammaCode(fifty, 50);
+  BOOST_CHECK_EQUAL(fifty.size(), 11);
+
+  bool oneCode[] = {false};
+  bool fiveCode[] = {true, true, false, false, true};
+  bool sevenCode[] = {true, true, false, true, true};
+  bool fiftyCode[] = {true, true, true, true, true,
+                      false, true, false, false, true, false};
+  checkEqual(one, oneCode);
+  checkEqual(five, fiveCode);
+  checkEqual(seven, sevenCode);
+  checkEqual(fifty, fiftyCode);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
 
 } //namespace tests
 } //namespace long_sequences

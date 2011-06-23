@@ -31,8 +31,9 @@
 #include "Utils.hpp"
 
 #include <algorithm>
-#include <vector>
+#include <cassert>
 #include <utility>
+#include <vector>
 
 namespace bwtc {
 
@@ -41,11 +42,26 @@ struct TreeNode {
   TreeNode() : m_left(0), m_right(0) {}
   TreeNode(TreeNode<BitVector>* left, TreeNode<BitVector>* right)
       : m_left(left), m_right(right) {}
+  virtual ~TreeNode() {}
 
+  size_t rank(bool bit, size_t i) const;
+  
   BitVector m_bitVector;
   TreeNode<BitVector>* m_left;
   TreeNode<BitVector>* m_right;
 };
+
+/**If ever using something suitable for fast rank-queries, there should be
+ * template specializations for rank-queries.
+ */
+template <typename BitVector>
+size_t TreeNode<BitVector>::rank(bool bit, size_t i) const {
+  if(m_bitVector.size() == 0) return 0;
+  i = std::min(m_bitVector.size(), i);
+  size_t sum = 0;
+  for(size_t j = 0; j < i; ++j) if(!(m_bitVector[j] ^ bit)) ++sum;
+  return sum;
+}
 
 // Contains character from the source alphabet
 template <typename BitVector>
@@ -74,25 +90,36 @@ struct AlphabeticNode : public TreeNode<BitVector> {
  * runs).
  *
  * Template parameter BitVector has to implement the following member-functions:
- *   BitVector(const BitVector& other);
+ *   BitVector();
+ *   BitVector& operator=(const BitVector&);
  *   void push_back(bool);
  *   void pop_back();
  *   void reserve(size_t size);
  *   size_t size();
+ *   bool operator[](size_t index);
  */
 template <typename BitVector>
 class WaveletTree {
  public:
   WaveletTree(const byte *src, size_t length);
   ~WaveletTree();
+  void pushRun(byte symbol, size_t runLength);
+  TreeNode<BitVector> *pushBits(const BitVector& bits);
+
+  template <typename OutputIterator>
+  void message(OutputIterator out) const;
 
   static TreeNode<BitVector> *createHuffmanShape(const uint64 *runFreqs);
-  static void collectCodes(BitVector **codes, TreeNode<BitVector> *root);
-  static void collectCodes(BitVector **codes, BitVector& vec, TreeNode<BitVector> *node);
+  static void collectCodes(BitVector *codes, TreeNode<BitVector> *root);
+  static void collectCodes(BitVector *codes, BitVector& vec, TreeNode<BitVector> *node);
+  static void pushBits(TreeNode<BitVector> *node, const BitVector& bits);
+  static void gammaCode(BitVector& bits, size_t integer);
+
   
  private:
+  static void destroy(TreeNode<BitVector>* node);
   TreeNode<BitVector>* m_root;
-  BitVector* m_codes[256];
+  BitVector m_codes[256];
 };
 
 template <typename BitVector>
@@ -100,17 +127,140 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length) {
   uint64 runFreqs[256] = {0};
   utils::calculateRunFrequencies(runFreqs, src, length);
   m_root = createHuffmanShape(runFreqs);
-  collectCodes(m_codes);
+  collectCodes(m_codes, m_root);
 
   const byte *prev = src;
   const byte *curr = src+1;
   do{
-    while(curr - src < length && *prev == *curr) ++curr;
-    // Store run of character *prev of length (curr - prev) to tree
+    while(curr < src + length && *prev == *curr) ++curr;
+    pushRun(*prev, curr-prev);
     prev = curr++;
-  } while(curr - src < length);
+  } while(curr < src + length);
+  if(prev < src + length) pushRun(*prev,1);
+}
+
+template <typename BitVector>
+WaveletTree<BitVector>::~WaveletTree() {
+  destroy(m_root);
+}
+
+template <typename BitVector>
+void WaveletTree<BitVector>::destroy(TreeNode<BitVector>* node) {
+  if(node->m_left) destroy(node->m_left);
+  if(node->m_right) destroy(node->m_right);
+  delete node;
+}
+
+template <typename BitVector>
+void WaveletTree<BitVector>::gammaCode(BitVector& bits, size_t integer) {
+  int log = utils::logFloor(integer);
+  for(int i = 0; i < log; ++i) {
+    bits.push_back(true);
+  }
+  bits.push_back(false);
+  for(int i = log-1; i >= 0; --i) {
+    bits.push_back((integer >> i)&1);
+  }
+}
 
 
+/** Pushes bitvector to tree by starting from the root. Assumes that every
+ *  node on the path exists. This is used when pushing characters into the tree
+ *  whose shape is already formed and codes are chosen by this shape.
+ *
+ * @param bits BitVector representing the symbol to be pushed.
+ * @return Node which is at the depth bits.size() when the root is at depth 0.
+ *         This node should have type AlphabeticNode<BitVector>.                   
+ */
+template <typename BitVector>
+TreeNode<BitVector> *WaveletTree<BitVector>::pushBits(const BitVector& bits)
+{
+  TreeNode<BitVector> *node = m_root;
+  for(size_t i = 0; i < bits.size(); ++i) {
+    node->m_bitVector.push_back(bits[i]);
+    if(bits[i]) {
+      assert(node->m_right);
+      node = node->m_right;
+    } else {
+      assert(node->m_left);
+      node = node->m_left;
+    }
+  }
+  return node;
+}
+
+
+/** Pushes bitvector to tree by starting the node given. Creates new nodes if
+ *  they don't exist on the path. However this doesn't create the leaf node which
+ *  would come after storing all of the bits in their respectable nodes.
+ *
+ * @param node Node to start.
+ * @param bits Bits to push to the tree.
+ */
+template <typename BitVector>
+void
+WaveletTree<BitVector>::pushBits(TreeNode<BitVector> *node, const BitVector& bits)
+{
+  assert(node);
+  assert(bits.size() > 0);
+  for(size_t i = 0; i < bits.size() - 1; ++i) {
+    node->m_bitVector.push_back(bits[i]);
+    if(bits[i]) {
+      if(!node->m_right) node->m_right = new TreeNode<BitVector>();
+      node = node->m_right;
+    } else {
+      if(!node->m_left) node->m_left = new TreeNode<BitVector>();
+      node = node->m_left;
+    }
+  }
+  node->m_bitVector.push_back(bits.back());
+}
+
+template <typename BitVector>
+void WaveletTree<BitVector>::pushRun(byte symbol, size_t runLength)
+{
+  TreeNode<BitVector> *node = pushBits(m_codes[symbol]);
+  assert(dynamic_cast<AlphabeticNode<BitVector>*>(node) != 0);
+  BitVector integerCode;
+  gammaCode(integerCode, runLength);
+  pushBits(node, integerCode);
+}
+
+
+template <typename BitVector> template <typename OutputIterator>
+void WaveletTree<BitVector>::message(OutputIterator out) const {
+  size_t msgSize = m_root->m_bitVector.size();
+  for(size_t j = 0; j < msgSize; ++j) {
+    bool bit;
+    TreeNode<BitVector> *node = m_root;
+    size_t i = j;
+    do {
+      bit = node->m_bitVector[i];
+      i = node->rank(bit,i);
+      node = bit?node->m_right:node->m_left;
+    } while(dynamic_cast<AlphabeticNode<BitVector>*>(node) == 0);
+    byte symbol = dynamic_cast<AlphabeticNode<BitVector>*>(node)->m_symbol;
+    // Decoding of gamma-code
+    size_t runBits = 0;
+    bit = node->m_bitVector[i];
+    while(bit) {
+      i = node->rank(bit,i);
+      node = bit?node->m_right:node->m_left;
+      bit = node->m_bitVector[i];
+      ++runBits;
+    }
+    size_t runLength = 1;
+    for(size_t k = 0; k < runBits; ++k) {
+      runLength <<= 1;
+      node = bit?node->m_right:node->m_left;
+      i = node->rank(bit,i);
+      bit = node->m_bitVector[i];
+      runLength |= (bit?1:0);
+    }
+    for(size_t k = 0; k < runLength; ++k) {
+      *out++ = symbol;
+    }
+  }
 }
 
 
@@ -176,7 +326,8 @@ class MinimumHeap {
 
 template <typename BitVector>
 TreeNode<BitVector>*
-WaveletTree<BitVector>::createHuffmanShape(const uint64 *runFreqs) {
+WaveletTree<BitVector>::createHuffmanShape(const uint64 *runFreqs)
+{
   MinimumHeap<TreeNode<BitVector>* > heap(256);
   byte b = 0U;
   for(int i = 0; i < 256; ++i,++b) {
@@ -184,6 +335,10 @@ WaveletTree<BitVector>::createHuffmanShape(const uint64 *runFreqs) {
       TreeNode<BitVector> *node = new AlphabeticNode<BitVector>(b);
       heap.insert(node, runFreqs[b]);
     }
+  }
+  if(heap.size() == 1) {
+    TreeNode<BitVector> *root = new TreeNode<BitVector>(heap.deleteMin().first, 0);
+    heap.insert(root, 1);
   }
   while(heap.size() > 1) {
     std::pair<TreeNode<BitVector>*, size_t> p1, p2;
@@ -196,17 +351,19 @@ WaveletTree<BitVector>::createHuffmanShape(const uint64 *runFreqs) {
 }
 
 template <typename BitVector>
-void WaveletTree<BitVector>::collectCodes(BitVector *codes[], TreeNode<BitVector> *root) {
+void WaveletTree<BitVector>::collectCodes(BitVector *codes, TreeNode<BitVector> *root)
+{
   BitVector vec;
-  std::fill(codes, codes+256, static_cast<BitVector*>(0));
   collectCodes(codes, vec, root);
 }
 
 template <typename BitVector>
-void WaveletTree<BitVector>::collectCodes(BitVector *codes[], BitVector& vec, TreeNode<BitVector> *node) {
+void
+WaveletTree<BitVector>::collectCodes(BitVector *codes, BitVector& vec, TreeNode<BitVector> *node)
+{
   if(node->m_left == 0 && node->m_right == 0) {
     AlphabeticNode<BitVector>* n = (AlphabeticNode<BitVector>*) node;
-    codes[n->m_symbol] = new BitVector(vec);
+    codes[n->m_symbol] = vec;
   }
   if(node->m_left) {
     vec.push_back(false);

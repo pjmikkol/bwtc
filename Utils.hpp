@@ -40,7 +40,16 @@ using bwtc::uint32;
 namespace utils {
 
 /** Floor of logarithm of base two */
-byte logFloor(uint32 n);
+template <typename Unsigned>
+byte logFloor(Unsigned n) {
+  assert(n > 0);
+  byte log = 0;
+  while(n > 1) {
+    n >>= 1;
+    ++log;
+  }
+  return log;
+}
 
 uint32 mostSignificantBit16(uint32 n);
 

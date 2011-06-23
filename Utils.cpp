@@ -31,17 +31,6 @@
 
 namespace utils {
 
-/* Floor of logarithm of base two */
-byte logFloor(uint32 n) {
-  assert(n > 0);
-  byte log = 0;
-  while(n > 1) {
-    n >>= 1;
-    ++log;
-  }
-  return log;
-}
-
 uint32 mostSignificantBit16(uint32 n) {
   assert(n < (1 << 16));
   n |= (n >> 1);
@@ -124,10 +113,10 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length)
   const byte *prev = src;
   const byte *curr = src+1;
   do {
-    while(curr - src < length && *prev == *curr) ++curr;
+    while(curr < src + length && *prev == *curr) ++curr;
     ++runFreqs[*prev];
     prev = curr++;
-  } while(curr - src < length);
+  } while(curr < src + length);
   if(prev < src + length) ++runFreqs[*prev];
 }
 

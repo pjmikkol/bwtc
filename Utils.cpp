@@ -128,7 +128,7 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length)
     ++runFreqs[*prev];
     prev = curr++;
   } while(curr - src < length);
-  ++runFreqs[*prev];
+  if(prev < src + length) ++runFreqs[*prev];
 }
 
 void writePackedInteger(uint64 packed_integer, byte *to) {

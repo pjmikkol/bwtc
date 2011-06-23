@@ -83,7 +83,7 @@ struct AlphabeticNode : public TreeNode<BitVector> {
 template <typename BitVector>
 class WaveletTree {
  public:
-  WaveletTree(byte *src, size_t length);
+  WaveletTree(const byte *src, size_t length);
   ~WaveletTree();
 
   static TreeNode<BitVector> *createHuffmanShape(const uint64 *runFreqs);
@@ -96,11 +96,21 @@ class WaveletTree {
 };
 
 template <typename BitVector>
-WaveletTree<BitVector>::WaveletTree(byte *src, size_t length) {
+WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length) {
   uint64 runFreqs[256] = {0};
   utils::calculateRunFrequencies(runFreqs, src, length);
   m_root = createHuffmanShape(runFreqs);
   collectCodes(m_codes);
+
+  const byte *prev = src;
+  const byte *curr = src+1;
+  do{
+    while(curr - src < length && *prev == *curr) ++curr;
+    // Store run of character *prev of length (curr - prev) to tree
+    prev = curr++;
+  } while(curr - src < length);
+
+
 }
 
 

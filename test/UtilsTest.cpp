@@ -73,15 +73,23 @@ BOOST_AUTO_TEST_CASE(RunFrequencyCounts1) {
   BOOST_CHECK_EQUAL(freqs['a'], 3);
   BOOST_CHECK_EQUAL(freqs['c'], 1);
   BOOST_CHECK_EQUAL(freqs['b'], 1);
+  for(int i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'c' || i == 'b') continue;
+    BOOST_CHECK_EQUAL(freqs[i],0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(RunFrequencyCounts2) {
-  const char * str = "wwwaaaawawawabbbb";
+  const char * str = "wwwaaaawawawab";
   uint64 freqs[256] = {0};
   calculateRunFrequencies(freqs, (const byte*)str, strlen(str));
   BOOST_CHECK_EQUAL(freqs['w'], 4);
   BOOST_CHECK_EQUAL(freqs['a'], 4);
   BOOST_CHECK_EQUAL(freqs['b'], 1);
+  for(int i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'w' || i == 'b') continue;
+    BOOST_CHECK_EQUAL(freqs[i],0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(RunFrequencyCounts3) {
@@ -91,6 +99,23 @@ BOOST_AUTO_TEST_CASE(RunFrequencyCounts3) {
   BOOST_CHECK_EQUAL(freqs['a'], 2);
   BOOST_CHECK_EQUAL(freqs['b'], 4);
   BOOST_CHECK_EQUAL(freqs['c'], 1);
+  for(int i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'c' || i == 'b') continue;
+    BOOST_CHECK_EQUAL(freqs[i],0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(RunFrequencyCounts4) {
+  const char * str = "baaabaaabcbb";
+  uint64 freqs[256] = {0};
+  calculateRunFrequencies(freqs, (const byte*)str, strlen(str));
+  BOOST_CHECK_EQUAL(freqs['a'], 2);
+  BOOST_CHECK_EQUAL(freqs['b'], 4);
+  BOOST_CHECK_EQUAL(freqs['c'], 1);
+  for(int i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'c' || i == 'b') continue;
+    BOOST_CHECK_EQUAL(freqs[i],0);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

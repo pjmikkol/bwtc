@@ -1,4 +1,4 @@
-Copyright 2010, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi
+Copyright 2010-2011, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi
 
 This file is part of bwtc.
 
@@ -21,31 +21,10 @@ at the moment: in early development phase
 
 ...
 
-Compile the program by saying "make" in project-folder. Tests can be run
-with "make tests".
+In Linux you can compile this by first generating makefiles with CMake.
+Go to the root-directory and say
+  'cmake -DCMAKE_BUILD_TYPE=type', where type is 'Release' or 'Debug'
+After this program can be compiled by saying 'make'. Tests are run by
+'make tests'.
 
 ...
-
-New functionality can be added by replacing some of the trivial implementations
-of the preprocessing, bwt or entropy encoding.
-
-When one wants to add new preprocessing implementation, one needs
-to do to following things:
-
- - compr.cc:
-   * update ValidatePreprocOption()-function to accept new option 
-   * update options_description-object in main()
-
- - preprocessor.cc
-   * update GivePreProcessor-function to accept new value for parameter
-
-For adding new probability model used for arithmetic coding one needs
-to add new implementation which uses ProbabilityModel in base_prob_model.h
-as a base class. Then next files need to be modified:
-
- - compr.cc:
-   * update options_description-object in main()-function
-   * update ValidateEncodingOption()-function to accept new option
-
- - coders.cc:
-   * update GiveProbabilityModel()-function to give new model

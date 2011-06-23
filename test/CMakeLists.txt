@@ -10,7 +10,8 @@ find_package(Boost COMPONENTS system filesystem)
 link_directories(${Boost_LIBRARY_DIR} ${OBJECT_FILE_PATH})
 include_directories(${Boost_INCLUDE_DIR})
 
-set(BOOST_UNIT_TESTS UtilsTest PrimeSequenceDetectorTest MaskSequenceDetectorTest)
+set(BOOST_UNIT_TESTS UtilsTest PrimeSequenceDetectorTest MaskSequenceDetectorTest
+  WaveletTest)
 
 foreach(program ${BOOST_UNIT_TESTS})
   add_executable(${program} ${program}.cpp)

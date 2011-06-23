@@ -84,6 +84,15 @@ BOOST_AUTO_TEST_CASE(RunFrequencyCounts2) {
   BOOST_CHECK_EQUAL(freqs['b'], 1);
 }
 
+BOOST_AUTO_TEST_CASE(RunFrequencyCounts3) {
+  const char * str = "baaabaaabcb";
+  uint64 freqs[256] = {0};
+  calculateRunFrequencies(freqs, (const byte*)str, strlen(str));
+  BOOST_CHECK_EQUAL(freqs['a'], 2);
+  BOOST_CHECK_EQUAL(freqs['b'], 4);
+  BOOST_CHECK_EQUAL(freqs['c'], 1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 } //namespace tests

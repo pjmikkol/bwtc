@@ -23,22 +23,22 @@ endforeach(program)
 
 add_executable(CodersTest CodersTest.cpp)
 target_link_libraries(CodersTest common probmodels)
-add_test(CodersTest ${EXECUTABLE_OUTPUT_PATH}/coders_test "test_file")
+add_test(CodersTest ${EXECUTABLE_OUTPUT_PATH}/CodersTest "test_file")
 set_tests_properties(CodersTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
 add_executable(SaisTest SaisTest.cpp)
 target_link_libraries(SaisTest common)
-add_test(SaisTest ${EXECUTABLE_OUTPUT_PATH}/sa-is_test)
+add_test(SaisTest ${EXECUTABLE_OUTPUT_PATH}/SaisTest)
 set_tests_properties(SaisTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
 add_executable(StreamTest StreamTest.cpp)
 target_link_libraries(StreamTest common ${Boost_LIBRARIES})
-add_test(StreamTest ${EXECUTABLE_OUTPUT_PATH}/stream_test "test_file")
+add_test(StreamTest ${EXECUTABLE_OUTPUT_PATH}/StreamTest "test_file")
 set_tests_properties(StreamTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
 add_executable(PreprocessorTest PreprocessorTest.cpp)
 target_link_libraries(PreprocessorTest common preprocessors)
-add_test(PreprocessorTest ${EXECUTABLE_OUTPUT_PATH}/preproc_test "test_file")
+add_test(PreprocessorTest ${EXECUTABLE_OUTPUT_PATH}/PreprocessorTest "test_file")
 set_tests_properties(PreprocessorTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
 add_executable(PreprocessorAlgoTest PreprocessorAlgoTest.cpp)

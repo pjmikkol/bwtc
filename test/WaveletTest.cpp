@@ -213,6 +213,14 @@ BOOST_AUTO_TEST_CASE(WholeConstruction4) {
   checkEqual(msg, (const byte*) str);
 }
 
+BOOST_AUTO_TEST_CASE(WholeConstruction5) {
+  const char *str = "abcdefghijklmnababcabcdabcdeabcdefacbcdefgabcdefghabcdefghiabcdefghij";
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<byte> msg;
+  tree.message(std::back_inserter(msg));
+  checkEqual(msg, (const byte*) str);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 

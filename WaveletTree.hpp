@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -230,13 +231,15 @@ void WaveletTree<BitVector>::pushRun(byte symbol, size_t runLength)
 template <typename BitVector> template <typename OutputIterator>
 void WaveletTree<BitVector>::message(OutputIterator out) const {
   size_t msgSize = m_root->m_bitVector.size();
+  std::map<TreeNode<BitVector>*, size_t> bitsSeen;
   for(size_t j = 0; j < msgSize; ++j) {
     bool bit;
     TreeNode<BitVector> *node = m_root;
     size_t i = j;
     do {
       bit = node->m_bitVector[i];
-      i = node->rank(bit,i);
+      if(bit) i = bitsSeen[node]++;
+      else i = i - bitsSeen[node]; 
       node = bit?node->m_right:node->m_left;
     } while(dynamic_cast<AlphabeticNode<BitVector>*>(node) == 0);
     byte symbol = dynamic_cast<AlphabeticNode<BitVector>*>(node)->m_symbol;
@@ -244,7 +247,8 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
     size_t runBits = 0;
     bit = node->m_bitVector[i];
     while(bit) {
-      i = node->rank(bit,i);
+      if(bit) i = bitsSeen[node]++;
+      else i = i - bitsSeen[node]; 
       node = bit?node->m_right:node->m_left;
       bit = node->m_bitVector[i];
       ++runBits;
@@ -253,7 +257,8 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
     for(size_t k = 0; k < runBits; ++k) {
       runLength <<= 1;
       node = bit?node->m_right:node->m_left;
-      i = node->rank(bit,i);
+      if(bit) i = bitsSeen[node]++;
+      else i = i - bitsSeen[node]; 
       bit = node->m_bitVector[i];
       runLength |= (bit?1:0);
     }

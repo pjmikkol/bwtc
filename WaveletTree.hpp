@@ -106,6 +106,8 @@ class WaveletTree {
   ~WaveletTree();
   void pushRun(byte symbol, size_t runLength);
   TreeNode<BitVector> *pushBits(const BitVector& bits);
+  /**Writes the encoding of the shape of tree into given vector.*/
+  void shape(BitVector& vector) const;
 
   template <typename OutputIterator>
   void message(OutputIterator out) const;
@@ -118,6 +120,7 @@ class WaveletTree {
 
   
  private:
+  void shapeDfs(BitVector& output, size_t depth, const std::vector<byte>& symbols) const;
   static void destroy(TreeNode<BitVector>* node);
   TreeNode<BitVector>* m_root;
   BitVector m_codes[256];
@@ -164,6 +167,43 @@ void WaveletTree<BitVector>::gammaCode(BitVector& bits, size_t integer) {
   }
 }
 
+template <typename BitVector>
+void WaveletTree<BitVector>::shape(BitVector& vector) const {
+  byte b = 0;
+  std::vector<byte> symbols;
+  for(size_t i = 0; i < 256; ++i, ++b) {
+    if(m_codes[b] > 0) {
+      vector.push_back(true);
+      symbols.push_back(b);
+    } else {
+      vector.push_back(false);
+    }
+  }
+  if(symbols.size() > 0) {
+    shapeDfs(vector, 0, symbols);
+  } else {
+    vector.push_back(false);
+  }
+}
+
+template <typename BitVector>
+void WaveletTree<BitVector>::shapeDfs(BitVector& output, size_t depth,
+                                      const std::vector<byte>& symbols) const
+{
+  if (symbols.size() <= 1) return;
+  std::vector<byte> leftSymbols, rightSymbols;
+  for(size_t i = 0; i < symbols.size(); ++i) {
+    if(m_codes[symbols[i]][depth]) {
+      output.push_back(true);
+      rightSymbols.push_back(symbols[i]);
+    } else {
+      output.push_back(false);
+      leftSymbols.push_back(symbols[i]);
+    }
+  }
+  shapeDfs(output, depth+1, leftSymbols);
+  shapeDfs(output, depth+1, rightSymbols);
+}
 
 /** Pushes bitvector to tree by starting from the root. Assumes that every
  *  node on the path exists. This is used when pushing characters into the tree
@@ -226,7 +266,6 @@ void WaveletTree<BitVector>::pushRun(byte symbol, size_t runLength)
   gammaCode(integerCode, runLength);
   pushBits(node, integerCode);
 }
-
 
 template <typename BitVector> template <typename OutputIterator>
 void WaveletTree<BitVector>::message(OutputIterator out) const {

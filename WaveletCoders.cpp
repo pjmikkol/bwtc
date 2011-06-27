@@ -1,5 +1,5 @@
 /**
- * @file Coders.cpp
+ * @file WaveletCoders.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -21,7 +21,7 @@
  *
  * @section DESCRIPTION
  *
- * Implementations for the decoder and encoder.
+ * Implementations for the wavelet-decoder and -encoder.
  */
 
 #include <cassert>
@@ -38,69 +38,46 @@
 
 namespace bwtc {
 
-Encoder::Encoder(const std::string& destination, char prob_model)
-    : m_out(new OutStream(destination)), m_destination(new dcsbwt::BitEncoder()),
-      m_probModel(giveProbabilityModel(prob_model)), m_headerPosition(0),
-      m_compressedBlockLength(0), m_currentStatHandled(0),
+WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
+    : m_out(new OutStream(destination)),
+      m_probModel(GiveProbabilityModel(prob_model)),
+      m_headerPosition(0), m_compressedBlockLength(0), m_currentStatHandled(0),
       m_currentStatIndex(0)
 {
-  m_destination->connect(m_out);
+  m_destination.connect(m_out);
 }
 
-/************************************************************************
- *                Global header for file                                *
- *----------------------------------------------------------------------*
- * Write- and ReadGlobalHeader defines global header and its format for *
- * the compressed file.                                                 *
- ************************************************************************/
-void Encoder::writeGlobalHeader(char preproc, char encoding) {
+void WaveletEncoder::writeGlobalHeader(char preproc, char encoding) {
   /* At the moment dummy implementation. In future should use
    * bit-fields of a bytes as a flags. */
   m_out->writeByte(static_cast<byte>(preproc));
   m_out->writeByte(static_cast<byte>(encoding));
 }
 
-char Decoder::readGlobalHeader() {
+char WaveletDecoder::readGlobalHeader() {
   char preproc = static_cast<char>(m_in->readByte());
   char probmodel = static_cast<char>(m_in->readByte());
   delete m_probModel;
   m_probModel = giveProbabilityModel(probmodel);
   return preproc;
 }
-/***************** Global header for file-section ends ******************/
 
-void Encoder::encodeByte(byte b) {
-  for(int i = 0; i < 8; ++i, b <<= 1) {
-    bool bit = b & 0x80;
-    m_destination->encode(bit, m_probModel->probabilityOfOne());
-    m_probModel->update(bit);
-  }
-}
-
-void Encoder::encodeRange(const byte* begin, const byte* end) {
-  while(begin != end) {
-    encodeByte(*begin);
-    ++begin;
-  }
-}
-
-Encoder::~Encoder() {
+WaveletEncoder::~WaveletEncoder() {
   delete m_out;
-  delete m_destination;
   delete m_probModel;
 }
 
-void Encoder::endContextBlock() {
+void WaveletEncoder::endContextBlock() {
   assert(m_probModel);
   m_probModel->resetModel();
 }
 
-void Decoder::endContextBlock() {
+void WaveletDecoder::endContextBlock() {
   assert(m_probModel);
   m_probModel->resetModel();
 }
 
-int Encoder::writeTrailer(uint64 trailer) {
+int WaveletEncoder::writeTrailer(uint64 trailer) {
   int bytes;
   uint64 packed_integer = utils::packInteger(trailer, &bytes);
   writePackedInteger(packed_integer);
@@ -122,7 +99,7 @@ int Encoder::writeTrailer(uint64 trailer) {
  *                                                                            *
  * Block header (1) format is following:                                      *
  * a) Length of the (header + compressed block + trailer) in bytes (6 bytes). *
- *    Note that the the length field itself isn't includedin total length     *
+ *    Note that the the length field itself isn't included in total length    *
  * b) List of context block lengths. Lengths are compressed with              *
  *    utils::PackInteger-function.                                            *
  * c) Ending symbol of the block header (2 bytes = 0x8000) which is           *
@@ -133,35 +110,22 @@ int Encoder::writeTrailer(uint64 trailer) {
 //       temporary file or huge buffer for each mainblock, so that
 //       we can write the size of the compressed block in the beginning (1a)
 // At the moment the implementation is done only for compressing into file
-void Encoder::encodeData(std::vector<byte>* block, std::vector<uint64>* stats,
-                         uint64 block_size)
+void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* stats,
+                                uint64 block_size)
 {
-  /* At the moment the context block-lengths are written in same order than   *
-   * are found form the stats. Transform which build stats, have to re-order  *
-   * lengths of stat-array if we are going to use some more clever packing of *
-   * the context block-lengths (eg. ascending/descending order)               */
-  unsigned i = 0;
-  /* This loop is quite tricky since we want to be prepared that context
-   * blocks can be shattered around. */
-  if (m_currentStatHandled == 0) 
-    while((*stats)[m_currentStatIndex] == 0) ++m_currentStatIndex;
-  
-  for( ; ; ++m_currentStatIndex) {
-    if (i == block_size) return;
-    assert(m_currentStatIndex < stats->size());
-    for( ; m_currentStatHandled < (*stats)[m_currentStatIndex];
-         ++i, ++m_currentStatHandled) {
-      if (i == block_size) return;
-      encodeByte((*block)[i]);
-    }
-    m_currentStatHandled = 0;
+  size_t beg = 0;
+  for(size_t i = 0; i < stats->size(); ++i) {
+    if((*stats)[i] == 0) continue;
+    WaveletTree wavelet(&(*block)[beg], (*stats)[i] + beg);
+    // TODO: compression of tree
+    beg += (*stats)[i];
     endContextBlock();
   }
 }
 
-void Encoder::finishBlock(uint64 eob_byte) {
-  m_destination->finish();
-  m_compressedBlockLength += m_destination->counter();
+void WaveletEncoder::finishBlock(uint64 eob_byte) {
+  m_destination.finish();
+  m_compressedBlockLength += m_destination.counter();
   m_compressedBlockLength +=  writeTrailer(eob_byte);
   m_out->write48bits(m_compressedBlockLength, m_headerPosition);
 }
@@ -174,14 +138,13 @@ void Encoder::finishBlock(uint64 eob_byte) {
  *   result of BWT. Lengths are coded with utils::PackInteger        *
  * - 2 sentinel bytes 0x80 and 0x00 for notifying end of the header  *
  *********************************************************************/
-void Encoder::writeBlockHeader(std::vector<uint64>* stats) {
+void WaveletEncoder::writeBlockHeader(std::vector<uint64>* stats) {
   uint64 headerLength = 0;
   m_headerPosition = m_out->getPos();
   for (unsigned i = 0; i < 6; ++i) m_out->writeByte(0x00); //fill 48 bits
   for (unsigned i = 0; i < stats->size(); ++i) {
     int bytes;
-    // TODO: At the moment we are not printing numbers in increasing order
-    //       It has to be fixed at BWTransform and here
+    // TODO: Maybe more clever encoding
     if((*stats)[i] > 0) {
       uint64 packed_cblock_size = utils::packInteger((*stats)[i], &bytes);
       headerLength += bytes;
@@ -192,11 +155,11 @@ void Encoder::writeBlockHeader(std::vector<uint64>* stats) {
   m_compressedBlockLength = headerLength;
   m_currentStatHandled = m_currentStatIndex = 0;
 
-  m_destination->resetCounter();
+  m_destination.resetCounter();
 }
 
 /* Integer is written in reversal fashion so that it can be read easier.*/
-void Encoder::writePackedInteger(uint64 packed_integer) {
+void WaveletEncoder::writePackedInteger(uint64 packed_integer) {
   do {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
@@ -204,13 +167,13 @@ void Encoder::writePackedInteger(uint64 packed_integer) {
   } while (packed_integer);
 }
 
-int Encoder::finishBlockHeader() {
+int WaveletEncoder::finishBlockHeader() {
   m_out->writeByte(0x80);
   m_out->writeByte(0x00);
   return 2;
 }
 
-uint64 Decoder::readBlockHeader(std::vector<uint64>* stats) {
+uint64 WaveletDecoder::readBlockHeader(std::vector<uint64>* stats) {
   static const uint64 kErrorMask = static_cast<uint64>(1) << 63;
 
   uint64 compressed_length = m_in->read48bits();
@@ -222,7 +185,7 @@ uint64 Decoder::readBlockHeader(std::vector<uint64>* stats) {
   return compressed_length;
 }
 
-std::vector<byte>* Decoder::decodeBlock(uint64* eof_byte) {
+std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
   if(m_in->compressedDataEnding()) return NULL;
 
   std::vector<uint64> context_lengths;
@@ -234,13 +197,13 @@ std::vector<byte>* Decoder::decodeBlock(uint64* eof_byte) {
 
   uint64 block_size = std::accumulate(
       context_lengths.begin(), context_lengths.end(), static_cast<uint64>(0));
-  m_source->start();
+  m_source.start();
   std::vector<byte>* data = new std::vector<byte>(block_size);
   int j = 0;
   for(std::vector<uint64>::const_iterator it = context_lengths.begin();
       it != context_lengths.end(); ++it) {
     for(uint64 i = 0; i < *it; ++i) {
-      (*data)[j++] = decodeByte();
+      //TODO: uncompress wavelet tree
     }
     endContextBlock();
   }
@@ -249,7 +212,7 @@ std::vector<byte>* Decoder::decodeBlock(uint64* eof_byte) {
   return data;
 }
 
-uint64 Decoder::readPackedInteger() {
+uint64 WaveletDecoder::readPackedInteger() {
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
 
@@ -266,39 +229,24 @@ uint64 Decoder::readPackedInteger() {
 }
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
-Decoder::Decoder(const std::string& source, char prob_model)
-    : m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
-      m_probModel(giveProbabilityModel(prob_model))
+WaveletDecoder::WaveletDecoder(const std::string& source, char prob_model)
+    : m_in(new InStream(source)),
+      m_probModel(GiveProbabilityModel(prob_model))
 {
-  m_source->connect(m_in);
+  m_source.connect(m_in);
 }
 
-Decoder::Decoder(const std::string& source) :
-    m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
-    m_probModel(0)
+WaveletDecoder::WaveletDecoder(const std::string& source) :
+    m_in(new InStream(source)), m_probModel(0)
 {
-  m_source->connect(m_in);
+  m_source.connect(m_in);
 }
 
-Decoder::~Decoder() {
+WaveletDecoder::~WaveletDecoder() {
   delete m_in;
-  delete m_source;
   delete m_probModel;
 }
 
-byte Decoder::decodeByte() {
-  byte b = 0x00;
-  for(int i = 0; i < 8; ++i) {
-    b <<= 1;
-    if (m_source->decode(m_probModel->probabilityOfOne())) {
-      b |= 1;
-      m_probModel->update(true);
-    } else {
-      m_probModel->update(false);
-    }
-  }
-  return b;
-}
 
 } // namespace bwtc
 

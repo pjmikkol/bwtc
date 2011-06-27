@@ -34,7 +34,7 @@
 
 namespace bwtc {
 
-ProbabilityModel* GiveProbabilityModel(char choice) {
+ProbabilityModel* giveProbabilityModel(char choice) {
   switch(choice) {
     case 'm':
       if( verbosity > 1)

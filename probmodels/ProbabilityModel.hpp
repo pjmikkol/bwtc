@@ -66,7 +66,7 @@ class SimpleMarkov : public ProbabilityModel {
   char* m_history;
 };
 
-ProbabilityModel* GiveProbabilityModel(char choice);
+ProbabilityModel* giveProbabilityModel(char choice);
   
 } // namespace bwtc
 

@@ -72,8 +72,8 @@ BOOST_AUTO_TEST_CASE(HeapTest2) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
-template <typename T>
-void checkEqual(const std::vector<T>& vec, const T *answ) {
+template <typename T, typename U>
+void checkEqual(const T& vec, const U& answ) {
   for(size_t i = 0; i < vec.size(); ++i) {
     BOOST_CHECK_EQUAL(vec[i], answ[i]);
   }
@@ -223,6 +223,171 @@ BOOST_AUTO_TEST_CASE(WholeConstruction5) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
+
+BOOST_AUTO_TEST_SUITE(WaveletTreeShape)
+
+struct Input {
+  Input() : bitsRead(0) {}
+
+  std::vector<bool> bits;
+  size_t bitsRead;
+  bool readBit() { return bits.at(bitsRead++); }
+};
+
+BOOST_AUTO_TEST_CASE(ShapeEncoding1) {
+  const char *str = "aaaaaaaa";
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<bool> shapeVec;
+  tree.treeShape(shapeVec);
+  BOOST_CHECK_EQUAL(shapeVec.size(), 257);
+  for(size_t i = 0; i < 257; ++i) {
+    if(i == 'a') {
+      BOOST_CHECK_EQUAL(shapeVec[i], true);
+    } else {
+      BOOST_CHECK_EQUAL(shapeVec[i], false);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(ShapeEncoding2) {
+  const char *str = "ahahabahbahaeaeabeabababa";
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<bool> expected;
+  for(size_t i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'b' || i == 'h' || i == 'e') {
+      expected.push_back(true);
+    } else {
+      expected.push_back(false);
+    }
+  }
+  // root
+  expected.push_back(true); expected.push_back(false); expected.push_back(false); 
+  expected.push_back(false);
+  // left child of the root
+  expected.push_back(true); expected.push_back(false); expected.push_back(false); 
+  // left child of the previous node
+  expected.push_back(true); expected.push_back(false);
+
+  std::vector<bool> shapeVec;
+  tree.treeShape(shapeVec);
+
+  BOOST_CHECK_EQUAL(shapeVec.size(), 265);
+  checkEqual(shapeVec, expected);
+}
+
+BOOST_AUTO_TEST_CASE(ShapeEncoding3) {
+  const char *str = "abcdabcdabcdabcaba";
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<bool> expected;
+  for(size_t i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'b' || i == 'c' || i == 'd') {
+      expected.push_back(true);
+    } else {
+      expected.push_back(false);
+    }
+  }
+  // root
+  expected.push_back(false); expected.push_back(false); expected.push_back(true); 
+  expected.push_back(true);
+  // left child of the root
+  expected.push_back(false); expected.push_back(true);
+  // right child of the root
+  expected.push_back(false); expected.push_back(true);
+
+  std::vector<bool> shapeVec;
+  tree.treeShape(shapeVec);
+
+  BOOST_CHECK_EQUAL(shapeVec.size(), 264);
+  checkEqual(shapeVec, expected);
+}
+
+BOOST_AUTO_TEST_CASE(ShapeDecoding1) {
+  Input input;
+  WaveletTree<std::vector<bool> > tree;
+
+  for(size_t i = 0; i < 257; ++i) {
+    if(i == 'a') {
+      input.bits.push_back(true);
+    } else {
+      input.bits.push_back(false);
+    }
+  }
+  tree.readShape(input);
+  
+  BOOST_CHECK_EQUAL(input.bitsRead, 257);
+  BOOST_CHECK_EQUAL(tree.code('a').size(), 1);
+  BOOST_CHECK_EQUAL(tree.code('a')[0], false);
+  
+}
+
+BOOST_AUTO_TEST_CASE(ShapeDecoding2) {
+  Input input;
+  for(size_t i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'b' || i == 'h' || i == 'e') {
+      input.bits.push_back(true);
+    } else {
+      input.bits.push_back(false);
+    }
+  }
+  // root
+  input.bits.push_back(true); input.bits.push_back(false);
+  input.bits.push_back(false); input.bits.push_back(false);
+  // left child of the root
+  input.bits.push_back(true); input.bits.push_back(false);
+  input.bits.push_back(false); 
+  // left child of the previous node
+  input.bits.push_back(true); input.bits.push_back(false);
+
+  WaveletTree<std::vector<bool> > tree;
+  tree.readShape(input);
+
+  BOOST_CHECK_EQUAL(input.bitsRead, 265);
+  bool aCode[] = {true};
+  bool bCode[] = {false, true};
+  bool hCode[] = {false, false, false};
+  bool eCode[] = {false, false, true};
+  checkEqual(tree.code('a'), aCode);
+  checkEqual(tree.code('b'), bCode);
+  checkEqual(tree.code('h'), hCode);
+  checkEqual(tree.code('e'), eCode);
+}
+
+BOOST_AUTO_TEST_CASE(ShapeDecoding3) {
+  Input input;
+  for(size_t i = 0; i < 256; ++i) {
+    if(i == 'a' || i == 'b' || i == 'c' || i == 'd') {
+      input.bits.push_back(true);
+    } else {
+      input.bits.push_back(false);
+    }
+  }
+
+  // root
+  input.bits.push_back(false); input.bits.push_back(false);
+  input.bits.push_back(true); input.bits.push_back(true);
+  // left child of the root
+  input.bits.push_back(false); input.bits.push_back(true);
+  // right child of the root
+  input.bits.push_back(false); input.bits.push_back(true);
+
+  WaveletTree<std::vector<bool> > tree;
+  tree.readShape(input);
+
+  BOOST_CHECK_EQUAL(input.bitsRead, 264);
+  
+  bool aCode[] = {false, false};
+  bool bCode[] = {false, true};
+  bool cCode[] = {true, false};
+  bool dCode[] = {true, true};
+  checkEqual(tree.code('a'), aCode);
+  checkEqual(tree.code('b'), bCode);
+  checkEqual(tree.code('c'), cCode);
+  checkEqual(tree.code('d'), dCode);
+}
+
+
+
+BOOST_AUTO_TEST_SUITE_END()
 
 
 BOOST_AUTO_TEST_SUITE(GammaCodes)

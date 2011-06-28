@@ -94,7 +94,8 @@ uint64 InStream::read48bits() {
 }
 
 InStream::InStream(std::string file_name) :
-    m_name(file_name), m_from(NULL), m_infile(NULL)
+    m_name(file_name), m_from(NULL), m_infile(NULL), m_buffer(0),
+    m_bitsInBuffer(0)
 {
   if (m_name != "") {
     m_infile = new std::ifstream(m_name.c_str());
@@ -112,7 +113,8 @@ InStream::~InStream() {
 }
 
 std::streamsize InStream::readBlock(byte* to, std::streamsize max_block_size) {
-  if(! *m_from) return 0; /* stream has reached EOF */
+  if(!*m_from) return 0; /* stream has reached EOF */
+  assert(m_bitsInBuffer == 0);
   m_from->read(reinterpret_cast<char*>(to), max_block_size);
   return m_from->gcount();
 }

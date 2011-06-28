@@ -89,7 +89,22 @@ class InStream {
   /* Copies block from stream to given char array.
    * Returns the number of read chars. */
   std::streamsize readBlock(byte* to, std::streamsize max_block_size);
-  byte readByte() { return static_cast<byte>(m_from->get()); }
+
+  inline bool readBit() {
+    if (m_bitsInBuffer == 0) {
+      m_buffer = static_cast<byte>(m_from->get());
+      m_bitsInBuffer = 8;
+    }
+    return (m_buffer >> --m_bitsInBuffer) & 1;
+  }
+
+  inline byte readByte() {
+    assert(m_bitsInBuffer < 8);
+    byte nextByte = static_cast<byte>(m_from->get());
+    m_buffer = (m_buffer << 8) | nextByte;
+    return (m_buffer >> m_bitsInBuffer) & 0xff;
+  }
+
   uint64 read48bits();
   bool compressedDataEnding() {
     /* Quick workaround. For some mysterious reason there is single
@@ -106,6 +121,8 @@ class InStream {
   std::string m_name;
   std::istream* m_from;
   std::ifstream* m_infile;
+  uint16 m_buffer;
+  byte m_bitsInBuffer;
 
   InStream& operator=(const InStream& os);
   InStream(const InStream& os);

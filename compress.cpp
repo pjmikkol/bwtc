@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
         ("help,h", "print help message")
         ("stdin,i", "input from standard in")
         ("stdout,c", "output to standard out")
-        ("block,b", po::value<uint64>(&block_size)->default_value(1000),
+        ("block,b", po::value<uint64>(&block_size)->default_value(100000),
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")

@@ -62,8 +62,8 @@ void compress(const std::string& input_name, const std::string& output_name,
 
   bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
 
-  bwtc::Encoder encoder(output_name, encoding);
-  //bwtc::WaveletEncoder encoder(output_name, encoding);
+  //bwtc::Encoder encoder(output_name, encoding);
+  bwtc::WaveletEncoder encoder(output_name, encoding);
   encoder.writeGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;

@@ -499,6 +499,7 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
     size_t i = j;
     do {
       bit = node->m_bitVector[i];
+      // Update bits seen and perform rank
       if(bit) i = bitsSeen[node]++;
       else i = i - bitsSeen[node]; 
       node = bit?node->m_right:node->m_left;
@@ -511,15 +512,15 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
       if(bit) i = bitsSeen[node]++;
       else i = i - bitsSeen[node]; 
       node = bit?node->m_right:node->m_left;
-      bit = node->m_bitVector[i];
       ++runBits;
+      bit = node->m_bitVector[i];
     }
     size_t runLength = 1;
     for(size_t k = 0; k < runBits; ++k) {
       runLength <<= 1;
-      node = bit?node->m_right:node->m_left;
       if(bit) i = bitsSeen[node]++;
       else i = i - bitsSeen[node]; 
+      node = bit?node->m_right:node->m_left;
       bit = node->m_bitVector[i];
       runLength |= (bit?1:0);
     }

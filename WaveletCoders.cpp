@@ -137,8 +137,8 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
     if(verbosity > 3) {
       size_t shapeBytes = shape.size()/8;
       if(shape.size()%8 > 0) ++shapeBytes;
-      std::cout << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
-      std::cout << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
+      std::clog << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
+      std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
     }
     wavelet.encodeTree(m_destination, m_probModel);
     beg += (*stats)[i];
@@ -147,7 +147,6 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
 }
 
 void WaveletEncoder::finishBlock(uint64 eob_byte) {
-  m_destination.finish();
   m_compressedBlockLength += m_destination.counter();
   m_compressedBlockLength +=  writeTrailer(eob_byte);
   m_out->write48bits(m_compressedBlockLength, m_headerPosition);
@@ -224,8 +223,8 @@ std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
   data->reserve(block_size);
 
   for(size_t i = 0; i < context_lengths.size(); ++i) {
+    if(context_lengths[i] == 0) continue;
     size_t rootSize = utils::unpackInteger(readPackedInteger());
-    std::cout << "Root size = " << rootSize << "\n";
 
     WaveletTree<std::vector<bool> > wavelet;
     size_t bits = wavelet.readShape(*m_in);
@@ -235,13 +234,13 @@ std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
     if(verbosity > 3) {
       size_t shapeBytes = bits/8;
       if(bits%8 > 0) ++shapeBytes;
-      std::cout << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
-      std::cout << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
+      std::clog << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
+      std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
     }
     wavelet.message(std::back_inserter(*data));
     endContextBlock();
   }
-
+  
   *eof_byte = utils::unpackInteger(readPackedInteger());
   return data;
 }

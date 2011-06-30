@@ -50,8 +50,8 @@ void decompress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::Decoder decoder(input_name);
-  //bwtc::WaveletDecoder decoder(input_name);
+  //bwtc::Decoder decoder(input_name);
+  bwtc::WaveletDecoder decoder(input_name);
   char preproc = decoder.readGlobalHeader();
   bwtc::OutStream out(output_name);
 

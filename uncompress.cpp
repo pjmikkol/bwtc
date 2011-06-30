@@ -35,6 +35,7 @@
 namespace po = boost::program_options;
 
 #include "Coders.hpp"
+#include "WaveletCoders.hpp"
 #include "Streams.hpp"
 #include "globaldefs.hpp"
 #include "bwtransforms/InverseBWT.hpp"
@@ -50,6 +51,7 @@ void decompress(const std::string& input_name, const std::string& output_name,
     else std::clog << "Output: stdout" << std::endl;
   }
   bwtc::Decoder decoder(input_name);
+  //bwtc::WaveletDecoder decoder(input_name);
   char preproc = decoder.readGlobalHeader();
   bwtc::OutStream out(output_name);
 

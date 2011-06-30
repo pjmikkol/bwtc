@@ -26,23 +26,24 @@
 
 #include <cassert>
 
+#include <iterator>
 #include <iostream> // For std::streampos
 #include <numeric> // for std::accumulate
 #include <vector>
 
 #include "MainBlock.hpp"
-#include "Coders.hpp"
+#include "WaveletCoders.hpp"
 #include "globaldefs.hpp"
 #include "Utils.hpp"
 #include "probmodels/ProbabilityModel.hpp"
+#include "WaveletTree.hpp"
 
 namespace bwtc {
 
 WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
     : m_out(new OutStream(destination)),
-      m_probModel(GiveProbabilityModel(prob_model)),
-      m_headerPosition(0), m_compressedBlockLength(0), m_currentStatHandled(0),
-      m_currentStatIndex(0)
+      m_probModel(giveProbabilityModel(prob_model)),
+      m_headerPosition(0), m_compressedBlockLength(0)
 {
   m_destination.connect(m_out);
 }
@@ -70,6 +71,7 @@ WaveletEncoder::~WaveletEncoder() {
 void WaveletEncoder::endContextBlock() {
   assert(m_probModel);
   m_probModel->resetModel();
+  m_destination.finish();
 }
 
 void WaveletDecoder::endContextBlock() {
@@ -106,18 +108,39 @@ int WaveletEncoder::writeTrailer(uint64 trailer) {
  *    invalid code for packed integer                                         *
  ******************************************************************************/
 
-// TODO: for compressing straight to the stdout we need to use
-//       temporary file or huge buffer for each mainblock, so that
-//       we can write the size of the compressed block in the beginning (1a)
-// At the moment the implementation is done only for compressing into file
+//At the moment we lose at worst case 7 bits when writing the shape of
+//wavelet tree
 void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* stats,
                                 uint64 block_size)
 {
   size_t beg = 0;
   for(size_t i = 0; i < stats->size(); ++i) {
     if((*stats)[i] == 0) continue;
-    WaveletTree wavelet(&(*block)[beg], (*stats)[i] + beg);
-    // TODO: compression of tree
+    WaveletTree<std::vector<bool> > wavelet(&(*block)[beg], (*stats)[i]);
+
+    int bytes;
+    writePackedInteger(utils::packInteger(wavelet.bitsInRoot(), &bytes)); 
+    m_compressedBlockLength += bytes;
+
+    std::vector<bool> shape;
+    wavelet.treeShape(shape);
+    for(size_t k = 0; k < shape.size();) {
+      byte b = 0; size_t j = 0;
+      for(; j < 8 && k < shape.size(); ++k, ++j) {
+        b <<= 1;
+        b |= (shape[k])?1:0;
+      }
+      if (j < 8) b <<= (8-j);
+      m_out->writeByte(b);
+      ++m_compressedBlockLength;
+    }
+    if(verbosity > 3) {
+      size_t shapeBytes = shape.size()/8;
+      if(shape.size()%8 > 0) ++shapeBytes;
+      std::cout << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
+      std::cout << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
+    }
+    wavelet.encodeTree(m_destination, m_probModel);
     beg += (*stats)[i];
     endContextBlock();
   }
@@ -153,7 +176,6 @@ void WaveletEncoder::writeBlockHeader(std::vector<uint64>* stats) {
   }
   headerLength += finishBlockHeader();
   m_compressedBlockLength = headerLength;
-  m_currentStatHandled = m_currentStatIndex = 0;
 
   m_destination.resetCounter();
 }
@@ -186,7 +208,7 @@ uint64 WaveletDecoder::readBlockHeader(std::vector<uint64>* stats) {
 }
 
 std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
-  if(m_in->compressedDataEnding()) return NULL;
+  if(m_in->compressedDataEnding()) return 0;
 
   std::vector<uint64> context_lengths;
   uint64 compr_len = readBlockHeader(&context_lengths);
@@ -197,18 +219,30 @@ std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
 
   uint64 block_size = std::accumulate(
       context_lengths.begin(), context_lengths.end(), static_cast<uint64>(0));
-  m_source.start();
-  std::vector<byte>* data = new std::vector<byte>(block_size);
-  int j = 0;
-  for(std::vector<uint64>::const_iterator it = context_lengths.begin();
-      it != context_lengths.end(); ++it) {
-    for(uint64 i = 0; i < *it; ++i) {
-      //TODO: uncompress wavelet tree
+
+  std::vector<byte>* data = new std::vector<byte>();
+  data->reserve(block_size);
+
+  for(size_t i = 0; i < context_lengths.size(); ++i) {
+    size_t rootSize = utils::unpackInteger(readPackedInteger());
+    std::cout << "Root size = " << rootSize << "\n";
+
+    WaveletTree<std::vector<bool> > wavelet;
+    size_t bits = wavelet.readShape(*m_in);
+    m_in->flushBuffer();
+    m_source.start();
+    wavelet.decodeTree(rootSize, m_source, m_probModel);
+    if(verbosity > 3) {
+      size_t shapeBytes = bits/8;
+      if(bits%8 > 0) ++shapeBytes;
+      std::cout << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
+      std::cout << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
     }
+    wavelet.message(std::back_inserter(*data));
     endContextBlock();
   }
-  uint64 packed_integer = readPackedInteger();
-  *eof_byte = utils::unpackInteger(packed_integer);
+
+  *eof_byte = utils::unpackInteger(readPackedInteger());
   return data;
 }
 
@@ -228,13 +262,6 @@ uint64 WaveletDecoder::readPackedInteger() {
   return packed_integer;
 }
 /*********** Encoding and decoding single MainBlock-section ends ********/
-
-WaveletDecoder::WaveletDecoder(const std::string& source, char prob_model)
-    : m_in(new InStream(source)),
-      m_probModel(GiveProbabilityModel(prob_model))
-{
-  m_source.connect(m_in);
-}
 
 WaveletDecoder::WaveletDecoder(const std::string& source) :
     m_in(new InStream(source)), m_probModel(0)

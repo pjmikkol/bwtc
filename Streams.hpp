@@ -105,7 +105,12 @@ class InStream {
     return (m_buffer >> m_bitsInBuffer) & 0xff;
   }
 
+  inline void flushBuffer() {
+    m_bitsInBuffer = 0;
+  }
+  
   uint64 read48bits();
+
   bool compressedDataEnding() {
     /* Quick workaround. For some mysterious reason there is single
      * additional byte in the end of compressed file. It seems that

@@ -38,6 +38,7 @@ namespace po = boost::program_options;
 #include "MainBlock.hpp"
 #include "BlockManager.hpp"
 #include "Coders.hpp"
+#include "WaveletCoders.hpp"
 #include "preprocessors/Preprocessor.hpp"
 #include "Streams.hpp"
 #include "globaldefs.hpp"
@@ -62,6 +63,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
 
   bwtc::Encoder encoder(output_name, encoding);
+  //bwtc::WaveletEncoder encoder(output_name, encoding);
   encoder.writeGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
@@ -110,7 +112,8 @@ void validatePreprocOption(char c) {
 
 /* Notifier function for encoding option choice */
 void validateEncodingOption(char c) {
-  if (c == 'n' || c == 'm' || c == 'M' || c == 'b' || c == 'B'/* || c == <other option> */) return;
+  if (c == 'n' || c == 'm' || c == 'M' || c == 'b' || c == 'B'
+      /* || c == <other option> */) return;
 
   class EncodingExc : public std::exception {
     virtual const char* what() const throw() {
@@ -146,7 +149,7 @@ int main(int argc, char** argv) {
          notifier(&validatePreprocOption),
          "pre-processing algorithm, options:\n"
          "  n -- does nothing")
-        ("enc,e", po::value<char>(&encoding)->default_value('n')->
+        ("enc,e", po::value<char>(&encoding)->default_value('B')->
          notifier(&validateEncodingOption),
          "entropy encoding scheme, options:\n"
          "  n -- does nothing")

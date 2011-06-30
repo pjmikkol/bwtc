@@ -312,9 +312,10 @@ BOOST_AUTO_TEST_CASE(ShapeDecoding1) {
       input.bits.push_back(false);
     }
   }
-  tree.readShape(input);
+  size_t bits = tree.readShape(input);
   
   BOOST_CHECK_EQUAL(input.bitsRead, 257);
+  BOOST_CHECK_EQUAL(bits, 257);
   BOOST_CHECK_EQUAL(tree.code('a').size(), 1);
   BOOST_CHECK_EQUAL(tree.code('a')[0], false);
   
@@ -339,9 +340,9 @@ BOOST_AUTO_TEST_CASE(ShapeDecoding2) {
   input.bits.push_back(true); input.bits.push_back(false);
 
   WaveletTree<std::vector<bool> > tree;
-  tree.readShape(input);
+  size_t bits = tree.readShape(input);
 
-  BOOST_CHECK_EQUAL(input.bitsRead, 265);
+  BOOST_CHECK_EQUAL(bits, 265);
   bool aCode[] = {true};
   bool bCode[] = {false, true};
   bool hCode[] = {false, false, false};
@@ -371,9 +372,10 @@ BOOST_AUTO_TEST_CASE(ShapeDecoding3) {
   input.bits.push_back(false); input.bits.push_back(true);
 
   WaveletTree<std::vector<bool> > tree;
-  tree.readShape(input);
+  size_t bits = tree.readShape(input);
 
   BOOST_CHECK_EQUAL(input.bitsRead, 264);
+  BOOST_CHECK_EQUAL(bits, 264);
   
   bool aCode[] = {false, false};
   bool bCode[] = {false, true};

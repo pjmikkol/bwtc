@@ -24,8 +24,8 @@
  * Header for coders which first construct wavelet tree and then compress it.
  */
 
-#ifndef BWTC_CODERS_HPP_
-#define BWTC_CODERS_HPP_
+#ifndef BWTC_WAVELET_CODERS_HPP_
+#define BWTC_WAVELET_CODERS_HPP_
 
 #include <iostream>
 #include <string>
@@ -47,11 +47,11 @@ class WaveletEncoder {
                   uint64 data_size);
   void writeBlockHeader(std::vector<uint64>* stats);
 
-  //void writePackedInteger(uint64 packed_integer);
+  void writePackedInteger(uint64 packed_integer);
   int finishBlockHeader();
-  //void endContextBlock();
-  //int writeTrailer(uint64 trailer_value);
-  //void finishBlock(uint64 eob_byte); //TODO: this calls write trailer
+  void endContextBlock();
+  int writeTrailer(uint64 trailer_value);
+  void finishBlock(uint64 eob_byte); //TODO: this calls write trailer
 
  private:
   OutStream* m_out;
@@ -59,11 +59,6 @@ class WaveletEncoder {
   ProbabilityModel* m_probModel;
   std::streampos m_headerPosition;
   uint64 m_compressedBlockLength;
-  /* We may have to encode result of the transformation in pieces so we
-   * have track down the progress of handling single MainBlock. */
-  uint64 m_currentStatHandled;
-  unsigned m_currentStatIndex;
-
 
   WaveletEncoder(const WaveletEncoder&);
   WaveletEncoder& operator=(const WaveletEncoder&);

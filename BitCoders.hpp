@@ -106,11 +106,11 @@ class BitDecoder {
 
   /* The compressed data is read from an InStreamBuffer. */
   void connect(bwtc::InStream* in) { m_input = in; }
-  //TODO: Do we need Disconnect()
+  //TODO: Do we need Disconnect()?
   //bwtc::InStream* Disconnect() { return input_.Disconnect(); }
 
-  /* Start() must be called to start the decoding of a sequence.
-   * Nothing needs to be called to finish the decoding, but Start()
+  /* start() must be called to start the decoding of a sequence.
+   * Nothing needs to be called to finish the decoding, but start()
    * must be called again when starting to decode a new sequence.  */
   void start();
 

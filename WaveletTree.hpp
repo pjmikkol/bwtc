@@ -46,7 +46,8 @@ struct TreeNode {
   virtual ~TreeNode() {}
 
   size_t rank(bool bit, size_t i) const;
-  
+  size_t totalBits() const;
+
   BitVector m_bitVector;
   TreeNode<BitVector>* m_left;
   TreeNode<BitVector>* m_right;
@@ -64,6 +65,14 @@ size_t TreeNode<BitVector>::rank(bool bit, size_t i) const {
   return sum;
 }
 
+template <typename BitVector>
+size_t TreeNode<BitVector>::totalBits() const {
+  size_t bits = m_bitVector.size();
+  if(m_left) bits += m_left->totalBits();
+  if(m_right) bits += m_right->totalBits();
+  return bits;
+}
+
 // Contains character from the source alphabet
 template <typename BitVector>
 struct AlphabeticNode : public TreeNode<BitVector> {
@@ -71,7 +80,6 @@ struct AlphabeticNode : public TreeNode<BitVector> {
 
   byte m_symbol;
 };
-
 
 /**This wavelet tree is used for storing the sequence
  * (<a1, n1>, <a2, n2>, ...) where a's are alphabets of the source alphabet
@@ -111,29 +119,66 @@ class WaveletTree {
   /**Writes the encoding of the shape of tree into given vector.*/
   void treeShape(BitVector& vector) const;
 
+  size_t bitsInRoot() const { return m_root->m_bitVector.size(); }
+  size_t totalBits() const { return m_root->totalBits(); }
+
   template <typename OutputIterator>
   void message(OutputIterator out) const;
 
   /**Input is required to have readBit()-method returning bool.*/
   template<typename Input>
-  void readShape(Input& input);
+  size_t readShape(Input& input);
 
+  /** Encoder is required to have encode(bool bit, Probability prob)-method.
+    * ProbabilisticModel is required to have probabilityOfOne()- and
+    * update(bool bit)-methods. */
+  template <typename Encoder, typename ProbabilisticModel>
+  void encodeTree(Encoder& enc, ProbabilisticModel *pm) const;
+
+  /** Decoder is required to have decode(Probability prob)-method.
+    * ProbabilisticModel is required to have probabilityOfOne()- and
+    * update(bool bit)-methods. */
+  template <typename Decoder, typename ProbabilisticModel>
+  void decodeTree(size_t rootSize, Decoder& enc, ProbabilisticModel *pm) const;
+  
   const BitVector& code(byte symbol) { return m_codes[symbol]; }
   
   static TreeNode<BitVector> *createHuffmanShape(const uint64 *runFreqs);
   static void collectCodes(BitVector *codes, TreeNode<BitVector> *root);
-  static void collectCodes(BitVector *codes, BitVector& vec, TreeNode<BitVector> *node);
+  static void collectCodes(BitVector *codes, BitVector& vec,
+                           TreeNode<BitVector> *node);
   static void pushBits(TreeNode<BitVector> *node, const BitVector& bits);
   static void gammaCode(BitVector& bits, size_t integer);
 
   
  private:
-  template <typename Input>
-  TreeNode<BitVector> *readShapeDfs(Input& input, const std::vector<byte> symbols);
-  void outputShapeDfs(BitVector& output, size_t depth, const std::vector<byte>& symbols) const;
-  static void destroy(TreeNode<BitVector>* node);
   TreeNode<BitVector>* m_root;
   BitVector m_codes[256];
+
+  template <typename Decoder, typename ProbabilisticModel>
+  void decodeTree(TreeNode<BitVector> *node, size_t nodeSize, Decoder& dec,
+                  ProbabilisticModel *pm) const;
+
+  template <typename Decoder, typename ProbabilisticModel>
+  void decodeTreeGammaInc(TreeNode<BitVector> *node, size_t nodeSize, size_t bitsInCode,
+                          Decoder& dec, ProbabilisticModel *pm) const;
+
+  template <typename Decoder, typename ProbabilisticModel>
+  void decodeTreeGammaDec(TreeNode<BitVector> *node, size_t nodeSize, size_t bitsInCode,
+                          Decoder& dec, ProbabilisticModel *pm) const;
+
+  template <typename Encoder, typename ProbabilisticModel>
+  void encodeTree(TreeNode<BitVector>* node, Encoder& enc,
+                  ProbabilisticModel *pm) const;
+
+  template <typename Input>
+  TreeNode<BitVector> *readShapeDfs(Input& input, const std::vector<byte> symbols,
+                                    size_t *bitsUsed);
+
+  void outputShapeDfs(BitVector& output, size_t depth,
+                      const std::vector<byte>& symbols) const;
+
+  static void destroy(TreeNode<BitVector>* node);
 };
 
 template <typename BitVector>
@@ -171,7 +216,7 @@ void WaveletTree<BitVector>::destroy(TreeNode<BitVector>* node) {
 }
 
 template <typename BitVector> template <typename Input>
-void WaveletTree<BitVector>::readShape(Input& input) {
+size_t WaveletTree<BitVector>::readShape(Input& input) {
   assert(m_root->m_left == 0 && m_root->m_right == 0);
   std::vector<byte> symbols;
   byte b = 0;
@@ -186,17 +231,25 @@ void WaveletTree<BitVector>::readShape(Input& input) {
     if(bit) rightSymbols.push_back(symbols[i]);
     else leftSymbols.push_back(symbols[i]);
   }
-  if(leftSymbols.size() > 0) m_root->m_left = readShapeDfs(input, leftSymbols);
-  if(rightSymbols.size() > 0) m_root->m_right = readShapeDfs(input, rightSymbols);
+  size_t bitsRead = 256 + symbols.size();
+  if(leftSymbols.size() > 0) {
+    m_root->m_left = readShapeDfs(input, leftSymbols, &bitsRead);
+  }
+  if(rightSymbols.size() > 0) {
+    m_root->m_right = readShapeDfs(input, rightSymbols, &bitsRead);
+  }
+  return bitsRead;
 }
 
 template <typename BitVector> template <typename Input>
 TreeNode<BitVector>*
-WaveletTree<BitVector>::readShapeDfs(Input& input, const std::vector<byte> symbols)
+WaveletTree<BitVector>::readShapeDfs(Input& input, const std::vector<byte> symbols,
+                                     size_t *bitsUsed)
 {
   if(symbols.size() == 1) {
     return new AlphabeticNode<BitVector>(symbols[0]);
   }
+  *bitsUsed += symbols.size();
   TreeNode<BitVector> *node = new TreeNode<BitVector>();
   std::vector<byte> leftSymbols, rightSymbols;
   for(size_t i = 0; i < symbols.size(); ++i) {
@@ -206,8 +259,12 @@ WaveletTree<BitVector>::readShapeDfs(Input& input, const std::vector<byte> symbo
     if(bit) rightSymbols.push_back(symbols[i]);
     else leftSymbols.push_back(symbols[i]);
   }
-  if(leftSymbols.size() > 0) node->m_left = readShapeDfs(input, leftSymbols);
-  if(rightSymbols.size() > 0) node->m_right = readShapeDfs(input, rightSymbols);
+  if(leftSymbols.size() > 0) {
+    node->m_left = readShapeDfs(input, leftSymbols, bitsUsed);
+  }
+  if(rightSymbols.size() > 0) {
+    node->m_right = readShapeDfs(input, rightSymbols, bitsUsed);
+  }
   return node;
 }
 
@@ -261,6 +318,114 @@ void WaveletTree<BitVector>::outputShapeDfs(BitVector& output, size_t depth,
   outputShapeDfs(output, depth+1, rightSymbols);
 }
 
+template <typename BitVector>
+template <typename Encoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::encodeTree(Encoder& enc, ProbabilisticModel *pm) const
+{
+  encodeTree(m_root, enc, pm);
+}
+
+template <typename BitVector>
+template <typename Encoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::encodeTree(TreeNode<BitVector> *node,
+                                        Encoder& enc,
+                                        ProbabilisticModel *pm) const
+{
+  for(size_t i = 0; i < node->m_bitVector.size(); ++i) {
+    enc.encode(node->m_bitVector[i], pm->probabilityOfOne());
+    pm->update(node->m_bitVector[i]);
+  }
+  if(node->m_left) encodeTree(node->m_left, enc, pm);
+  if(node->m_right) encodeTree(node->m_right, enc, pm);
+}
+
+/** We have to detect the end of each gamma-code by decoding that code.
+ *  So to decode the whole tree two additional decoding-methods for gamma
+ *  codes are needed. This one is used when the first 0 is encountered
+ *  (we have to keep track how many bits in code to read). 
+ */
+template <typename BitVector>
+template <typename Decoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::decodeTreeGammaDec(TreeNode<BitVector>* node,
+                                                size_t nodeSize,
+                                                size_t bitsInCode,
+                                                Decoder& dec,
+                                                ProbabilisticModel *pm) const
+{
+  if(bitsInCode == 0) return;
+  size_t ones = 0;
+  for(size_t i = 0; i < nodeSize; ++i) {
+    bool bit = dec.decode(pm->probabilityOfOne());
+    pm->update(bit);
+    if(bit) ++ones;
+    node->m_bitVector.push_back(bit);
+  }
+  if(nodeSize - ones > 0) {
+    if(!node->m_left) node->m_left = new TreeNode<BitVector>();
+    decodeTreeGammaDec(node->m_left, nodeSize - ones, bitsInCode-1, dec, pm);
+  }
+  if(ones > 0) {
+    if(!node->m_right) node->m_right = new TreeNode<BitVector>();
+    decodeTreeGammaDec(node->m_right, ones, bitsInCode-1, dec, pm);
+  }
+}
+
+/** This is used when we haven't yet seen the first 0-bit in gamma-code.
+ */
+template <typename BitVector>
+template <typename Decoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::decodeTreeGammaInc(TreeNode<BitVector>* node,
+                                                size_t nodeSize,
+                                                size_t bitsInCode,
+                                                Decoder& dec,
+                                                ProbabilisticModel *pm) const
+{
+  size_t ones = 0;
+  for(size_t i = 0; i < nodeSize; ++i) {
+    bool bit = dec.decode(pm->probabilityOfOne());
+    pm->update(bit);
+    if(bit) ++ones;
+    node->m_bitVector.push_back(bit);
+  }
+  if(nodeSize - ones > 0) {
+    if(!node->m_left) node->m_left = new TreeNode<BitVector>();
+    decodeTreeGammaDec(node->m_left, nodeSize - ones, bitsInCode, dec, pm);
+  }
+  if(ones > 0) {
+    if(!node->m_right) node->m_right = new TreeNode<BitVector>();
+    decodeTreeGammaInc(node->m_right, ones, bitsInCode +1, dec, pm);
+  }
+}
+
+template<typename BitVector>
+template <typename Decoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::decodeTree(size_t rootSize,
+                                        Decoder& dec,
+                                        ProbabilisticModel *pm) const
+{
+  decodeTree(m_root, rootSize, dec, pm);
+}
+
+template <typename BitVector>
+template <typename Decoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::decodeTree(TreeNode<BitVector>* node, size_t nodeSize,
+                                        Decoder& dec, ProbabilisticModel *pm) const
+{
+  if(dynamic_cast<AlphabeticNode<BitVector> *>(node) == 0) {
+    size_t ones = 0;
+    for(size_t i = 0; i < nodeSize; ++i) {
+      bool bit = dec.decode(pm->probabilityOfOne());
+      pm->update(bit);
+      if(bit) ++ones;
+      node->m_bitVector.push_back(bit);
+    }
+    if(nodeSize - ones > 0) decodeTree(node->m_left, nodeSize - ones, dec, pm);
+    if(ones > 0) decodeTree(node->m_right, ones, dec, pm);
+  } else {
+    decodeTreeGammaInc(node, nodeSize, 0, dec, pm);
+  }
+}
+  
 /** Pushes bitvector to tree by starting from the root. Assumes that every
  *  node on the path exists. This is used when pushing characters into the tree
  *  whose shape is already formed and codes are chosen by this shape.
@@ -313,6 +478,7 @@ WaveletTree<BitVector>::pushBits(TreeNode<BitVector> *node, const BitVector& bit
   node->m_bitVector.push_back(bits.back());
 }
 
+// TODO: optimize gamma coding
 template <typename BitVector>
 void WaveletTree<BitVector>::pushRun(byte symbol, size_t runLength)
 {

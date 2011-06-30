@@ -51,7 +51,7 @@ ProbabilityModel* giveProbabilityModel(char choice) {
     case 'B':
       if( verbosity > 1)
         std::clog << "Using FSM.\n";
-      return new FSM<6, BitPredictor<8> >();
+      return new FSM<8, BitPredictor<4> >();
     case 'n':
     default:
       if( verbosity > 1)

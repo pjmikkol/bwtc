@@ -140,7 +140,7 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
       std::clog << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
       std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
     }
-    wavelet.encodeTree(m_destination, m_probModel);
+    wavelet.encodeTree(m_destination, *m_probModel);
     beg += (*stats)[i];
     endContextBlock();
   }
@@ -230,7 +230,7 @@ std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
     size_t bits = wavelet.readShape(*m_in);
     m_in->flushBuffer();
     m_source.start();
-    wavelet.decodeTree(rootSize, m_source, m_probModel);
+    wavelet.decodeTree(rootSize, m_source, *m_probModel);
     if(verbosity > 3) {
       size_t shapeBytes = bits/8;
       if(bits%8 > 0) ++shapeBytes;

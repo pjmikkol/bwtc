@@ -133,13 +133,13 @@ class WaveletTree {
     * ProbabilisticModel is required to have probabilityOfOne()- and
     * update(bool bit)-methods. */
   template <typename Encoder, typename ProbabilisticModel>
-  void encodeTree(Encoder& enc, ProbabilisticModel *pm) const;
+  void encodeTree(Encoder& enc, ProbabilisticModel& pm) const;
 
   /** Decoder is required to have decode(Probability prob)-method.
     * ProbabilisticModel is required to have probabilityOfOne()- and
     * update(bool bit)-methods. */
   template <typename Decoder, typename ProbabilisticModel>
-  void decodeTree(size_t rootSize, Decoder& enc, ProbabilisticModel *pm) const;
+  void decodeTree(size_t rootSize, Decoder& enc, ProbabilisticModel& pm) const;
   
   const BitVector& code(byte symbol) { return m_codes[symbol]; }
   
@@ -157,19 +157,19 @@ class WaveletTree {
 
   template <typename Decoder, typename ProbabilisticModel>
   void decodeTree(TreeNode<BitVector> *node, size_t nodeSize, Decoder& dec,
-                  ProbabilisticModel *pm) const;
+                  ProbabilisticModel& pm) const;
 
   template <typename Decoder, typename ProbabilisticModel>
   void decodeTreeGammaInc(TreeNode<BitVector> *node, size_t nodeSize, size_t bitsInCode,
-                          Decoder& dec, ProbabilisticModel *pm) const;
+                          Decoder& dec, ProbabilisticModel& pm) const;
 
   template <typename Decoder, typename ProbabilisticModel>
   void decodeTreeGammaDec(TreeNode<BitVector> *node, size_t nodeSize, size_t bitsInCode,
-                          Decoder& dec, ProbabilisticModel *pm) const;
+                          Decoder& dec, ProbabilisticModel& pm) const;
 
   template <typename Encoder, typename ProbabilisticModel>
   void encodeTree(TreeNode<BitVector>* node, Encoder& enc,
-                  ProbabilisticModel *pm) const;
+                  ProbabilisticModel& pm) const;
 
   template <typename Input>
   TreeNode<BitVector> *readShapeDfs(Input& input, const std::vector<byte> symbols,
@@ -320,7 +320,7 @@ void WaveletTree<BitVector>::outputShapeDfs(BitVector& output, size_t depth,
 
 template <typename BitVector>
 template <typename Encoder, typename ProbabilisticModel>
-void WaveletTree<BitVector>::encodeTree(Encoder& enc, ProbabilisticModel *pm) const
+void WaveletTree<BitVector>::encodeTree(Encoder& enc, ProbabilisticModel& pm) const
 {
   encodeTree(m_root, enc, pm);
 }
@@ -329,11 +329,11 @@ template <typename BitVector>
 template <typename Encoder, typename ProbabilisticModel>
 void WaveletTree<BitVector>::encodeTree(TreeNode<BitVector> *node,
                                         Encoder& enc,
-                                        ProbabilisticModel *pm) const
+                                        ProbabilisticModel& pm) const
 {
   for(size_t i = 0; i < node->m_bitVector.size(); ++i) {
-    enc.encode(node->m_bitVector[i], pm->probabilityOfOne());
-    pm->update(node->m_bitVector[i]);
+    enc.encode(node->m_bitVector[i], pm.probabilityOfOne());
+    pm.update(node->m_bitVector[i]);
   }
   if(node->m_left) encodeTree(node->m_left, enc, pm);
   if(node->m_right) encodeTree(node->m_right, enc, pm);
@@ -350,13 +350,13 @@ void WaveletTree<BitVector>::decodeTreeGammaDec(TreeNode<BitVector>* node,
                                                 size_t nodeSize,
                                                 size_t bitsInCode,
                                                 Decoder& dec,
-                                                ProbabilisticModel *pm) const
+                                                ProbabilisticModel& pm) const
 {
   if(bitsInCode == 0) return;
   size_t ones = 0;
   for(size_t i = 0; i < nodeSize; ++i) {
-    bool bit = dec.decode(pm->probabilityOfOne());
-    pm->update(bit);
+    bool bit = dec.decode(pm.probabilityOfOne());
+    pm.update(bit);
     if(bit) ++ones;
     node->m_bitVector.push_back(bit);
   }
@@ -378,12 +378,12 @@ void WaveletTree<BitVector>::decodeTreeGammaInc(TreeNode<BitVector>* node,
                                                 size_t nodeSize,
                                                 size_t bitsInCode,
                                                 Decoder& dec,
-                                                ProbabilisticModel *pm) const
+                                                ProbabilisticModel& pm) const
 {
   size_t ones = 0;
   for(size_t i = 0; i < nodeSize; ++i) {
-    bool bit = dec.decode(pm->probabilityOfOne());
-    pm->update(bit);
+    bool bit = dec.decode(pm.probabilityOfOne());
+    pm.update(bit);
     if(bit) ++ones;
     node->m_bitVector.push_back(bit);
   }
@@ -401,7 +401,7 @@ template<typename BitVector>
 template <typename Decoder, typename ProbabilisticModel>
 void WaveletTree<BitVector>::decodeTree(size_t rootSize,
                                         Decoder& dec,
-                                        ProbabilisticModel *pm) const
+                                        ProbabilisticModel& pm) const
 {
   decodeTree(m_root, rootSize, dec, pm);
 }
@@ -409,13 +409,13 @@ void WaveletTree<BitVector>::decodeTree(size_t rootSize,
 template <typename BitVector>
 template <typename Decoder, typename ProbabilisticModel>
 void WaveletTree<BitVector>::decodeTree(TreeNode<BitVector>* node, size_t nodeSize,
-                                        Decoder& dec, ProbabilisticModel *pm) const
+                                        Decoder& dec, ProbabilisticModel& pm) const
 {
   if(dynamic_cast<AlphabeticNode<BitVector> *>(node) == 0) {
     size_t ones = 0;
     for(size_t i = 0; i < nodeSize; ++i) {
-      bool bit = dec.decode(pm->probabilityOfOne());
-      pm->update(bit);
+      bool bit = dec.decode(pm.probabilityOfOne());
+      pm.update(bit);
       if(bit) ++ones;
       node->m_bitVector.push_back(bit);
     }

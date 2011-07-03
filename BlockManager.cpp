@@ -49,7 +49,9 @@ std::vector<byte>* BlockManager::getFreeBuffer() {
   return m_dataBuffer;
 }
 
+// Assume context length == 257
 std::vector<uint64>* BlockManager::getFreeStats() {
+  if(m_frequencyBuffer->size() < 257) m_frequencyBuffer->resize(257);
   return m_frequencyBuffer;
 }
 

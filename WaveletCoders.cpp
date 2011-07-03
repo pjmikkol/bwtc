@@ -156,24 +156,47 @@ void WaveletEncoder::finishBlock(uint64 eob_byte) {
  * The format of header for single main block is the following:      *
  * - 48 bits for the length of the compressed main block, doesn't    *
  *   include 6 bytes used for this                                   *
- * - lengths of context blocks in the same order as they are in the  *
- *   result of BWT. Lengths are coded with utils::PackInteger        *
- * - 2 sentinel bytes 0x80 and 0x00 for notifying end of the header  *
+ * - byte representing the number of separately encoded sections.    *
+ *   zero represents 256                                             *
+ * - lengths of the sections which are encoded with same wavelet tree*
  *********************************************************************/
 void WaveletEncoder::writeBlockHeader(std::vector<uint64>* stats) {
   uint64 headerLength = 0;
   m_headerPosition = m_out->getPos();
   for (unsigned i = 0; i < 6; ++i) m_out->writeByte(0x00); //fill 48 bits
-  for (unsigned i = 0; i < stats->size(); ++i) {
-    int bytes;
-    // TODO: Maybe more clever encoding
-    if((*stats)[i] > 0) {
-      uint64 packed_cblock_size = utils::packInteger((*stats)[i], &bytes);
-      headerLength += bytes;
-      writePackedInteger(packed_cblock_size);
+
+  /* Deduce sections for separate encoding. At the moment uses not-so-well
+   * thought heuristic. */
+  std::vector<uint64> temp; std::vector<uint64>& s = *stats;
+  size_t sum = 0;
+  for(size_t i = 0; i < s.size(); ++i) {
+    sum += s[i];
+    if(sum >= 1000) {
+      temp.push_back(sum);
+      sum = 0;
     }
   }
-  headerLength += finishBlockHeader();
+  if (sum != 0) {
+    if(temp.size() > 0) temp.back() += sum;
+    else temp.push_back(sum);
+  }
+  s.resize(temp.size());
+  std::copy(temp.begin(), temp.end(), s.begin());
+  byte len;
+  if(temp.size() == 256) len = 0;
+  else len = temp.size();
+  m_out->writeByte(len);
+  headerLength += 1;
+
+  assert(s.size() == temp.size());
+  assert(temp.size() <= 256);
+
+  for (size_t i = 0; i < stats->size(); ++i) {
+    int bytes;
+    uint64 packed_cblock_size = utils::packInteger((*stats)[i], &bytes);
+    headerLength += bytes;
+    writePackedInteger(packed_cblock_size);
+  }
   m_compressedBlockLength = headerLength;
 
   m_destination.resetCounter();
@@ -188,19 +211,12 @@ void WaveletEncoder::writePackedInteger(uint64 packed_integer) {
   } while (packed_integer);
 }
 
-int WaveletEncoder::finishBlockHeader() {
-  m_out->writeByte(0x80);
-  m_out->writeByte(0x00);
-  return 2;
-}
-
 uint64 WaveletDecoder::readBlockHeader(std::vector<uint64>* stats) {
-  static const uint64 kErrorMask = static_cast<uint64>(1) << 63;
-
   uint64 compressed_length = m_in->read48bits();
-  while(1) {
+  byte sections = m_in->readByte();
+  size_t sects = (sections == 0)?256:sections;
+  for(size_t i = 0; i < sects; ++i) {
     uint64 value = readPackedInteger();
-    if(value & kErrorMask) break;
     stats->push_back(utils::unpackInteger(value));
   }
   return compressed_length;

@@ -48,7 +48,6 @@ class WaveletEncoder {
   void writeBlockHeader(std::vector<uint64>* stats);
 
   void writePackedInteger(uint64 packed_integer);
-  int finishBlockHeader();
   void endContextBlock();
   int writeTrailer(uint64 trailer_value);
   void finishBlock(uint64 eob_byte); //TODO: this calls write trailer

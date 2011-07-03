@@ -40,10 +40,11 @@ namespace bwtc {
 //TODO: Allow to take array from preprocessor to parameter since they have
 //      already built stats
 void BWTransform::buildStats() {
-  std::fill(m_currentBlock->m_stats->begin(), m_currentBlock->m_stats->end(), 0);
-  (*m_currentBlock->m_stats)[0] = 1;
+  std::vector<uint64>& stats = *m_currentBlock->m_stats;
+  std::fill(stats.begin(), stats.end(), 0);
+  stats[0] = 1;
   for(uint64 i = 0; i < m_currentBlock->size(); ++i)
-    (*m_currentBlock->m_stats)[(*m_currentBlock->m_block)[i] + 1]++;
+    ++stats[(*m_currentBlock->m_block)[i] + 1];
 }
 
 std::vector<byte>* BWTransform::allocateMemory(uint64 size) {

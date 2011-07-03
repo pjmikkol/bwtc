@@ -34,21 +34,17 @@ namespace bwtc {
 
 class ProbabilityModel {
  public:
-  ProbabilityModel() : m_prev(true) {}
+  ProbabilityModel() {}
   virtual ~ProbabilityModel() {}
   /* This will be called each time after single bit is coded. Updates to
    * model should be done here. */
-  virtual void update(bool bit) { m_prev = bit; }
+  virtual void update(bool bit) {}
   /* This probability will be used for coding each bit of the source. */
   virtual Probability probabilityOfOne() const {
-    if(m_prev) return kProbabilityScale - 1;
-    else return  1;
+    return kProbabilityScale >> 2;
   }
   /* This will called when the context of data changes. */
-  virtual void resetModel() { m_prev = true; }
-
- private:
-  bool m_prev;
+  virtual void resetModel() {}
 };
 
 /* Example how to integrate new probability model to program */

@@ -37,17 +37,17 @@ namespace bwtc {
 // Template argument is the number of different probabilities.
 // The probabilites are conceptually in form ix, where i = 1,...,M-1 and x = 1/M.
 template <uint16 M>
-class BitPredictor : public ProbabilityModel {
+class UnbiasedPredictor : public ProbabilityModel {
  public:
-  BitPredictor() : m_probabilityOfOne(m_interval * (M >> 2)) {}
-  ~BitPredictor() {}
+  UnbiasedPredictor() : m_probabilityOfOne(s_interval * (M >> 1)) {}
+  ~UnbiasedPredictor() {}
 
   void update(bool bit) {
     if(bit) {
-      uint16 probability = m_probabilityOfOne + m_interval;
+      Probability probability = m_probabilityOfOne + s_interval;
       if(probability < kProbabilityScale) m_probabilityOfOne = probability;
     } else {
-      if(m_interval < m_probabilityOfOne) m_probabilityOfOne -= m_interval;
+      if(s_interval < m_probabilityOfOne) m_probabilityOfOne -= s_interval;
     }
   }
 
@@ -56,15 +56,210 @@ class BitPredictor : public ProbabilityModel {
   }
 
   void resetModel() {
-    m_probabilityOfOne = m_interval * (M >> 2);
+    m_probabilityOfOne = s_interval * (M >> 1);
   }
   
  private:
-  static const uint16 m_interval = kProbabilityScale/M;
-  uint16 m_probabilityOfOne;
+  static const Probability s_interval = kProbabilityScale/M;
+  Probability m_probabilityOfOne;
   BOOST_STATIC_ASSERT(M <= kProbabilityScale);
-  BOOST_STATIC_ASSERT(m_interval * M == kProbabilityScale);
+  BOOST_STATIC_ASSERT(s_interval * M == kProbabilityScale);
   
+};
+
+template <>
+class UnbiasedPredictor<2> : public ProbabilityModel {
+ public:
+  UnbiasedPredictor() : m_probabilityOfOne(s_quarter + kHalfProbability) {}
+  ~UnbiasedPredictor() {}
+
+  void update(bool bit) {
+    if(bit) m_probabilityOfOne = s_quarter + kHalfProbability;
+    else m_probabilityOfOne = s_quarter;
+  }
+
+  Probability probabilityOfOne() const {
+    return m_probabilityOfOne;
+  }
+
+  void resetModel() {
+    m_probabilityOfOne = s_quarter + kHalfProbability;
+  }
+  
+ private:
+  static const Probability s_quarter = kHalfProbability >> 1;
+  Probability m_probabilityOfOne;
+};
+
+template <>
+class UnbiasedPredictor<3> : public ProbabilityModel {
+ public:
+  UnbiasedPredictor() : m_probabilityOfOne(s_interval << 1) {}
+  ~UnbiasedPredictor() {}
+
+  void update(bool bit) {
+    if(bit) m_probabilityOfOne = s_interval << 1;
+    else m_probabilityOfOne = s_interval;
+  }
+
+  Probability probabilityOfOne() const {
+    return m_probabilityOfOne;
+  }
+
+  void resetModel() {
+    m_probabilityOfOne = s_interval << 1;
+  }
+  
+ private:
+  static const Probability s_interval = kProbabilityScale/3;
+  Probability m_probabilityOfOne;
+};
+
+template <>
+class UnbiasedPredictor<5> : public ProbabilityModel {
+ public:
+  UnbiasedPredictor() : m_probabilityOfOne(s_interval << 1) {}
+  ~UnbiasedPredictor() {}
+
+  void update(bool bit) {
+    if(bit) {
+      if (m_probabilityOfOne < s_interval)
+        m_probabilityOfOne = s_interval;
+      else if(m_probabilityOfOne < (s_interval << 1))
+        m_probabilityOfOne = s_interval << 1;
+      else
+        m_probabilityOfOne = (s_interval << 1) + s_halfInterval;
+    } else {
+      if(m_probabilityOfOne > (s_interval << 1))
+        m_probabilityOfOne = s_interval << 1;
+      else if(m_probabilityOfOne > s_interval)
+        m_probabilityOfOne = s_interval;
+      else
+        m_probabilityOfOne = s_interval - s_halfInterval;
+    }
+  }
+
+  Probability probabilityOfOne() const {
+    return m_probabilityOfOne;
+  }
+
+  void resetModel() {
+    m_probabilityOfOne = s_interval << 1;
+  }
+  
+ private:
+  static const Probability s_interval = kProbabilityScale/3;
+  static const Probability s_halfInterval = s_interval >> 1;
+  Probability m_probabilityOfOne;
+};
+
+
+template <uint16 M>
+class BiasedOnePredictor : public ProbabilityModel {
+ public:
+  BiasedOnePredictor() : m_probabilityOfOne(s_interval * (M >> 1)) {}
+  ~BiasedOnePredictor() {}
+
+  void update(bool bit) {
+    if(bit) {
+      Probability increase = s_interval;
+      Probability probability = m_probabilityOfOne + increase;
+
+      while(probability >= kProbabilityScale) {
+        probability -= increase;
+        increase >>= 1;
+        probability += increase;
+      }
+      m_probabilityOfOne = probability;
+    } else {
+      if((M-1)*s_interval < m_probabilityOfOne) m_probabilityOfOne = (M-1)*s_interval;
+      else if(s_interval < m_probabilityOfOne) m_probabilityOfOne -= s_interval;
+    }
+  }
+
+  Probability probabilityOfOne() const {
+    return m_probabilityOfOne;
+  }
+
+  void resetModel() {
+    m_probabilityOfOne = s_interval * (M >> 1);
+  }
+  
+ private:
+  static const Probability s_interval = kProbabilityScale/M;
+  Probability m_probabilityOfOne;
+  BOOST_STATIC_ASSERT(M <= kProbabilityScale);
+  BOOST_STATIC_ASSERT(s_interval * M == kProbabilityScale);
+  
+};
+
+class AggressiveOnePredictor : public ProbabilityModel {
+ public:
+  AggressiveOnePredictor() : m_probabilityOfOne(kHalfProbability), m_step(kHalfProbability) {}
+  ~AggressiveOnePredictor() {}
+
+  void update(bool bit) {
+    if(bit) {
+      if (m_probabilityOfOne < kHalfProbability) {
+        m_probabilityOfOne = kHalfProbability;
+        m_step = kHalfProbability;
+      } else {
+        if(m_step > 1) {
+          m_step >>= 1;
+          m_probabilityOfOne += m_step;
+        }
+      }
+    } else {
+      if(m_probabilityOfOne > kHalfProbability) {
+        if (m_probabilityOfOne > s_limit) {
+          m_probabilityOfOne = s_limit;
+          m_step = kHalfProbability >> 3;
+        } else {
+          m_probabilityOfOne -= m_step;
+          m_step <<= 1;
+        }
+      } else {
+        m_probabilityOfOne = kHalfProbability >> 1;
+      }
+    }
+  }
+
+  Probability probabilityOfOne() const {
+    return m_probabilityOfOne;
+  }
+
+  void resetModel() {
+    m_probabilityOfOne = kHalfProbability;
+  }
+
+ private:
+  static const Probability s_limit = kHalfProbability + (kHalfProbability >> 1) +
+      (kHalfProbability >> 2) + (kHalfProbability >> 3);
+  Probability m_probabilityOfOne;
+  Probability m_step;
+};
+
+/** Inverses the predictions done by template predictor. */
+template <typename Predictor>
+class InversePredictor : public ProbabilityModel {
+ public:
+  InversePredictor() {}
+  ~InversePredictor() {}
+
+  void update(bool bit) {
+    m_predictor.update(bit);
+  }
+
+  Probability probabilityOfOne() const {
+    return kProbabilityScale - m_predictor.probabilityOfOne();
+  }
+
+  void resetModel() {
+    m_predictor.resetModel();
+  }
+  
+ private:
+  Predictor m_predictor;
 };
 
 } // namespace bwtc

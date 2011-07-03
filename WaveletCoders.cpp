@@ -171,7 +171,7 @@ void WaveletEncoder::writeBlockHeader(std::vector<uint64>* stats) {
   size_t sum = 0;
   for(size_t i = 0; i < s.size(); ++i) {
     sum += s[i];
-    if(sum >= 1000) {
+    if(sum >= 10000) {
       temp.push_back(sum);
       sum = 0;
     }

@@ -44,18 +44,24 @@ ProbabilityModel* giveProbabilityModel(char choice) {
       if( verbosity > 1)
         std::clog << "Remembering 16 previous bits\n";
       return new SimpleMarkov<unsigned short int>();      
-    case 'b':
+    case 'u':
       if( verbosity > 1)
         std::clog << "Remembering 4 previous bits.\n";
-      return new BitPredictor<4>();
-    case 'B':
+      return new UnbiasedPredictor<4>();
+    case 'b':
       if( verbosity > 1)
         std::clog << "Using FSM.\n";
-      return new FSM<8, BitPredictor<4> >();
+      return new FSM<6, UnbiasedPredictor<4> >();
+    case 'B':
+      if( verbosity > 1)
+        std::clog << "Using FSM6.\n";
+      return new FSM6<UnbiasedPredictor<5>,  UnbiasedPredictor<4>,
+                      UnbiasedPredictor<4>, UnbiasedPredictor<4>,
+                      UnbiasedPredictor<4>, UnbiasedPredictor<5> >();
     case 'n':
     default:
       if( verbosity > 1)
-        std::clog << "Remembering single previous bit\n";
+        std::clog << "Predicting always probability 0.5.\n";
       return new ProbabilityModel();
   }
 }

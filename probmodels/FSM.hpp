@@ -64,7 +64,6 @@ uint32 nextState<3>(uint32 currentState, bool bit) {
   else return 1;
 }
 
-
 }
 
 /**Template parameters are: N for the number of states and BitPredictor for
@@ -93,6 +92,65 @@ class FSM : public ProbabilityModel {
  private:
   uint32 m_currentState;
   std::vector<BitPredictor> m_states;
+};
+
+/** Each state has probability model attached:
+ *  Z3 -- Z2 -- Z1 -- O1 -- O2 -- O3,
+ *  where Z3 is used when at least 3 zeros are seen etc..
+ */
+template <typename Z3, typename Z2, typename Z1, typename O1, typename O2, typename O3>
+class FSM6 : public ProbabilityModel {
+ public:
+  FSM6() : m_currentState(3) {}
+  ~FSM6() {}
+
+  void update(bool bit) {
+    if(m_currentState <= 2) {
+      if(m_currentState <= 1) {
+        if (m_currentState == 0) z3.update(bit);
+        else z2.update(bit);
+      } else z1.update(bit);
+    } else {
+      if(m_currentState <= 4) {
+        if (m_currentState == 3) o1.update(bit);
+        else o2.update(bit);
+      } else o3.update(bit);
+    }
+    m_currentState = nextState<6>(m_currentState, bit);
+  }
+
+  Probability probabilityOfOne() const {
+    if(m_currentState <= 2) {
+      if(m_currentState <= 1) {
+        if (m_currentState == 0) return z3.probabilityOfOne();
+        else return z2.probabilityOfOne();
+      } else return z1.probabilityOfOne();
+    } else {
+      if(m_currentState <= 4) {
+        if (m_currentState == 3) return o1.probabilityOfOne();
+        else return o2.probabilityOfOne();
+      } else return o3.probabilityOfOne();
+    }
+  }
+
+  void resetModel() {
+    z3.resetModel();
+    z2.resetModel();
+    z1.resetModel();
+    o1.resetModel();
+    o2.resetModel();
+    o3.resetModel();
+  }
+  
+  
+ private:
+  uint32 m_currentState;
+  Z3 z3;
+  Z2 z2;
+  Z1 z1;
+  O1 o1;
+  O2 o2;
+  O3 o3;
 };
 
 } // namespace bwtc

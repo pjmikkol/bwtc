@@ -112,7 +112,7 @@ void validatePreprocOption(char c) {
 
 /* Notifier function for encoding option choice */
 void validateEncodingOption(char c) {
-  if (c == 'n' || c == 'm' || c == 'M' || c == 'b' || c == 'B'
+  if (c == 'n' || c == 'm' || c == 'M' || c == 'u' || c == 'b' || c == 'B'
       /* || c == <other option> */) return;
 
   class EncodingExc : public std::exception {
@@ -152,7 +152,10 @@ int main(int argc, char** argv) {
         ("enc,e", po::value<char>(&encoding)->default_value('B')->
          notifier(&validateEncodingOption),
          "entropy encoding scheme, options:\n"
-         "  n -- does nothing")
+         "  b -- Finite State Machine with unbiased and equal predictors in each state\n"
+         "  B -- Slightly optimised version of above\n"
+         "  u -- Simple predictor with 4 states. These are used in FSM's states.\n"
+         "  n -- Predicts always probability 0.5.")
         ;
 
     /* Allow input and output files given in user friendly form,

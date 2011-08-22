@@ -25,6 +25,6 @@ In Linux you can compile this by first generating makefiles with CMake.
 Go to the root-directory and say
   'cmake -DCMAKE_BUILD_TYPE=type', where type is 'Release' or 'Debug'
 After this program can be compiled by saying 'make'. Tests are run by
-'make tests'.
+'make test'.
 
 ...

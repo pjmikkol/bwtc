@@ -40,10 +40,12 @@ namespace bwtc {
 
 template <typename BitVector>
 struct TreeNode {
-  TreeNode() : m_left(0), m_right(0) {}
+  TreeNode() : m_left(0), m_right(0), m_hasSymbol(false) {}
+  TreeNode(byte symbol) : m_left(0), m_right(0), m_hasSymbol(true),
+                          m_symbol(symbol) {}
   TreeNode(TreeNode<BitVector>* left, TreeNode<BitVector>* right)
-      : m_left(left), m_right(right) {}
-  virtual ~TreeNode() {}
+      : m_left(left), m_right(right), m_hasSymbol(false) {}
+  ~TreeNode() {}
 
   size_t rank(bool bit, size_t i) const;
   size_t totalBits() const;
@@ -51,6 +53,9 @@ struct TreeNode {
   BitVector m_bitVector;
   TreeNode<BitVector>* m_left;
   TreeNode<BitVector>* m_right;
+  bool m_hasSymbol;
+  byte m_symbol;
+  
 };
 
 /**If ever using something suitable for fast rank-queries, there should be
@@ -72,14 +77,6 @@ size_t TreeNode<BitVector>::totalBits() const {
   if(m_right) bits += m_right->totalBits();
   return bits;
 }
-
-// Contains character from the source alphabet
-template <typename BitVector>
-struct AlphabeticNode : public TreeNode<BitVector> {
-  AlphabeticNode(byte symbol) : m_symbol(symbol) {}
-
-  byte m_symbol;
-};
 
 /**This wavelet tree is used for storing the sequence
  * (<a1, n1>, <a2, n2>, ...) where a's are alphabets of the source alphabet
@@ -150,6 +147,14 @@ class WaveletTree {
   static void pushBits(TreeNode<BitVector> *node, const BitVector& bits);
   static void gammaCode(BitVector& bits, size_t integer);
 
+  /**Assigns prefix codes based on the given lengths. Actual codes are stored
+   * into m_codes.
+   *
+   * @param lengths Lengths of the codewords to be assigned given as
+   *                <length, symbol>-pairs. This array WILL be modified.
+   */
+  void assignPrefixCodes(std::vector<std::pair<uint64, byte> >& lengths);
+
   
  private:
   TreeNode<BitVector>* m_root;
@@ -179,6 +184,19 @@ class WaveletTree {
                       const std::vector<byte>& symbols) const;
 
   static void destroy(TreeNode<BitVector>* node);
+  /**Recursive function which is used in assigning codes and constructing the
+   * tree based on the lengths of codes.
+   *
+   * @param lengths Lengths of codes and corresponding symbols.
+   * @param node Node where the traversal is at the moment.
+   * @param elem Element (index to lengths) which is handled at the moment.
+   * @param bits How many bits are appended into the current element.
+   * @return Next element (index) to handle.
+   */
+  size_t assignPrefixCodes(std::vector<std::pair<uint64, byte> >& lengths,
+                         TreeNode<BitVector>* node, size_t elem, size_t bits);
+
+
 };
 
 template <typename BitVector>
@@ -190,8 +208,19 @@ template <typename BitVector>
 WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length) {
   uint64 runFreqs[256] = {0};
   utils::calculateRunFrequencies(runFreqs, src, length);
+
+#if 0
+  std::vector<std::pair<uint64, byte> > codeLengths;
+  utils::calculateHuffmanLengths(codeLengths, runFreqs);
+
+  assignPrefixCodes(codeLengths);
+  collectCodes(m_codes, m_root);
+
+#else
+  // Old way to construct huffman shape
   m_root = createHuffmanShape(runFreqs);
   collectCodes(m_codes, m_root);
+#endif
 
   const byte *prev = src;
   const byte *curr = src+1;
@@ -214,6 +243,7 @@ void WaveletTree<BitVector>::destroy(TreeNode<BitVector>* node) {
   if(node->m_right) destroy(node->m_right);
   delete node;
 }
+
 
 template <typename BitVector> template <typename Input>
 size_t WaveletTree<BitVector>::readShape(Input& input) {
@@ -247,7 +277,7 @@ WaveletTree<BitVector>::readShapeDfs(Input& input, const std::vector<byte> symbo
                                      size_t *bitsUsed)
 {
   if(symbols.size() == 1) {
-    return new AlphabeticNode<BitVector>(symbols[0]);
+    return new TreeNode<BitVector>(symbols[0]);
   }
   *bitsUsed += symbols.size();
   TreeNode<BitVector> *node = new TreeNode<BitVector>();
@@ -411,7 +441,7 @@ template <typename Decoder, typename ProbabilisticModel>
 void WaveletTree<BitVector>::decodeTree(TreeNode<BitVector>* node, size_t nodeSize,
                                         Decoder& dec, ProbabilisticModel& pm) const
 {
-  if(dynamic_cast<AlphabeticNode<BitVector> *>(node) == 0) {
+  if(!node->m_hasSymbol) {
     size_t ones = 0;
     for(size_t i = 0; i < nodeSize; ++i) {
       bool bit = dec.decode(pm.probabilityOfOne());
@@ -432,7 +462,7 @@ void WaveletTree<BitVector>::decodeTree(TreeNode<BitVector>* node, size_t nodeSi
  *
  * @param bits BitVector representing the symbol to be pushed.
  * @return Node which is at the depth bits.size() when the root is at depth 0.
- *         This node should have type AlphabeticNode<BitVector>.                   
+ *         This node should have symbol (ie. m_hasSymbol == true).                   
  */
 template <typename BitVector>
 TreeNode<BitVector> *WaveletTree<BitVector>::pushBits(const BitVector& bits)
@@ -483,7 +513,7 @@ template <typename BitVector>
 void WaveletTree<BitVector>::pushRun(byte symbol, size_t runLength)
 {
   TreeNode<BitVector> *node = pushBits(m_codes[symbol]);
-  assert(dynamic_cast<AlphabeticNode<BitVector>*>(node) != 0);
+  assert(node->m_hasSymbol);
   BitVector integerCode;
   gammaCode(integerCode, runLength);
   pushBits(node, integerCode);
@@ -503,8 +533,8 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
       if(bit) i = bitsSeen[node]++;
       else i = i - bitsSeen[node]; 
       node = bit?node->m_right:node->m_left;
-    } while(dynamic_cast<AlphabeticNode<BitVector>*>(node) == 0);
-    byte symbol = dynamic_cast<AlphabeticNode<BitVector>*>(node)->m_symbol;
+    } while(!node->m_hasSymbol);
+    byte symbol = node->m_symbol;
     // Decoding of gamma-code
     size_t runBits = 0;
     bit = node->m_bitVector[i];
@@ -590,6 +620,45 @@ class MinimumHeap {
   std::vector<std::pair<T, size_t> > m_nodes;
 };
 
+template <typename BitVector>
+void WaveletTree<BitVector>::assignPrefixCodes(
+    std::vector<std::pair<uint64, byte> >& lengths)
+{
+  std::sort(lengths.begin(), lengths.end());
+  m_root = new TreeNode<BitVector>();
+  assignPrefixCodes(lengths, m_root, 0, 0);
+}
+
+template <typename BitVector>
+size_t WaveletTree<BitVector>::assignPrefixCodes(
+    std::vector<std::pair<uint64, byte> >& lengths, TreeNode<BitVector>* node,
+    size_t elem, size_t bits)
+{
+  if(elem >= lengths.size()) return elem;
+  if(bits == lengths[elem].first - 1) {
+    if(!node->m_left) {
+      node->m_left = new TreeNode<BitVector>(lengths[elem].second);
+      elem = assignPrefixCodes(lengths, node, elem+1, bits);
+    } else {
+      assert(!node->m_right);
+      node->m_right = new TreeNode<BitVector>(lengths[elem].second);
+      ++elem;
+    }
+    return elem;
+  }
+  assert(bits < lengths[elem].first - 1);
+  if(!node->m_left) {
+    node->m_left = new TreeNode<BitVector>();
+    elem = assignPrefixCodes(lengths, node->m_left, elem, bits + 1);
+  }
+  assert(!node->m_right);
+  if(elem < lengths.size()) {
+    node->m_right = new TreeNode<BitVector>();
+    elem = assignPrefixCodes(lengths, node->m_right, elem, bits + 1);
+  }
+  return elem;
+}
+
 
 template <typename BitVector>
 TreeNode<BitVector>*
@@ -599,7 +668,7 @@ WaveletTree<BitVector>::createHuffmanShape(const uint64 *runFreqs)
   byte b = 0U;
   for(int i = 0; i < 256; ++i,++b) {
     if(runFreqs[b] != 0) {
-      TreeNode<BitVector> *node = new AlphabeticNode<BitVector>(b);
+      TreeNode<BitVector> *node = new TreeNode<BitVector>(b);
       heap.insert(node, runFreqs[b]);
     }
   }
@@ -629,8 +698,7 @@ void
 WaveletTree<BitVector>::collectCodes(BitVector *codes, BitVector& vec, TreeNode<BitVector> *node)
 {
   if(node->m_left == 0 && node->m_right == 0) {
-    AlphabeticNode<BitVector>* n = (AlphabeticNode<BitVector>*) node;
-    codes[n->m_symbol] = vec;
+    codes[node->m_symbol] = vec;
   }
   if(node->m_left) {
     vec.push_back(false);

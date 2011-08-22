@@ -120,6 +120,83 @@ BOOST_AUTO_TEST_CASE(RunFrequencyCounts4) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
+BOOST_AUTO_TEST_SUITE(HuffmanLengths)
+
+BOOST_AUTO_TEST_CASE(HuffmanLengths1) {
+  uint64 freqs[256] = {0};
+  freqs['a'] = 5;
+  freqs['b'] = 1;
+  freqs['c'] = 1;
+  std::vector<std::pair<uint64, byte> > t;
+  calculateHuffmanLengths(t, freqs);
+  BOOST_CHECK_EQUAL(t[2].first, 1);
+  BOOST_CHECK_EQUAL(t[2].second, 'a');
+  BOOST_CHECK_EQUAL(t[0].first, 2);
+  BOOST_CHECK_EQUAL(t[0].second, 'b');
+  BOOST_CHECK_EQUAL(t[1].first, 2);
+  BOOST_CHECK_EQUAL(t[1].second, 'c');
+}
+
+BOOST_AUTO_TEST_CASE(HuffmanLengths2) {
+  uint64 freqs[256] = {0};
+  freqs['a'] = 1;
+  freqs['b'] = 3;
+  freqs['c'] = 4;
+  freqs['d'] = 6;
+  freqs['e'] = 8;
+  freqs['f'] = 4;
+  freqs['g'] = 1;
+  std::vector<std::pair<uint64, byte> > t;
+  calculateHuffmanLengths(t, freqs);
+  BOOST_CHECK_EQUAL(t[0].first, 4);
+  BOOST_CHECK_EQUAL(t[1].first, 4);
+  BOOST_CHECK_EQUAL(t[2].first, 3);
+  BOOST_CHECK_EQUAL(t[3].first, 3);
+  BOOST_CHECK_EQUAL(t[4].first, 3);
+  BOOST_CHECK_EQUAL(t[5].first, 2);
+  BOOST_CHECK_EQUAL(t[6].first, 2);
+}
+
+BOOST_AUTO_TEST_CASE(HuffmanLengths3) {
+  uint64 freqs[256] = {0};
+  freqs['a'] = 2;
+  freqs['b'] = 2;
+  freqs['c'] = 4;
+  freqs['d'] = 8;
+  freqs['e'] = 8;
+  std::vector<std::pair<uint64, byte> > t;
+  calculateHuffmanLengths(t, freqs);
+
+  BOOST_CHECK_EQUAL(t[0].first, 3);
+  BOOST_CHECK_EQUAL(t[1].first, 3);
+  BOOST_CHECK_EQUAL(t[2].first, 2);
+  BOOST_CHECK_EQUAL(t[3].first, 2);
+  BOOST_CHECK_EQUAL(t[4].first, 2);
+}
+
+BOOST_AUTO_TEST_CASE(HuffmanLengths4) {
+  uint64 freqs[256] = {0};
+  freqs['a'] = 2;
+  freqs['b'] = 20000;
+  std::vector<std::pair<uint64, byte> > t;
+  calculateHuffmanLengths(t, freqs);
+
+  BOOST_CHECK_EQUAL(t[0].first, 1);
+  BOOST_CHECK_EQUAL(t[1].first, 1);
+}
+
+BOOST_AUTO_TEST_CASE(HuffmanLengths5) {
+  uint64 freqs[256] = {0};
+  freqs['a'] = 1;
+  std::vector<std::pair<uint64, byte> > t;
+  calculateHuffmanLengths(t, freqs);
+
+  BOOST_CHECK_EQUAL(t[0].first, 1);
+}
+
+
+BOOST_AUTO_TEST_SUITE_END()
+
 } //namespace tests
 } //namespace long_sequences
 

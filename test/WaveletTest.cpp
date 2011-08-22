@@ -86,8 +86,7 @@ int checkHuffmanShape(TreeNode<BitVector> *node, const char *answ, int *depths,
                       int curr, int depth)
 {
   if(node->m_left == 0 && node->m_right == 0) {
-    AlphabeticNode<BitVector>* n = dynamic_cast<AlphabeticNode<BitVector>*>(node);
-    BOOST_CHECK_EQUAL(n->m_symbol, answ[curr]);
+    BOOST_CHECK_EQUAL(node->m_symbol, answ[curr]);
     BOOST_CHECK_EQUAL(depth, depths[curr]);
     return curr+1;
   }
@@ -266,7 +265,7 @@ BOOST_AUTO_TEST_CASE(ShapeEncoding1) {
 }
 
 BOOST_AUTO_TEST_CASE(ShapeEncoding2) {
-  const char *str = "ahahabahbahaeaeabeabababa";
+  const char *str = "ahabahababahabaeaeaeabaeabababa";
   WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
   std::vector<bool> expected;
   for(size_t i = 0; i < 256; ++i) {
@@ -277,12 +276,13 @@ BOOST_AUTO_TEST_CASE(ShapeEncoding2) {
     }
   }
   // root
-  expected.push_back(true); expected.push_back(false); expected.push_back(false); 
-  expected.push_back(false);
-  // left child of the root
-  expected.push_back(true); expected.push_back(false); expected.push_back(false); 
+  expected.push_back(false); expected.push_back(true);
+  expected.push_back(true);  expected.push_back(true);
+  // right child of the root
+  expected.push_back(false); expected.push_back(true);
+  expected.push_back(true);
   // left child of the previous node
-  expected.push_back(true); expected.push_back(false);
+  expected.push_back(false); expected.push_back(true);
 
   std::vector<bool> shapeVec;
   tree.treeShape(shapeVec);

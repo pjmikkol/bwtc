@@ -29,6 +29,8 @@
 
 #include <iostream>
 #include <stack>
+#include <utility>
+#include <vector>
 
 #include "globaldefs.hpp"
 
@@ -78,6 +80,18 @@ unsigned packAndWriteInteger(uint64 integer, byte *to);
 unsigned readAndUnpackInteger(byte *from, uint64 *to);
 
 void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length);
+
+/**Calculates the code lengths in Huffman coding. Implementation is an
+ * algorithm presented in a paper "In-Place Calculation of Minimum-Redundancy
+ * codes" by Alistair Moffat and Jyrki Katajainen.
+ *
+ * @param codeLengths Answer is returned in vector consisting of
+ *                    <codelength, symbol> pairs.
+ * @param freqs Array of size 256 (frequency for each character.).
+ *              Array IS modified during the calculation.
+ */
+void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
+                             uint64 *freqs);
 
 template <typename Integer>
 void printBitRepresentation(Integer word) {

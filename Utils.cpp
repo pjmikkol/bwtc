@@ -25,6 +25,9 @@
  */
 
 #include <cassert>
+#include <algorithm>
+#include <utility>
+#include <vector>
 
 #include "globaldefs.hpp"
 #include "Utils.hpp"
@@ -118,6 +121,59 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length)
     prev = curr++;
   } while(curr < src + length);
   if(prev < src + length) ++runFreqs[*prev];
+}
+
+void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
+                             uint64 *freqs)
+{
+  assert(codeLengths.size() == 0);
+  for(size_t i = 0; i < 256; ++i) {
+    if(freqs[i])
+      codeLengths.push_back(std::make_pair(freqs[i], static_cast<byte>(i)));
+  }
+  if(codeLengths.size() == 1) {
+    codeLengths[0].first = 1;
+    return;
+  }
+  
+  std::sort(codeLengths.begin(), codeLengths.end());
+  const size_t n = codeLengths.size();
+  for(size_t i = 0; i < n; ++i) {
+    freqs[i] = codeLengths[i].first;
+  }
+
+  size_t s = 0, r = 0;
+  for(size_t t = 0; t < n-1; ++t) {
+    if(s >= n || (r < t && freqs[r] < freqs[s])) {
+      freqs[t] = freqs[r];
+      freqs[r++] = t;
+    } else {
+      freqs[t] = freqs[s++];
+    }
+    if(s >= n || (r < t && freqs[r] < freqs[s])) {
+      freqs[t] += freqs[r];
+      freqs[r++] = t;
+    } else {
+      freqs[t] += freqs[s++];
+    }
+  }
+
+  freqs[n-2] = 0;
+  for(int t = n-3; t >= 0; --t) {
+    freqs[t] = freqs[freqs[t]] + 1;
+  }
+  int a = 1, u = 0, depth = 0;
+  int x = n-1, t = n-2;
+  while(a > 0) {
+    while(t >= 0 && freqs[t] == depth) { ++u; --t; }
+    while(a > u) { freqs[x] = depth; --x; --a; }
+    a = 2*u;
+    ++depth;
+    u = 0;
+  }
+  for(size_t i = 0; i < n; ++i) {
+    codeLengths[i].first = freqs[i];    
+  }
 }
 
 void writePackedInteger(uint64 packed_integer, byte *to) {

@@ -38,8 +38,8 @@ int verbosity = 0;
 
 namespace tests {
 
-//TODO: test also other functions
 using namespace utils;
+
 
 BOOST_AUTO_TEST_SUITE(GlobalFunctions)
 
@@ -192,6 +192,191 @@ BOOST_AUTO_TEST_CASE(HuffmanLengths5) {
   calculateHuffmanLengths(t, freqs);
 
   BOOST_CHECK_EQUAL(t[0].first, 1);
+}
+
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(InterpolativeCoding)
+
+
+struct Input {
+  Input() : curr(0) {}
+  Input(const std::vector<bool>& v) : curr(0), data(v) {}
+  bool readBit() { return data.at(curr++); }
+  void pb(bool bit) { data.push_back(bit); }
+  size_t curr; 
+  std::vector<bool> data;
+};
+
+
+template <typename T1, typename T2>
+void checkEq(const T1& t1, const T2& t2, size_t len) {
+  for(size_t i = 0; i < len; ++i)  {
+    BOOST_CHECK_EQUAL(t1[i],t2[i]);
+  }
+}
+
+#define BINARY_CODE_TEST(N, LO, HI, ...) {   \
+  std::vector<bool> bits; \
+  binaryCode(N, LO, HI, bits); \
+  bool t1[] = {__VA_ARGS__};          \
+  size_t n = sizeof(t1)/sizeof(bool); \
+  BOOST_CHECK_EQUAL(bits.size(), n); \
+  checkEq(bits, t1, n); \
+}
+
+BOOST_AUTO_TEST_CASE(BinaryCode1) {
+  BINARY_CODE_TEST(8, 0, 8, false, false, false, true);
+  BINARY_CODE_TEST(2, 0, 8, false, true, false);
+  BINARY_CODE_TEST(5, 0, 8, true, false, true);
+  BINARY_CODE_TEST(0, 0, 8, false, false, false, false);
+  BINARY_CODE_TEST(1, 0, 8, false, false, true);
+}
+
+BOOST_AUTO_TEST_CASE(BinaryCode2) {
+  BINARY_CODE_TEST(3, 0, 14, false, false, true, true);
+  BINARY_CODE_TEST(7, 0, 14, true, true, true);
+  BINARY_CODE_TEST(11, 0, 14, true, false, true, false);
+  BINARY_CODE_TEST(13, 0, 14, true, true, false, false);
+  BINARY_CODE_TEST(5, 0, 14, false, true, false, true);
+}
+
+BOOST_AUTO_TEST_CASE(BinaryCode3) {
+  BINARY_CODE_TEST(3, 0, 7, false, true, true);
+  BINARY_CODE_TEST(4, 0, 7, true, false, false);
+  BINARY_CODE_TEST(7, 0, 7, true, true, true);
+  BINARY_CODE_TEST(14, 0, 15, true, true, true, false);
+  BINARY_CODE_TEST(7, 0, 15, false, true, true, true);
+}
+
+BOOST_AUTO_TEST_CASE(BinaryCode4) {
+  BINARY_CODE_TEST(10, 3, 16, true, true, true);
+  BINARY_CODE_TEST(7, 1, 9, true, true, false);
+  BINARY_CODE_TEST(2, 0, 6, false, true, false);
+  BINARY_CODE_TEST(8, 8, 9, false);
+  BINARY_CODE_TEST(12, 12, 18, false, false, false);
+  BINARY_CODE_TEST(16, 13, 19, true, true);
+}
+
+#define BINARY_DECODE_TEST(N, LO, HI, ...) { \
+  Input in; \
+  bool t[] = {__VA_ARGS__}; \
+  for(size_t i = 0; i < sizeof(t)/sizeof(bool); ++i) in.pb(t[i]); \
+  BOOST_CHECK_EQUAL(binaryDecode(in, LO, HI), N); \
+  BOOST_CHECK_EQUAL(in.data.size(), in.curr); \
+}
+
+
+BOOST_AUTO_TEST_CASE(BinaryDecode1) {
+  BINARY_DECODE_TEST(8, 0, 8, false, false, false, true);
+  BINARY_DECODE_TEST(2, 0, 8, false, true, false);
+  BINARY_DECODE_TEST(5, 0, 8, true, false, true);
+  BINARY_DECODE_TEST(0, 0, 8, false, false, false, false);
+  BINARY_DECODE_TEST(1, 0, 8, false, false, true);
+}
+
+BOOST_AUTO_TEST_CASE(BinaryDecode2) {
+  BINARY_DECODE_TEST(3, 0, 14, false, false, true, true);
+  BINARY_DECODE_TEST(7, 0, 14, true, true, true);
+  BINARY_DECODE_TEST(11, 0, 14, true, false, true, false);
+  BINARY_DECODE_TEST(13, 0, 14, true, true, false, false);
+  BINARY_DECODE_TEST(5, 0, 14, false, true, false, true);
+}
+
+BOOST_AUTO_TEST_CASE(BinaryDecode3) {
+  BINARY_DECODE_TEST(3, 0, 7, false, true, true);
+  BINARY_DECODE_TEST(4, 0, 7, true, false, false);
+  BINARY_DECODE_TEST(7, 0, 7, true, true, true);
+  BINARY_DECODE_TEST(14, 0, 15, true, true, true, false);
+  BINARY_DECODE_TEST(7, 0, 15, false, true, true, true);
+}
+
+BOOST_AUTO_TEST_CASE(BinaryDecode4) {
+  BINARY_DECODE_TEST(10, 3, 16, true, true, true);
+  BINARY_DECODE_TEST(7, 1, 9, true, true, false);
+  BINARY_DECODE_TEST(2, 0, 6, false, true, false);
+  BINARY_DECODE_TEST(8, 8, 9, false);
+  BINARY_DECODE_TEST(12, 12, 18, false, false, false);
+  BINARY_DECODE_TEST(16, 13, 19, true, true);
+}
+
+
+#undef BINARY_CODE_TEST
+#undef BINARY_DECODE_TEST
+#define PACK_VECTOR(V, T, ...) { \
+  T t[] = {__VA_ARGS__}; \
+  for(size_t i = 0; i < sizeof(t)/sizeof(T); ++i) \
+    V.push_back(t[i]); \
+}
+
+BOOST_AUTO_TEST_CASE(InterpolativeCode1) {
+  std::vector<size_t> list;
+  PACK_VECTOR(list, size_t, 2, 7, 8, 10, 11, 12, 16);
+  std::vector<bool> code;
+  binaryInterpolativeCode(list, 19, code);
+  std::vector<bool> correct;
+  PACK_VECTOR(correct, bool,
+              true, true, true,      /* 10*/
+              true, true, false,     /* 7 */
+              false, true, false,    /* 2 */
+              false,                 /* 8 */
+              false, false, false,   /* 12*/
+                                     /* 11*/
+              true, true             /* 3 */
+              );
+  checkEq(code, correct, 15);
+}
+
+BOOST_AUTO_TEST_CASE(InterpolativeCode2) {
+  std::vector<size_t> list;
+  PACK_VECTOR(list, size_t, 3, 4, 6, 7);
+  std::vector<bool> code;
+  binaryInterpolativeCode(list, 7, code);
+  std::vector<bool> correct;
+  PACK_VECTOR(correct, bool,
+              true, true,            /* 4 */
+              true, true,            /* 3 */
+              true,                  /* 6 */
+                                     /* 7 */
+              );
+  checkEq(code, correct, 5);
+}
+
+BOOST_AUTO_TEST_CASE(InterpolativeDecode1) {
+  std::vector<size_t> correct;
+  PACK_VECTOR(correct, size_t, 2, 7, 8, 10, 11, 12, 16);
+  std::vector<bool> code;
+  PACK_VECTOR(code, bool,
+              true, true, true,      /* 10*/
+              true, true, false,     /* 7 */
+              false, true, false,    /* 2 */
+              false,                 /* 8 */
+              false, false, false,   /* 12*/
+                                     /* 11*/
+              true, true             /* 3 */
+              );
+  Input in(code);
+  std::vector<size_t> list;
+  binaryInterpolativeDecode(list, in, 19, 7);
+  checkEq(list, correct, 7);
+}
+
+BOOST_AUTO_TEST_CASE(InterpolativeDecode2) {
+  std::vector<size_t> correct;
+  PACK_VECTOR(correct, size_t, 3, 4, 6, 7);
+  std::vector<bool> code;
+  PACK_VECTOR(code, bool,
+              true, true,            /* 4 */
+              true, true,            /* 3 */
+              true,                  /* 6 */
+                                     /* 7 */
+              );
+  Input in(code);
+  std::vector<size_t> list;
+  binaryInterpolativeDecode(list, in, 7, 4);
+  BOOST_CHECK_EQUAL(in.curr, 5);
+  checkEq(list, correct, 4);
 }
 
 

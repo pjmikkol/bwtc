@@ -209,7 +209,7 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length) {
   uint64 runFreqs[256] = {0};
   utils::calculateRunFrequencies(runFreqs, src, length);
 
-#if 0
+#if 1
   std::vector<std::pair<uint64, byte> > codeLengths;
   utils::calculateHuffmanLengths(codeLengths, runFreqs);
 

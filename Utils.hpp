@@ -53,6 +53,13 @@ byte logFloor(Unsigned n) {
   return log;
 }
 
+/** Ceiling of logarithm of base two */
+template <typename Unsigned>
+byte logCeiling(Unsigned n) {
+  byte log = logFloor(n);
+  return static_cast<Unsigned>(1 << log) < n ? log+1 : log;
+}
+
 uint32 mostSignificantBit16(uint32 n);
 
 uint32 mostSignificantBit(uint32 n);
@@ -92,6 +99,130 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length);
  */
 void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
                              uint64 *freqs);
+
+template <typename Unsigned, typename BitVector>
+void pushBits(Unsigned n, byte bits, BitVector& bitVector) {
+  for(size_t i = 1; i <= bits; ++i) {
+    bitVector.push_back((n >> (bits-i))&1);
+  }
+}
+
+/**Represents given integer in bits when the lower and upper bounds for integer
+ * are known.
+ *
+ * @param n Integer to be coded.
+ * @param lo The lower bound for n (ie. n >= lo).
+ * @param hi The upper bound for n (ie. n <= hi).
+ * @param bits Code bits are appended into this bitvector.
+ */
+template <typename BitVector>
+void binaryCode(size_t n, size_t lo, size_t hi, BitVector& bits) {
+  size_t rangeLen = hi - lo + 1;
+  if(rangeLen == 1) return;
+  byte codeLength = logCeiling(rangeLen);
+  size_t shortCodewords = (1 << codeLength) - rangeLen;
+  size_t longCodewords2 = (rangeLen - shortCodewords)/2;
+  if(n - lo < longCodewords2) {
+    pushBits(n - lo, codeLength, bits);
+  } else if(n - lo < longCodewords2 + shortCodewords) {
+    pushBits(n - lo, codeLength - 1, bits);
+  } else {
+    pushBits(n - lo - shortCodewords, codeLength, bits);
+  }
+}
+
+/**Calculates binary interpolative code for the sorted list of integers.
+ *
+ * @param list Sorted list of integers to code.
+ * @param begin The first index of list to be coded.
+ * @param end The last index of list to be coded.
+ * @param lo Minimum possible value.
+ * @param hi Maximum possible value.
+ * @param bitVector The code is returned in this vector.
+ */
+template<typename Integer, typename BitVector>
+void binaryInterpolativeCode(const std::vector<Integer>& list, size_t begin,
+                             size_t end, size_t lo, size_t hi,
+                             BitVector& bitVector)
+{
+  if(begin > end) return;
+  if(begin == end) {
+    binaryCode(list[begin], lo, hi, bitVector);
+    return;
+  }
+  size_t h = (end - begin) / 2;
+  size_t half = begin + h;
+  binaryCode(list[half], lo + h, hi + half - end, bitVector);
+  binaryInterpolativeCode(list, begin, half-1, lo, list[half] - 1, bitVector);
+  binaryInterpolativeCode(list, half+1, end, list[half] + 1, hi, bitVector);
+}
+
+/**Calculates binary interpolative code for the sorted list of integers
+ * according the paper "Binary Interpolative Coding for Effective Index
+ * Compression" by Alistair Moffat and Lang Stuiver. It is assumed that
+ * the coded values are from range [0..maxValue].
+ *
+ * @param list Sorted list of integers to code.
+ * @param maxValue Maximum possible value for integer to be coded.
+ * @param bitVector The code is returned in this vector.
+ */
+template<typename Integer, typename BitVector>
+void binaryInterpolativeCode(const std::vector<Integer>& list, size_t maxValue,
+                             BitVector& bitVector)
+{
+  assert(!list.empty());
+  binaryInterpolativeCode(list, 0, list.size() - 1, 0, maxValue, bitVector);
+}
+
+template <typename Input>
+size_t binaryDecode(Input& input, size_t lo, size_t hi) {
+  size_t rangeLen = hi - lo + 1;
+  if(rangeLen == 1) return lo;
+  byte codeLength = logCeiling(rangeLen);
+  size_t shortCodewords = (1 << codeLength) - rangeLen;
+  size_t longCodewords2 = (rangeLen - shortCodewords)/2;
+  size_t result = 0;
+  for(int i = 0; i < codeLength - 1; ++i) {
+    result <<= 1;
+    result |= (input.readBit()) ? 1 : 0;
+  }
+  if(result >= longCodewords2) {
+    return result + lo;
+  } 
+  result <<= 1;
+  result |= (input.readBit()) ? 1 : 0;
+  if (result < longCodewords2) return result + lo;
+  else return result + lo + shortCodewords;
+}
+
+template <typename Integer, typename Input>
+void binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
+                               size_t lo, size_t hi, size_t elements)
+{
+  if(elements == 0) return;
+  size_t h = (elements-1)/2;
+  Integer mid = binaryDecode(input, lo + h, hi - h);
+  binaryInterpolativeDecode(list, input, lo, mid-1, h);
+  list.push_back(mid);
+  binaryInterpolativeDecode(list, input, mid+1, hi, elements - h - 1);
+}
+
+
+/**Decodes binary interpolative code. It is assumed that the decoded values
+ * are from range [0..maxValue].
+ *
+ * @param list List for the result integers.
+ * @param input Source for the bits. Type must have readBit()-function
+ *              returning bool.
+ * @param maxValue Maximum possible value for integer to be decoded.
+ * @param elements Integers to be decoded.
+ */
+template <typename Integer, typename Input>
+void binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
+                               size_t maxValue, size_t elements)
+{
+  binaryInterpolativeDecode(list, input, 0, maxValue, elements);
+}
 
 template <typename Integer>
 void printBitRepresentation(Integer word) {

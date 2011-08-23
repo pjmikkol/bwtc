@@ -146,6 +146,7 @@ void binaryInterpolativeCode(const std::vector<Integer>& list, size_t begin,
                              BitVector& bitVector)
 {
   if(begin > end) return;
+  if(end - begin == hi - lo) return;
   if(begin == end) {
     binaryCode(list[begin], lo, hi, bitVector);
     return;
@@ -153,7 +154,8 @@ void binaryInterpolativeCode(const std::vector<Integer>& list, size_t begin,
   size_t h = (end - begin) / 2;
   size_t half = begin + h;
   binaryCode(list[half], lo + h, hi + half - end, bitVector);
-  binaryInterpolativeCode(list, begin, half-1, lo, list[half] - 1, bitVector);
+  if(half > begin)
+    binaryInterpolativeCode(list, begin, half-1, lo, list[half] - 1, bitVector);
   binaryInterpolativeCode(list, half+1, end, list[half] + 1, hi, bitVector);
 }
 
@@ -195,16 +197,46 @@ size_t binaryDecode(Input& input, size_t lo, size_t hi) {
   else return result + lo + shortCodewords;
 }
 
+template <typename Input>
+size_t binaryDecode(Input& input, size_t lo, size_t hi, size_t *bitsRead) {
+  size_t rangeLen = hi - lo + 1;
+  if(rangeLen == 1) return lo;
+  byte codeLength = logCeiling(rangeLen);
+  size_t shortCodewords = (1 << codeLength) - rangeLen;
+  size_t longCodewords2 = (rangeLen - shortCodewords)/2;
+  size_t result = 0;
+  *bitsRead += codeLength;
+  for(int i = 0; i < codeLength - 1; ++i) {
+    result <<= 1;
+    result |= (input.readBit()) ? 1 : 0;
+  }
+  if(result >= longCodewords2) {
+    --*bitsRead;
+    return result + lo;
+  } 
+  result <<= 1;
+  result |= (input.readBit()) ? 1 : 0;
+  if (result < longCodewords2) return result + lo;
+  else return result + lo + shortCodewords;
+}
+
 template <typename Integer, typename Input>
-void binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
-                               size_t lo, size_t hi, size_t elements)
+size_t binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
+                                 size_t lo, size_t hi, size_t elements)
 {
-  if(elements == 0) return;
+  if(elements == 0) return 0;
+  if(elements == hi - lo + 1) {
+    for(Integer i = lo; i <= hi; ++i) list.push_back(i);
+    return 0;
+  }
+  size_t bitsRead = 0;
   size_t h = (elements-1)/2;
-  Integer mid = binaryDecode(input, lo + h, hi - h);
-  binaryInterpolativeDecode(list, input, lo, mid-1, h);
+  size_t r = elements/2 - h;
+  Integer mid = binaryDecode(input, lo + h, hi - h - r, &bitsRead);
+  bitsRead += binaryInterpolativeDecode(list, input, lo, mid-1, h);
   list.push_back(mid);
-  binaryInterpolativeDecode(list, input, mid+1, hi, elements - h - 1);
+  bitsRead +=  binaryInterpolativeDecode(list, input, mid+1, hi, elements-h-1);
+  return bitsRead;
 }
 
 
@@ -216,12 +248,41 @@ void binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
  *              returning bool.
  * @param maxValue Maximum possible value for integer to be decoded.
  * @param elements Integers to be decoded.
+ * @return Bits read.
  */
 template <typename Integer, typename Input>
-void binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
-                               size_t maxValue, size_t elements)
+size_t binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
+                                 size_t maxValue, size_t elements)
 {
-  binaryInterpolativeDecode(list, input, 0, maxValue, elements);
+  return binaryInterpolativeDecode(list, input, 0, maxValue, elements);
+}
+
+template <typename BitVector, typename Integer>
+inline void pushBits(BitVector& bv, Integer n, size_t bits) {
+  for(size_t i = 1; i <= bits; ++i)
+    bv.push_back( (n >> (bits-i)) & 1 );
+}
+
+/**Forms unary code for given integer and pushes it into the back of
+ * given bitvector. Few examples of unary code:
+ * 1 -> 1
+ * 2 -> 01
+ * 7 -> 0000001
+ *
+ * @param to Bitvector where the result is pushed.
+ * @param n Number to encode.
+ */
+template <typename BitVector>
+inline void unaryCode(BitVector& to, size_t n) {
+  while(n-- > 1) to.push_back(false);
+  to.push_back(true);
+}
+
+template <typename Input>
+inline size_t unaryDecode(Input& in) {
+  size_t n = 1;
+  while(!in.readBit()) ++n;
+  return n;
 }
 
 template <typename Integer>

@@ -113,8 +113,14 @@ class WaveletTree {
   ~WaveletTree();
   void pushRun(byte symbol, size_t runLength);
   TreeNode<BitVector> *pushBits(const BitVector& bits);
+
   /**Writes the encoding of the shape of tree into given vector.*/
   void treeShape(BitVector& vector) const;
+
+  /**Writes encoding of the shape of tree into given vector. The shape of
+   * the tree is in form presented in "Housekeeping for Prefix Codes" by
+   * Turpin and Moffat. */
+  void treeShape2(BitVector& vector) const;
 
   size_t bitsInRoot() const { return m_root->m_bitVector.size(); }
   size_t totalBits() const { return m_root->totalBits(); }
@@ -125,6 +131,11 @@ class WaveletTree {
   /**Input is required to have readBit()-method returning bool.*/
   template<typename Input>
   size_t readShape(Input& input);
+
+  /**Input is required to have readBit()-method returning bool and readByte().
+   */
+  template<typename Input>
+  size_t readShape2(Input& input);
 
   /** Encoder is required to have encode(bool bit, Probability prob)-method.
     * ProbabilisticModel is required to have probabilityOfOne()- and
@@ -246,6 +257,38 @@ void WaveletTree<BitVector>::destroy(TreeNode<BitVector>* node) {
 
 
 template <typename BitVector> template <typename Input>
+size_t WaveletTree<BitVector>::readShape2(Input& input) {
+  assert(m_root->m_left == 0 && m_root->m_right == 0);
+  size_t maxSym = input.readByte();
+  size_t symbols = input.readByte();
+  size_t bitsRead = 16;
+  size_t maxLen = 0;
+  size_t read = 0xff;
+  size_t j = 0;
+  while(read & 0x80) {
+    read = input.readByte();
+    maxLen |= ((read & 0x7f) << j);
+    j += 7;
+    bitsRead += 8;
+  }
+  std::vector<byte> alphabet;
+  bitsRead += utils::binaryInterpolativeDecode(alphabet, input,
+                                               maxSym, symbols);
+  std::vector<std::pair<uint64, byte> > codeLengths;
+  for(size_t i = 0; i < symbols; ++i) {
+    size_t n = utils::unaryDecode(input);
+    bitsRead += n;
+    size_t len = maxLen - n + 1;
+    codeLengths.push_back(std::make_pair(len, alphabet[i]));
+  }
+
+  assignPrefixCodes(codeLengths);
+  collectCodes(m_codes, m_root);
+  
+  return bitsRead;
+}
+
+template <typename BitVector> template <typename Input>
 size_t WaveletTree<BitVector>::readShape(Input& input) {
   assert(m_root->m_left == 0 && m_root->m_right == 0);
   std::vector<byte> symbols;
@@ -327,6 +370,31 @@ void WaveletTree<BitVector>::treeShape(BitVector& vector) const {
   } else {
     vector.push_back(false);
   }
+}
+
+template <typename BitVector>
+void WaveletTree<BitVector>::treeShape2(BitVector& vec) const {
+  size_t maxLen = 0;
+  byte b = 0;
+  std::vector<byte> symbols;
+  for(size_t i = 0; i < 256; ++i, ++b) {
+    size_t len = m_codes[b].size();
+    if(len > 0) {
+      symbols.push_back(b);
+      if(len > maxLen) maxLen = len;
+    }
+  }
+  // Largest symbol in alphabet
+  utils::pushBits(vec, symbols.back(), 8);
+  // Number of distinct symbols
+  utils::pushBits(vec, symbols.size(), 8);
+  int bytesInLongestCode;
+  size_t packedInt = utils::packInteger(maxLen, &bytesInLongestCode);
+  utils::pushBits(vec, packedInt, bytesInLongestCode*8);
+
+  utils::binaryInterpolativeCode(symbols, symbols.back(), vec);
+  for(size_t i = 0; i < symbols.size(); ++i) 
+    utils::unaryCode(vec, maxLen - m_codes[symbols[i]].size() + 1);
 }
 
 template <typename BitVector>

@@ -123,7 +123,9 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
     m_compressedBlockLength += bytes;
 
     std::vector<bool> shape;
-    wavelet.treeShape(shape);
+    //wavelet.treeShape(shape);
+    wavelet.treeShape2(shape);
+
     for(size_t k = 0; k < shape.size();) {
       byte b = 0; size_t j = 0;
       for(; j < 8 && k < shape.size(); ++k, ++j) {
@@ -243,7 +245,10 @@ std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
     size_t rootSize = utils::unpackInteger(readPackedInteger());
 
     WaveletTree<std::vector<bool> > wavelet;
-    size_t bits = wavelet.readShape(*m_in);
+
+    //size_t bits = wavelet.readShape(*m_in);
+    size_t bits = wavelet.readShape2(*m_in);
+
     m_in->flushBuffer();
     m_source.start();
     wavelet.decodeTree(rootSize, m_source, *m_probModel);

@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <cassert>
 #include <map>
+#include <queue>
 #include <utility>
 #include <vector>
 
@@ -143,12 +144,18 @@ class WaveletTree {
   template <typename Encoder, typename ProbabilisticModel>
   void encodeTree(Encoder& enc, ProbabilisticModel& pm) const;
 
+  template <typename Encoder, typename ProbabilisticModel>
+  void encodeTreeBF(Encoder& enc, ProbabilisticModel& pm) const;
+
   /** Decoder is required to have decode(Probability prob)-method.
     * ProbabilisticModel is required to have probabilityOfOne()- and
     * update(bool bit)-methods. */
   template <typename Decoder, typename ProbabilisticModel>
   void decodeTree(size_t rootSize, Decoder& enc, ProbabilisticModel& pm) const;
-  
+
+  template <typename Decoder, typename ProbabilisticModel>
+  void decodeTreeBF(size_t rootSize, Decoder& enc, ProbabilisticModel& pm) const;
+
   const BitVector& code(byte symbol) { return m_codes[symbol]; }
   
   static TreeNode<BitVector> *createHuffmanShape(const uint64 *runFreqs);
@@ -418,6 +425,24 @@ void WaveletTree<BitVector>::outputShapeDfs(BitVector& output, size_t depth,
 
 template <typename BitVector>
 template <typename Encoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm) const
+{
+  std::queue<TreeNode<BitVector>*> queue;
+  queue.push(m_root);
+  while(!queue.empty()) {
+    TreeNode<BitVector>* node = queue.front();
+    for(size_t i = 0; i < node->m_bitVector.size(); ++i) {
+      enc.encode(node->m_bitVector[i], pm.probabilityOfOne());
+      pm.update(node->m_bitVector[i]);
+    }
+    queue.pop();
+    if(node->m_left) queue.push(node->m_left);
+    if(node->m_right) queue.push(node->m_right);
+  }
+}
+
+template <typename BitVector>
+template <typename Encoder, typename ProbabilisticModel>
 void WaveletTree<BitVector>::encodeTree(Encoder& enc, ProbabilisticModel& pm) const
 {
   encodeTree(m_root, enc, pm);
@@ -493,6 +518,76 @@ void WaveletTree<BitVector>::decodeTreeGammaInc(TreeNode<BitVector>* node,
     if(!node->m_right) node->m_right = new TreeNode<BitVector>();
     decodeTreeGammaInc(node->m_right, ones, bitsInCode +1, dec, pm);
   }
+}
+
+/**Used in decoding tree.
+ */
+template<typename BitVector>
+struct NodeStatus {
+  //NodeStatus() : m_node(0), m_bits(0), m_gammaLen(0), m_gammaStatus(0) {}
+  NodeStatus(TreeNode<BitVector>* node, size_t bits)
+      : m_node(node), m_bits(bits), m_gammaLen(0), m_gammaStatus(0) {}
+  NodeStatus(TreeNode<BitVector>* node, size_t bits, size_t gammaLen, byte st)
+      : m_node(node), m_bits(bits), m_gammaLen(gammaLen), m_gammaStatus(st) {}
+  TreeNode<BitVector> *m_node;
+  size_t m_bits;
+  size_t m_gammaLen;
+  byte m_gammaStatus; // Flag telling if we have already hit into gamma codes
+};
+
+template<typename BitVector>
+template <typename Decoder, typename ProbabilisticModel>
+void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
+                                          Decoder& dec,
+                                          ProbabilisticModel& pm) const
+{
+  std::queue<NodeStatus<BitVector> > queue;
+  queue.push(NodeStatus<BitVector>(m_root, rootSize));
+  while(!queue.empty()) {
+    size_t rightBits = 0;
+    NodeStatus<BitVector> st = queue.front();
+    queue.pop();
+    for(size_t i = 0; i < st.m_bits; ++i) {
+      bool bit = dec.decode(pm.probabilityOfOne());
+      pm.update(bit);
+      if(bit) ++rightBits;
+      st.m_node->m_bitVector.push_back(bit);
+    }
+    if(st.m_gammaStatus == 2 && st.m_gammaLen == 1) continue;
+
+    if(st.m_bits > rightBits &&
+       !(st.m_gammaStatus == 0 && st.m_node->m_hasSymbol))
+    {
+      if(!st.m_node->m_left) st.m_node->m_left = new TreeNode<BitVector>();
+      NodeStatus<BitVector> left(st.m_node->m_left, st.m_bits - rightBits,
+                                 st.m_gammaLen, st.m_gammaStatus);
+
+      if(left.m_gammaStatus == 1) left.m_gammaStatus = 2;
+      else if (left.m_gammaStatus == 2) --left.m_gammaLen;
+
+      if(left.m_gammaStatus != 2 || left.m_gammaLen > 0) {
+        queue.push(left);
+      }
+    }
+    if(rightBits > 0) {
+      if(!st.m_node->m_right) st.m_node->m_right = new TreeNode<BitVector>();
+      NodeStatus<BitVector> right(st.m_node->m_right, rightBits,
+                                  st.m_gammaLen, st.m_gammaStatus);
+
+      if(st.m_gammaStatus == 0) 
+        right.m_gammaStatus = st.m_node->m_hasSymbol ? 1 : 0;
+
+      if(right.m_gammaStatus == 1) ++right.m_gammaLen;
+      else if(right.m_gammaStatus == 2) --right.m_gammaLen;
+        
+
+      if(right.m_gammaStatus != 2 || right.m_gammaLen > 0) {
+        queue.push(right);
+      }
+
+    }
+  }
+  
 }
 
 template<typename BitVector>

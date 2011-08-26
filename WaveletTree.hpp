@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <list>
 #include <map>
 #include <queue>
 #include <utility>
@@ -288,7 +289,7 @@ size_t WaveletTree<BitVector>::readShape2(Input& input) {
     size_t len = maxLen - n + 1;
     codeLengths.push_back(std::make_pair(len, alphabet[i]));
   }
-
+  
   assignPrefixCodes(codeLengths);
   collectCodes(m_codes, m_root);
   
@@ -427,17 +428,120 @@ template <typename BitVector>
 template <typename Encoder, typename ProbabilisticModel>
 void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm) const
 {
-  std::queue<TreeNode<BitVector>*> queue;
-  queue.push(m_root);
+  /* Additional bitvector is used to encode gaps and continuous runs in the
+   * parent's bitvector. */
+  typedef std::pair<TreeNode<BitVector>*, BitVector> InternalNode;
+  /* TODO: If needing optimization helper bitvectors can be represented
+   * using single larger bitvector. Now we just make redundant copies of
+   * bitvectors.
+   */
+
+  std::queue<InternalNode> queue;
+  std::list<TreeNode<BitVector>*> gammaCodeNodes;
+  {
+    // Root node
+    InternalNode left, right;
+    bool prev = !m_root->m_bitVector[0];
+    for(size_t i = 0; i < m_root->m_bitVector.size(); ++i) {
+      bool bit = m_root->m_bitVector[i];
+      enc.encode(bit, pm.probabilityOfOne());
+      pm.update(bit);
+      BitVector& bv = bit? right.second : left.second;
+      bv.push_back(prev != bit);
+      prev = bit;
+    }
+    if(m_root->m_left) {
+      if(m_root->m_left->m_hasSymbol) gammaCodeNodes.push_back(m_root->m_left);
+      else { left.first = m_root->m_left; queue.push(left); }
+    }
+    if(m_root->m_right) {
+      if(m_root->m_right->m_hasSymbol) gammaCodeNodes.push_back(m_root->m_right);
+      else { right.first = m_root->m_right; queue.push(right); }
+    }
+  }
+
+  // Nodes between root node and symbol nodes
   while(!queue.empty()) {
-    TreeNode<BitVector>* node = queue.front();
-    for(size_t i = 0; i < node->m_bitVector.size(); ++i) {
-      enc.encode(node->m_bitVector[i], pm.probabilityOfOne());
-      pm.update(node->m_bitVector[i]);
+    InternalNode left, right;
+    InternalNode& node = queue.front();
+    bool prev = !node.first->m_bitVector[0];
+    if(node.first->m_left->m_hasSymbol || node.first->m_right->m_hasSymbol) {
+
+      // Both children are symbol nodes, hence only "after gaps" are needed to encode
+      if(node.first->m_left->m_hasSymbol && node.first->m_right->m_hasSymbol) {
+        for(size_t i = 0; i  < node.first->m_bitVector.size(); ++i) {
+          if(!node.second[i]) continue; //node.first->m_bitVector[i] is known
+          bool bit = node.first->m_bitVector[i];
+          enc.encode(bit, pm.probabilityOfOne());
+          pm.update(bit);
+        }
+        gammaCodeNodes.push_back(node.first->m_left);
+        gammaCodeNodes.push_back(node.first->m_right);
+        
+      } else if(node.first->m_left->m_hasSymbol) {
+        right.first = node.first->m_right;
+
+        for(size_t i = 0; i < node.first->m_bitVector.size(); ++i) {
+          bool bit = node.first->m_bitVector[i];
+          if(bit) right.second.push_back(prev != bit || node.second[i]);
+          if(prev || node.second[i]) {
+            enc.encode(bit, pm.probabilityOfOne());
+            pm.update(bit);
+          }
+          prev = bit; 
+        }
+        queue.push(right);
+        gammaCodeNodes.push_back(node.first->m_left);
+      } else {
+        // Shouldn't never happen
+        assert(0);
+        left.first = node.first->m_left;
+
+        for(size_t i = 0; i < node.first->m_bitVector.size(); ++i) {
+          bool bit = node.first->m_bitVector[i];
+          if(!bit) left.second.push_back(prev != bit || node.second[i]);
+          if(!bit || node.second[i]) {
+            enc.encode(bit, pm.probabilityOfOne());
+            pm.update(bit);
+          }
+          prev = bit; 
+        }
+        queue.push(left);
+        gammaCodeNodes.push_back(node.first->m_right);
+      }
+      
+    } else {
+      for(size_t i = 0; i < node.first->m_bitVector.size(); ++i) {
+        bool bit = node.first->m_bitVector[i];
+        enc.encode(bit, pm.probabilityOfOne());
+        pm.update(bit);
+        BitVector& bv = bit? right.second : left.second;
+        bv.push_back(prev != bit || node.second[i]);
+        prev = bit;
+      }
+      left.first = node.first->m_left;
+      queue.push(left);
+      right.first = node.first->m_right;
+      queue.push(right);
     }
     queue.pop();
-    if(node->m_left) queue.push(node->m_left);
-    if(node->m_right) queue.push(node->m_right);
+  }
+  
+  // Synchronized gamma-coding phase (symbol nodes and gamma nodes)
+  std::list<TreeNode<BitVector>*> left, right;
+  while(!gammaCodeNodes.empty() || !left.empty() || !right.empty()) {
+    gammaCodeNodes.splice(gammaCodeNodes.end(), left);
+    gammaCodeNodes.splice(gammaCodeNodes.end(), right);
+    while(!gammaCodeNodes.empty()) {
+      TreeNode<BitVector>* node = gammaCodeNodes.front();
+      for(size_t i = 0; i < node->m_bitVector.size(); ++i) {
+        enc.encode(node->m_bitVector[i], pm.probabilityOfOne());
+        pm.update(node->m_bitVector[i]);
+      }
+      gammaCodeNodes.pop_front();
+      if(node->m_left) left.push_back(node->m_left);
+      if(node->m_right) right.push_back(node->m_right);
+    }
   }
 }
 
@@ -520,74 +624,182 @@ void WaveletTree<BitVector>::decodeTreeGammaInc(TreeNode<BitVector>* node,
   }
 }
 
-/**Used in decoding tree.
- */
+/**Used in decoding the tree. */
 template<typename BitVector>
-struct NodeStatus {
-  //NodeStatus() : m_node(0), m_bits(0), m_gammaLen(0), m_gammaStatus(0) {}
-  NodeStatus(TreeNode<BitVector>* node, size_t bits)
-      : m_node(node), m_bits(bits), m_gammaLen(0), m_gammaStatus(0) {}
-  NodeStatus(TreeNode<BitVector>* node, size_t bits, size_t gammaLen, byte st)
-      : m_node(node), m_bits(bits), m_gammaLen(gammaLen), m_gammaStatus(st) {}
+struct GammaNode {
+  GammaNode(TreeNode<BitVector>* node, size_t bits, size_t len, byte status)
+      : m_node(node), m_bits(bits), m_gammaLen(len), m_gammaStatus(status) {}
   TreeNode<BitVector> *m_node;
   size_t m_bits;
   size_t m_gammaLen;
-  byte m_gammaStatus; // Flag telling if we have already hit into gamma codes
+  byte m_gammaStatus; // Flag telling in what phase of gamma-code decoding is
 };
 
+/** Note that we assume that the wavelet tree has canonical Huffman shape ie.
+ *  the longest codewords are placed to right.
+ */
 template<typename BitVector>
 template <typename Decoder, typename ProbabilisticModel>
 void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
                                           Decoder& dec,
                                           ProbabilisticModel& pm) const
 {
-  std::queue<NodeStatus<BitVector> > queue;
-  queue.push(NodeStatus<BitVector>(m_root, rootSize));
-  while(!queue.empty()) {
-    size_t rightBits = 0;
-    NodeStatus<BitVector> st = queue.front();
-    queue.pop();
-    for(size_t i = 0; i < st.m_bits; ++i) {
+  //TODO: If needed optimize redundant copying of bitvectors!
+  typedef std::pair<TreeNode<BitVector>*, BitVector> InternalNode; 
+  
+  std::queue<InternalNode> queue;
+  std::list<GammaNode<BitVector> > gammaCodeNodes;
+
+  //Encoding of the root node
+  {
+    BitVector left, right;
+
+    bool prev = dec.decode(pm.probabilityOfOne());
+    pm.update(prev);
+    m_root->m_bitVector.push_back(prev);
+
+    if(prev) right.push_back(true);
+    else left.push_back(true);
+
+    for(size_t i = 1; i < rootSize; ++i) {
       bool bit = dec.decode(pm.probabilityOfOne());
       pm.update(bit);
-      if(bit) ++rightBits;
-      st.m_node->m_bitVector.push_back(bit);
+      m_root->m_bitVector.push_back(bit);
+      BitVector& gVector = bit? right: left;
+      gVector.push_back(prev != bit);
+      prev = bit;
     }
-    if(st.m_gammaStatus == 2 && st.m_gammaLen == 1) continue;
-
-    if(st.m_bits > rightBits &&
-       !(st.m_gammaStatus == 0 && st.m_node->m_hasSymbol))
-    {
-      if(!st.m_node->m_left) st.m_node->m_left = new TreeNode<BitVector>();
-      NodeStatus<BitVector> left(st.m_node->m_left, st.m_bits - rightBits,
-                                 st.m_gammaLen, st.m_gammaStatus);
-
-      if(left.m_gammaStatus == 1) left.m_gammaStatus = 2;
-      else if (left.m_gammaStatus == 2) --left.m_gammaLen;
-
-      if(left.m_gammaStatus != 2 || left.m_gammaLen > 0) {
-        queue.push(left);
-      }
+    // Left node has to always exist
+    if(m_root->m_left->m_hasSymbol) {
+      gammaCodeNodes.push_back(
+          GammaNode<BitVector>(m_root->m_left, left.size(), 0, 0));
+    } else {
+      queue.push(std::make_pair(m_root->m_left, left));
     }
-    if(rightBits > 0) {
-      if(!st.m_node->m_right) st.m_node->m_right = new TreeNode<BitVector>();
-      NodeStatus<BitVector> right(st.m_node->m_right, rightBits,
-                                  st.m_gammaLen, st.m_gammaStatus);
-
-      if(st.m_gammaStatus == 0) 
-        right.m_gammaStatus = st.m_node->m_hasSymbol ? 1 : 0;
-
-      if(right.m_gammaStatus == 1) ++right.m_gammaLen;
-      else if(right.m_gammaStatus == 2) --right.m_gammaLen;
-        
-
-      if(right.m_gammaStatus != 2 || right.m_gammaLen > 0) {
-        queue.push(right);
+    
+    if(right.size() > 0) {
+      if(m_root->m_right->m_hasSymbol) {
+        gammaCodeNodes.push_back(
+            GammaNode<BitVector>(m_root->m_right, right.size(), 0, 0));
+      } else {
+        queue.push(std::make_pair(m_root->m_right, right));
       }
-
     }
   }
-  
+
+  //Encoding of the internal nodes
+  {
+    while(!queue.empty()) {
+      BitVector left, right;
+      InternalNode& node = queue.front();
+      // Node must have both left and right child
+      if(node.first->m_left->m_hasSymbol || node.first->m_right->m_hasSymbol) {
+        if(node.first->m_left->m_hasSymbol && node.first->m_right->m_hasSymbol) {
+          size_t ones = 0;
+          bool prev = true;
+          for(size_t i = 0; i < node.second.size(); ++i) {
+            if(!node.second[i]) {
+              prev = !prev;
+            } else {
+              prev = dec.decode(pm.probabilityOfOne());
+              pm.update(prev);
+            }
+            node.first->m_bitVector.push_back(prev);
+            if(prev) ++ones;
+          }
+          gammaCodeNodes.push_back(GammaNode<BitVector>(
+              node.first->m_left, node.second.size() - ones, 0, 0));
+          gammaCodeNodes.push_back(GammaNode<BitVector>(
+              node.first->m_right, ones, 0, 0));
+        } else {
+          assert(!node.first->m_right->m_hasSymbol);
+          bool prev = true;
+          for(size_t i = 0; i < node.second.size(); ++i) {
+            bool bit;
+            if(!node.second[i] && !prev) {
+              bit = true;
+            } else {
+              bit = dec.decode(pm.probabilityOfOne());
+              pm.update(bit);
+            }
+            node.first->m_bitVector.push_back(bit);
+            if(bit) right.push_back(prev != bit || node.second[i]);
+            prev = bit;
+          }
+          gammaCodeNodes.push_back(GammaNode<BitVector>(
+              node.first->m_left, node.second.size() - right.size(), 0, 0));
+          queue.push(std::make_pair(node.first->m_right, right));
+        }
+      } else {
+        bool prev = true;
+        for(size_t i = 0; i < node.second.size(); ++i) {
+          bool bit = dec.decode(pm.probabilityOfOne());
+          pm.update(bit);
+          node.first->m_bitVector.push_back(bit);
+          BitVector& gapVector = bit? right: left;
+          gapVector.push_back(prev != bit || node.second[i]);
+          prev = bit;
+        }
+        queue.push(std::make_pair(node.first->m_left, left));
+        queue.push(std::make_pair(node.first->m_right, right));
+      }
+      queue.pop();
+    }
+  }
+
+  //Encoding of gamma-code nodes
+  {
+    std::list<GammaNode<BitVector> > left, right;
+    while(!gammaCodeNodes.empty() || !left.empty() || !right.empty()) {
+      
+      while(!gammaCodeNodes.empty()) {
+        GammaNode<BitVector> node = gammaCodeNodes.front();
+        size_t ones = 0;
+        for(size_t i = 0; i < node.m_bits; ++i) {
+          bool bit = dec.decode(pm.probabilityOfOne());
+          pm.update(bit);
+          if(bit) ++ones;
+          node.m_node->m_bitVector.push_back(bit);
+        }
+        gammaCodeNodes.pop_front();
+        
+        if(node.m_gammaStatus == 2 && node.m_gammaLen == 1) continue;
+        
+        if(node.m_bits > ones && node.m_gammaStatus != 0) {
+          if(!node.m_node->m_left)
+            node.m_node->m_left = new TreeNode<BitVector>();
+
+          GammaNode<BitVector> lnode(node.m_node->m_left, node.m_bits - ones,
+                                     node.m_gammaLen, node.m_gammaStatus);
+          if(node.m_gammaStatus == 1) {
+            lnode.m_gammaStatus = 2;
+          } else if(node.m_gammaStatus == 2) {
+            --lnode.m_gammaLen;
+          }
+          left.push_back(lnode);
+        }
+
+        if(ones > 0) {
+          if(!node.m_node->m_right)
+            node.m_node->m_right = new TreeNode<BitVector>();
+
+          GammaNode<BitVector> rnode(node.m_node->m_right, ones,
+                                     node.m_gammaLen, node.m_gammaStatus);
+          if(node.m_gammaStatus == 0) {
+            rnode.m_gammaLen = 1;
+            rnode.m_gammaStatus = 1;
+          } else if(node.m_gammaStatus == 1) {
+            ++rnode.m_gammaLen;
+          } else if(node.m_gammaStatus == 2) {
+            --rnode.m_gammaLen;
+          }
+          right.push_back(rnode);
+        }
+      }
+      gammaCodeNodes.splice(gammaCodeNodes.end(), left);
+      gammaCodeNodes.splice(gammaCodeNodes.end(), right);
+    }
+  }
 }
 
 template<typename BitVector>

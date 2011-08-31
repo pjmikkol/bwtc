@@ -45,6 +45,9 @@ class ProbabilityModel {
   }
   /* This will called when the context of data changes. */
   virtual void resetModel() {}
+  /** Used to update the state of the normal model when encoding gap-bits in
+   *  wavelet tree. */
+  virtual void updateState(bool bit) {}
 };
 
 /* Example how to integrate new probability model to program */

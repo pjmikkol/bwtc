@@ -469,7 +469,7 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
 
   // Nodes between root node and symbol nodes
   while(!queue.empty()) {
-    pm.resetModel(); //!!!
+    pm.resetModel(); 
     gapm.resetModel();
 
     InternalNode left, right;
@@ -500,6 +500,7 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
             if(node.second[i]) {
               enc.encode(bit, gapm.probabilityOfOne());
               gapm.update(bit);
+              pm.updateState(bit);
             } else {
               enc.encode(bit, pm.probabilityOfOne());
               pm.update(bit);
@@ -520,6 +521,7 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
         if(node.second[i]) {
           enc.encode(bit, gapm.probabilityOfOne());
           gapm.update(bit);
+          pm.updateState(bit);
         } else {
           enc.encode(bit, pm.probabilityOfOne());
           pm.update(bit);
@@ -541,8 +543,9 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
   while(!gammaCodeNodes.empty() || !left.empty() || !right.empty()) {
     gammaCodeNodes.splice(gammaCodeNodes.end(), left);
     gammaCodeNodes.splice(gammaCodeNodes.end(), right);
+    gm.resetModel();
     while(!gammaCodeNodes.empty()) {
-      gm.resetModel();
+
       TreeNode<BitVector>* node = gammaCodeNodes.front();
       for(size_t i = 0; i < node->m_bitVector.size(); ++i) {
         enc.encode(node->m_bitVector[i], gm.probabilityOfOne());
@@ -663,7 +666,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
   std::queue<InternalNode> queue;
   std::list<GammaNode<BitVector> > gammaCodeNodes;
 
-  //Encoding of the root node
+  //Decoding of the root node
   {
     BitVector left, right;
 
@@ -700,7 +703,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
     }
   }
 
-  //Encoding of the internal nodes
+  //Decoding of the internal nodes
   {
     while(!queue.empty()) {
       pm.resetModel();
@@ -737,6 +740,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
             } else if(node.second[i]) {
               bit = dec.decode(gapm.probabilityOfOne());
               gapm.update(bit);
+              pm.updateState(bit);
             } else {
               bit = dec.decode(pm.probabilityOfOne());
               pm.update(bit);
@@ -756,6 +760,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
           if(node.second[i]) {
             bit = dec.decode(gapm.probabilityOfOne());
             gapm.update(bit);
+            pm.updateState(bit);
           } else {
             bit = dec.decode(pm.probabilityOfOne());
             pm.update(bit);
@@ -772,13 +777,13 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
     }
   }
 
-  //Encoding of gamma-code nodes
+  //Decoding of gamma-code nodes
   {
     std::list<GammaNode<BitVector> > left, right;
     while(!gammaCodeNodes.empty() || !left.empty() || !right.empty()) {
+      gm.resetModel();
       
       while(!gammaCodeNodes.empty()) {
-        gm.resetModel();
         GammaNode<BitVector> node = gammaCodeNodes.front();
         size_t ones = 0;
         for(size_t i = 0; i < node.m_bits; ++i) {

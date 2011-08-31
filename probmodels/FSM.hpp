@@ -39,7 +39,7 @@ namespace bwtc {
 namespace {
 
 template<uint32 states>
-uint32 nextState(uint32 currentState, bool bit) {
+uint32 initialState(uint32 currentState, bool bit) {
   if(bit) {
     if(currentState >= states/2)
       return std::min(currentState+1, states-1);
@@ -52,12 +52,12 @@ uint32 nextState(uint32 currentState, bool bit) {
 }
 
 template<>
-uint32 nextState<2>(uint32 currentState, bool bit) {
+uint32 initialState<2>(uint32 currentState, bool bit) {
   return bit?1:0;
 }
 
 template<>
-uint32 nextState<3>(uint32 currentState, bool bit) {
+uint32 initialState<3>(uint32 currentState, bool bit) {
   if(currentState == 1) return bit?2:0;
   else if(currentState == 2 && bit) return 2;
   else if(currentState == 0 && !bit) return 0;
@@ -77,7 +77,7 @@ class FSM : public ProbabilityModel {
 
   void update(bool bit) {
     m_states[m_currentState].update(bit);
-    m_currentState = nextState<N>(m_currentState, bit);
+    updateState(bit);
   }
 
   Probability probabilityOfOne() const {
@@ -89,16 +89,21 @@ class FSM : public ProbabilityModel {
     m_currentState = N/2;
   }
 
+  void updateState(bool bit) {
+    m_currentState = initialState<N>(m_currentState, bit); 
+  }
+
  private:
   uint32 m_currentState;
   std::vector<BitPredictor> m_states;
 };
 
 /** Each state has probability model attached:
- *  Z3 -- Z2 -- Z1 -- O1 -- O2 -- O3,
+ *  z3 -- z2 -- z1 -- o1 -- o2 -- o3,
  *  where Z3 is used when at least 3 zeros are seen etc..
+ *  Types of the models are Z3, Z2, Z1, Z1, Z2, Z3.
  */
-template <typename Z3, typename Z2, typename Z1, typename O1, typename O2, typename O3>
+template <typename Z3, typename Z2, typename Z1>
 class FSM6 : public ProbabilityModel {
  public:
   FSM6() : m_currentState(3) {}
@@ -116,7 +121,11 @@ class FSM6 : public ProbabilityModel {
         else o2.update(bit);
       } else o3.update(bit);
     }
-    m_currentState = nextState<6>(m_currentState, bit);
+    updateState(bit);
+  }
+
+  void updateState(bool bit) {
+    m_currentState = initialState<6>(m_currentState, bit);
   }
 
   Probability probabilityOfOne() const {
@@ -148,9 +157,78 @@ class FSM6 : public ProbabilityModel {
   Z3 z3;
   Z2 z2;
   Z1 z1;
-  O1 o1;
-  O2 o2;
-  O3 o3;
+  Z1 o1;
+  Z2 o2;
+  Z3 o3;
+};
+
+/** Almost the same as FSM6.
+ */
+template <typename Z4, typename Z3, typename Z2, typename Z1>
+class FSM8 : public ProbabilityModel {
+ public:
+  FSM8() : m_currentState(4) {}
+  ~FSM8() {}
+
+  void update(bool bit) {
+    if(m_currentState <= 3) {
+      if(m_currentState <= 1) {
+        if (m_currentState == 0) z4.update(bit);
+        else z3.update(bit);
+      } else if (m_currentState == 2) z1.update(bit);
+        else z2.update(bit);
+    } else {
+      if(m_currentState <= 5) {
+        if (m_currentState == 4) o1.update(bit);
+        else o2.update(bit);
+      } else if(m_currentState == 6) o3.update(bit);
+      else o4.update(bit);
+    }
+    updateState(bit);
+  }
+
+  void updateState(bool bit) {
+    m_currentState = initialState<8>(m_currentState, bit);
+  }    
+  
+  Probability probabilityOfOne() const {
+    if(m_currentState <= 3) {
+      if(m_currentState <= 1) {
+        if (m_currentState == 0) return z4.probabilityOfOne();
+        else return z3.probabilityOfOne();
+      } else if (m_currentState == 2) return z1.probabilityOfOne();
+        else return z2.probabilityOfOne();
+    } else {
+      if(m_currentState <= 5) {
+        if (m_currentState == 4) return o1.probabilityOfOne();
+        else return o2.probabilityOfOne();
+      } else if(m_currentState == 6) return o3.probabilityOfOne();
+      else return o4.probabilityOfOne();
+    }
+  }
+
+  void resetModel() {
+    z4.resetModel();
+    z3.resetModel();
+    z2.resetModel();
+    z1.resetModel();
+    o1.resetModel();
+    o2.resetModel();
+    o3.resetModel();
+    o4.resetModel();
+  }
+  
+  
+ private:
+  uint32 m_currentState;
+  Z4 z4;
+  Z3 z3;
+  Z2 z2;
+  Z1 z1;
+  Z1 o1;
+  Z2 o2;
+  Z3 o3;
+  Z4 o4;
 };
 
 } // namespace bwtc

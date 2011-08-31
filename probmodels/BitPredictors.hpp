@@ -34,13 +34,43 @@
 
 namespace bwtc {
 
-// Template argument is the number of different probabilities.
-// The probabilites are conceptually in form ix, where i = 1,...,M-1 and x = 1/M.
-template <uint16 M>
+// TODO: LISÄÄ ALKUTILA
+template <Probability Min, Probability Delay>
 class UnbiasedPredictor : public ProbabilityModel {
  public:
-  UnbiasedPredictor() : m_probabilityOfOne(s_interval * (M >> 1)) {}
+  UnbiasedPredictor() { resetModel(); }
   ~UnbiasedPredictor() {}
+
+  void update(bool bit) {
+    if(bit) {
+      m_probabilityOfOne += ((s_maximumProb - m_probabilityOfOne) >> Delay);
+    } else {
+      m_probabilityOfOne -= ((m_probabilityOfOne - Min) >> Delay);
+    }
+  }
+
+  Probability probabilityOfOne() const {
+    return m_probabilityOfOne;
+  }
+  
+  void resetModel() {
+    m_probabilityOfOne = kHalfProbability;
+  }
+
+ private:
+  static const Probability s_maximumProb = kProbabilityScale - Min;
+  Probability m_probabilityOfOne;
+
+};
+
+
+// Template argument is the number of different probabilities.
+// The probabilites are conceptually in form ix, where i = 1,...,M-1 and x = 1/M.
+template <Probability M>
+class EvenIntervalPredictor : public ProbabilityModel {
+ public:
+  EvenIntervalPredictor() : m_probabilityOfOne(s_interval * (M >> 1)) {}
+  ~EvenIntervalPredictor() {}
 
   void update(bool bit) {
     if(bit) {
@@ -68,10 +98,10 @@ class UnbiasedPredictor : public ProbabilityModel {
 };
 
 template <>
-class UnbiasedPredictor<2> : public ProbabilityModel {
+class EvenIntervalPredictor<2> : public ProbabilityModel {
  public:
-  UnbiasedPredictor() : m_probabilityOfOne(s_quarter + kHalfProbability) {}
-  ~UnbiasedPredictor() {}
+  EvenIntervalPredictor() : m_probabilityOfOne(s_quarter + kHalfProbability) {}
+  ~EvenIntervalPredictor() {}
 
   void update(bool bit) {
     if(bit) m_probabilityOfOne = s_quarter + kHalfProbability;
@@ -92,10 +122,10 @@ class UnbiasedPredictor<2> : public ProbabilityModel {
 };
 
 template <>
-class UnbiasedPredictor<3> : public ProbabilityModel {
+class EvenIntervalPredictor<3> : public ProbabilityModel {
  public:
-  UnbiasedPredictor() : m_probabilityOfOne(s_interval << 1) {}
-  ~UnbiasedPredictor() {}
+  EvenIntervalPredictor() : m_probabilityOfOne(s_interval << 1) {}
+  ~EvenIntervalPredictor() {}
 
   void update(bool bit) {
     if(bit) m_probabilityOfOne = s_interval << 1;
@@ -116,10 +146,10 @@ class UnbiasedPredictor<3> : public ProbabilityModel {
 };
 
 template <>
-class UnbiasedPredictor<5> : public ProbabilityModel {
+class EvenIntervalPredictor<5> : public ProbabilityModel {
  public:
-  UnbiasedPredictor() : m_probabilityOfOne(s_interval << 1) {}
-  ~UnbiasedPredictor() {}
+  EvenIntervalPredictor() : m_probabilityOfOne(s_interval << 1) {}
+  ~EvenIntervalPredictor() {}
 
   void update(bool bit) {
     if(bit) {
@@ -154,7 +184,7 @@ class UnbiasedPredictor<5> : public ProbabilityModel {
 };
 
 
-template <uint16 M>
+template <Probability M>
 class BiasedOnePredictor : public ProbabilityModel {
  public:
   BiasedOnePredictor() : m_probabilityOfOne(s_interval * (M >> 1)) {}
@@ -247,7 +277,7 @@ class InversePredictor : public ProbabilityModel {
   ~InversePredictor() {}
 
   void update(bool bit) {
-    m_predictor.update(bit);
+    m_predictor.update(!bit);
   }
 
   Probability probabilityOfOne() const {

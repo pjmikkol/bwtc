@@ -35,13 +35,11 @@
 namespace bwtc {
 
 ProbabilityModel* giveModelForGamma() {
-  return new FSM<2, UnbiasedPredictor<4> >();
+  return new FSM<2, UnbiasedPredictor<100, 5> >();
 }
 
 ProbabilityModel* giveModelForGaps() {
-  return new FSM6<UnbiasedPredictor<5>,  UnbiasedPredictor<4>,
-      UnbiasedPredictor<4>, UnbiasedPredictor<4>,
-      UnbiasedPredictor<4>, UnbiasedPredictor<5> >();
+  return new FSM<4, UnbiasedPredictor<2, 5> >();
 }
 
 ProbabilityModel* giveProbabilityModel(char choice) {
@@ -57,17 +55,18 @@ ProbabilityModel* giveProbabilityModel(char choice) {
     case 'u':
       if( verbosity > 1)
         std::clog << "Remembering 4 previous bits.\n";
-      return new UnbiasedPredictor<4>();
+      return new EvenIntervalPredictor<4>();
     case 'b':
       if( verbosity > 1)
         std::clog << "Using FSM.\n";
-      return new FSM<6, UnbiasedPredictor<4> >();
+      return new FSM<6, EvenIntervalPredictor<4> >();
     case 'B':
       if( verbosity > 1)
-        std::clog << "Using FSM6.\n";
-      return new FSM6<UnbiasedPredictor<5>,  UnbiasedPredictor<4>,
-        UnbiasedPredictor<4>, UnbiasedPredictor<4>,
-        UnbiasedPredictor<4>, UnbiasedPredictor<5> >();
+        std::clog << "Using FSM8.\n";
+      return new FSM8<UnbiasedPredictor<2, 4>,
+        UnbiasedPredictor<2, 5>,
+        UnbiasedPredictor<2, 5>,
+        UnbiasedPredictor<2, 6> >();
     case 'n':
     default:
       if( verbosity > 1)

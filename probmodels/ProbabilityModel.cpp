@@ -34,6 +34,16 @@
 
 namespace bwtc {
 
+ProbabilityModel* giveModelForGamma() {
+  return new FSM<2, UnbiasedPredictor<4> >();
+}
+
+ProbabilityModel* giveModelForGaps() {
+  return new FSM6<UnbiasedPredictor<5>,  UnbiasedPredictor<4>,
+      UnbiasedPredictor<4>, UnbiasedPredictor<4>,
+      UnbiasedPredictor<4>, UnbiasedPredictor<5> >();
+}
+
 ProbabilityModel* giveProbabilityModel(char choice) {
   switch(choice) {
     case 'm':
@@ -56,8 +66,8 @@ ProbabilityModel* giveProbabilityModel(char choice) {
       if( verbosity > 1)
         std::clog << "Using FSM6.\n";
       return new FSM6<UnbiasedPredictor<5>,  UnbiasedPredictor<4>,
-                      UnbiasedPredictor<4>, UnbiasedPredictor<4>,
-                      UnbiasedPredictor<4>, UnbiasedPredictor<5> >();
+        UnbiasedPredictor<4>, UnbiasedPredictor<4>,
+        UnbiasedPredictor<4>, UnbiasedPredictor<5> >();
     case 'n':
     default:
       if( verbosity > 1)

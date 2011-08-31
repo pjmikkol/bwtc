@@ -43,6 +43,8 @@ namespace bwtc {
 WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
     : m_out(new OutStream(destination)),
       m_probModel(giveProbabilityModel(prob_model)),
+      m_gammaProbModel(giveModelForGamma()),
+      m_gapProbModel(giveModelForGaps()),
       m_headerPosition(0), m_compressedBlockLength(0)
 {
   m_destination.connect(m_out);
@@ -66,17 +68,23 @@ char WaveletDecoder::readGlobalHeader() {
 WaveletEncoder::~WaveletEncoder() {
   delete m_out;
   delete m_probModel;
+  delete m_gammaProbModel;
+  delete m_gapProbModel;
 }
 
 void WaveletEncoder::endContextBlock() {
   assert(m_probModel);
   m_probModel->resetModel();
+  m_gammaProbModel->resetModel();
+  m_gapProbModel->resetModel();
   m_destination.finish();
 }
 
 void WaveletDecoder::endContextBlock() {
   assert(m_probModel);
   m_probModel->resetModel();
+  m_gammaProbModel->resetModel();
+  m_gapProbModel->resetModel();
 }
 
 int WaveletEncoder::writeTrailer(uint64 trailer) {
@@ -143,7 +151,8 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
       std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
     }
     //wavelet.encodeTree(m_destination, *m_probModel);
-    wavelet.encodeTreeBF(m_destination, *m_probModel);
+    wavelet.encodeTreeBF(m_destination, *m_probModel, *m_gammaProbModel,
+                         *m_gapProbModel);
     beg += (*stats)[i];
     endContextBlock();
   }
@@ -253,7 +262,8 @@ std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
     m_in->flushBuffer();
     m_source.start();
     //wavelet.decodeTree(rootSize, m_source, *m_probModel);
-    wavelet.decodeTreeBF(rootSize, m_source, *m_probModel);
+    wavelet.decodeTreeBF(rootSize, m_source, *m_probModel, *m_gammaProbModel,
+                         *m_gapProbModel);
     if(verbosity > 3) {
       size_t shapeBytes = bits/8;
       if(bits%8 > 0) ++shapeBytes;
@@ -286,7 +296,9 @@ uint64 WaveletDecoder::readPackedInteger() {
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
 WaveletDecoder::WaveletDecoder(const std::string& source) :
-    m_in(new InStream(source)), m_probModel(0)
+    m_in(new InStream(source)), m_probModel(0),
+    m_gammaProbModel(giveModelForGamma()),
+    m_gapProbModel(giveModelForGaps())
 {
   m_source.connect(m_in);
 }
@@ -294,6 +306,8 @@ WaveletDecoder::WaveletDecoder(const std::string& source) :
 WaveletDecoder::~WaveletDecoder() {
   delete m_in;
   delete m_probModel;
+  delete m_gammaProbModel;
+  delete m_gapProbModel;
 }
 
 

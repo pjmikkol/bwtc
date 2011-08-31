@@ -55,7 +55,12 @@ class WaveletEncoder {
  private:
   OutStream* m_out;
   dcsbwt::BitEncoder m_destination;
+  /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;
+  /** Probability model for gamma code nodes in wavelet tree. */
+  ProbabilityModel* m_gammaProbModel;
+  /** Probability model for bits coming after gaps. */
+  ProbabilityModel* m_gapProbModel;
   std::streampos m_headerPosition;
   uint64 m_compressedBlockLength;
 
@@ -83,7 +88,12 @@ class WaveletDecoder {
  private:
   InStream* m_in;
   dcsbwt::BitDecoder m_source;
+  /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;
+  /** Probability model for gamma code nodes in wavelet tree. */
+  ProbabilityModel* m_gammaProbModel;
+  /** Probability model for bits coming after gaps. */
+  ProbabilityModel* m_gapProbModel;
 
   WaveletDecoder(const WaveletDecoder&);
   WaveletDecoder& operator=(const WaveletDecoder&);

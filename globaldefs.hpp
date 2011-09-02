@@ -63,7 +63,7 @@ typedef uint16 Probability;
 static const int kLogProbabilityScale = 12;
 /** Maximum probability for used in arithmetic coding. */
 static const Probability kProbabilityScale = (1 << kLogProbabilityScale);
-static const Probability kHalfProbability = kProbabilityScale >> 2;
+static const Probability kHalfProbability = kProbabilityScale >> 1;
 
 typedef unsigned char byte;
 

@@ -26,6 +26,7 @@
 
 #include <algorithm> // for std::fill
 #include <iostream>
+#include <deque>
 
 #include "../globaldefs.hpp"
 #include "ProbabilityModel.hpp"
@@ -35,11 +36,11 @@
 namespace bwtc {
 
 ProbabilityModel* giveModelForGamma() {
-  return new FSM<2, UnbiasedPredictor<100, 5> >();
+  return new FSM<2, UnbiasedPredictor<100, 5, kHalfProbability> >();
 }
 
 ProbabilityModel* giveModelForGaps() {
-  return new FSM<4, UnbiasedPredictor<2, 5> >();
+  return new FSM<4, UnbiasedPredictor<2, 5, kHalfProbability> >();
 }
 
 ProbabilityModel* giveProbabilityModel(char choice) {
@@ -63,10 +64,10 @@ ProbabilityModel* giveProbabilityModel(char choice) {
     case 'B':
       if( verbosity > 1)
         std::clog << "Using FSM8.\n";
-      return new FSM8<UnbiasedPredictor<2, 4>,
-        UnbiasedPredictor<2, 5>,
-        UnbiasedPredictor<2, 5>,
-        UnbiasedPredictor<2, 6> >();
+      return new FSM8<UnbiasedPredictor<2, 4, 2400>,
+        UnbiasedPredictor<2, 5, 2300>,
+        UnbiasedPredictor<2, 5, 2200 >,
+        UnbiasedPredictor<2, 5, 2100> >();
     case 'n':
     default:
       if( verbosity > 1)

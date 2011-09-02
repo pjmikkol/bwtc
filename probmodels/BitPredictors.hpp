@@ -34,8 +34,7 @@
 
 namespace bwtc {
 
-// TODO: LISÄÄ ALKUTILA
-template <Probability Min, Probability Delay>
+template <Probability Min, Probability Delay, Probability Initial>
 class UnbiasedPredictor : public ProbabilityModel {
  public:
   UnbiasedPredictor() { resetModel(); }
@@ -54,15 +53,42 @@ class UnbiasedPredictor : public ProbabilityModel {
   }
   
   void resetModel() {
-    m_probabilityOfOne = kHalfProbability;
+    m_probabilityOfOne = Initial;
   }
 
  private:
   static const Probability s_maximumProb = kProbabilityScale - Min;
   Probability m_probabilityOfOne;
 
+  BOOST_STATIC_ASSERT(Initial <= s_maximumProb);
+  BOOST_STATIC_ASSERT(Initial >= Min);
 };
 
+template <Probability APrioriConstant>
+class FrequencePredictor : public ProbabilityModel {
+ public:
+  FrequencePredictor() : m_ones(0), m_zeros(0) {}
+  ~FrequencePredictor() {}
+
+  void update(bool bit) {
+    if(bit) ++m_ones;
+    else ++m_zeros;
+  }
+
+  Probability probabilityOfOne() const {
+    return (kProbabilityScale/(m_ones + m_zeros + 2*APrioriConstant))*
+        (m_ones + APrioriConstant);
+  }
+
+  void resetModel() {
+    m_ones = m_zeros = 0;
+  }
+
+ private:
+  size_t m_ones;
+  size_t m_zeros;
+  
+};
 
 // Template argument is the number of different probabilities.
 // The probabilites are conceptually in form ix, where i = 1,...,M-1 and x = 1/M.

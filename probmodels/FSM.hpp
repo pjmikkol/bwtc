@@ -1,5 +1,5 @@
 /**
- * @file FSMs.hpp
+ * @file FSM.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -29,17 +29,17 @@
 
 #include "../globaldefs.hpp"
 #include "ProbabilityModel.hpp"
+#include "BitPredictors.hpp"
 
 #include <algorithm>
 #include <vector>
-#include <boost/static_assert.hpp>
 
 namespace bwtc {
 
 namespace {
 
 template<uint32 states>
-uint32 initialState(uint32 currentState, bool bit) {
+uint32 nextState(uint32 currentState, bool bit) {
   if(bit) {
     if(currentState >= states/2)
       return std::min(currentState+1, states-1);
@@ -47,17 +47,17 @@ uint32 initialState(uint32 currentState, bool bit) {
   } else {
     if(currentState < states/2)
       return std::max((int)currentState-1, 0);
-    else return states/2 - 1;
+    else return (states-1)/2;
   }
 }
 
 template<>
-uint32 initialState<2>(uint32 currentState, bool bit) {
+uint32 nextState<2>(uint32 currentState, bool bit) {
   return bit?1:0;
 }
 
 template<>
-uint32 initialState<3>(uint32 currentState, bool bit) {
+uint32 nextState<3>(uint32 currentState, bool bit) {
   if(currentState == 1) return bit?2:0;
   else if(currentState == 2 && bit) return 2;
   else if(currentState == 0 && !bit) return 0;
@@ -90,7 +90,7 @@ class FSM : public ProbabilityModel {
   }
 
   void updateState(bool bit) {
-    m_currentState = initialState<N>(m_currentState, bit); 
+    m_currentState = nextState<N>(m_currentState, bit); 
   }
 
  private:
@@ -125,7 +125,7 @@ class FSM6 : public ProbabilityModel {
   }
 
   void updateState(bool bit) {
-    m_currentState = initialState<6>(m_currentState, bit);
+    m_currentState = nextState<6>(m_currentState, bit);
   }
 
   Probability probabilityOfOne() const {
@@ -175,8 +175,8 @@ class FSM8 : public ProbabilityModel {
       if(m_currentState <= 1) {
         if (m_currentState == 0) z4.update(bit);
         else z3.update(bit);
-      } else if (m_currentState == 2) z1.update(bit);
-        else z2.update(bit);
+      } else if (m_currentState == 2) z2.update(bit);
+        else z1.update(bit);
     } else {
       if(m_currentState <= 5) {
         if (m_currentState == 4) o1.update(bit);
@@ -188,7 +188,7 @@ class FSM8 : public ProbabilityModel {
   }
 
   void updateState(bool bit) {
-    m_currentState = initialState<8>(m_currentState, bit);
+    m_currentState = nextState<8>(m_currentState, bit);
   }    
   
   Probability probabilityOfOne() const {
@@ -196,8 +196,8 @@ class FSM8 : public ProbabilityModel {
       if(m_currentState <= 1) {
         if (m_currentState == 0) return z4.probabilityOfOne();
         else return z3.probabilityOfOne();
-      } else if (m_currentState == 2) return z1.probabilityOfOne();
-        else return z2.probabilityOfOne();
+      } else if (m_currentState == 2) return z2.probabilityOfOne();
+        else return z1.probabilityOfOne();
     } else {
       if(m_currentState <= 5) {
         if (m_currentState == 4) return o1.probabilityOfOne();
@@ -225,10 +225,10 @@ class FSM8 : public ProbabilityModel {
   Z3 z3;
   Z2 z2;
   Z1 z1;
-  Z1 o1;
-  Z2 o2;
-  Z3 o3;
-  Z4 o4;
+  InversePredictor<Z1> o1;
+  InversePredictor<Z2> o2;
+  InversePredictor<Z3> o3;
+  InversePredictor<Z4> o4;
 };
 
 } // namespace bwtc

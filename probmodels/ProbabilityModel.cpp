@@ -32,6 +32,7 @@
 #include "ProbabilityModel.hpp"
 #include "BitPredictors.hpp"
 #include "FSM.hpp"
+#include "DMC.hpp"
 
 namespace bwtc {
 
@@ -62,7 +63,7 @@ ProbabilityModel* giveProbabilityModel(char choice) {
         std::clog << "Using FSM.\n";
       return new FSM<6, EvenIntervalPredictor<4> >();
     case 'B':
-      if( verbosity > 1)
+      if( verbosity > 1) 
         std::clog << "Using FSM8.\n";
       return new FSM8<UnbiasedPredictor<2, 4, 2400>,
         UnbiasedPredictor<2, 5, 2300>,

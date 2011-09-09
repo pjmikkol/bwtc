@@ -41,7 +41,7 @@ class ProbabilityModel {
   virtual void update(bool bit) {}
   /* This probability will be used for coding each bit of the source. */
   virtual Probability probabilityOfOne() const {
-    return kProbabilityScale >> 2;
+    return kHalfProbability;
   }
   /* This will called when the context of data changes. */
   virtual void resetModel() {}

@@ -64,6 +64,13 @@ uint32 nextState<3>(uint32 currentState, bool bit) {
   else return 1;
 }
 
+template<>
+uint32 nextState<9>(uint32 currentState, bool bit) {
+  static byte oneTransitions[] = {5, 5, 5, 4, 5, 6, 7, 8, 8};
+  if(bit) return oneTransitions[currentState];
+  else return 8 - oneTransitions[8 - currentState];
+}
+
 }
 
 /**Template parameters are: N for the number of states and BitPredictor for
@@ -110,16 +117,13 @@ class FSM6 : public ProbabilityModel {
   ~FSM6() {}
 
   void update(bool bit) {
-    if(m_currentState <= 2) {
-      if(m_currentState <= 1) {
-        if (m_currentState == 0) z3.update(bit);
-        else z2.update(bit);
-      } else z1.update(bit);
-    } else {
-      if(m_currentState <= 4) {
-        if (m_currentState == 3) o1.update(bit);
-        else o2.update(bit);
-      } else o3.update(bit);
+    switch(m_currentState) {
+      case 0: z3.update(bit); break;
+      case 1: z2.update(bit); break;
+      case 2: z1.update(bit); break;
+      case 3: o1.update(bit); break;
+      case 4: o2.update(bit); break;
+      case 5: o3.update(bit); break;
     }
     updateState(bit);
   }
@@ -129,16 +133,13 @@ class FSM6 : public ProbabilityModel {
   }
 
   Probability probabilityOfOne() const {
-    if(m_currentState <= 2) {
-      if(m_currentState <= 1) {
-        if (m_currentState == 0) return z3.probabilityOfOne();
-        else return z2.probabilityOfOne();
-      } else return z1.probabilityOfOne();
-    } else {
-      if(m_currentState <= 4) {
-        if (m_currentState == 3) return o1.probabilityOfOne();
-        else return o2.probabilityOfOne();
-      } else return o3.probabilityOfOne();
+    switch(m_currentState) {
+      case 0: return z3.probabilityOfOne();
+      case 1: return z2.probabilityOfOne();
+      case 2: return z1.probabilityOfOne();
+      case 3: return o1.probabilityOfOne();
+      case 4: return o2.probabilityOfOne();
+      default: case 5: return o3.probabilityOfOne();
     }
   }
 
@@ -157,9 +158,9 @@ class FSM6 : public ProbabilityModel {
   Z3 z3;
   Z2 z2;
   Z1 z1;
-  Z1 o1;
-  Z2 o2;
-  Z3 o3;
+  InversePredictor<Z1> o1;
+  InversePredictor<Z2> o2;
+  InversePredictor<Z3> o3;
 };
 
 /** Almost the same as FSM6.
@@ -171,18 +172,15 @@ class FSM8 : public ProbabilityModel {
   ~FSM8() {}
 
   void update(bool bit) {
-    if(m_currentState <= 3) {
-      if(m_currentState <= 1) {
-        if (m_currentState == 0) z4.update(bit);
-        else z3.update(bit);
-      } else if (m_currentState == 2) z2.update(bit);
-        else z1.update(bit);
-    } else {
-      if(m_currentState <= 5) {
-        if (m_currentState == 4) o1.update(bit);
-        else o2.update(bit);
-      } else if(m_currentState == 6) o3.update(bit);
-      else o4.update(bit);
+    switch(m_currentState) {
+      case 0: z4.update(bit); break;
+      case 1: z3.update(bit); break;
+      case 2: z2.update(bit); break;
+      case 3: z1.update(bit); break;
+      case 4: o1.update(bit); break;
+      case 5: o2.update(bit); break;
+      case 6: o3.update(bit); break;
+      case 7: o4.update(bit); break;
     }
     updateState(bit);
   }
@@ -192,18 +190,15 @@ class FSM8 : public ProbabilityModel {
   }    
   
   Probability probabilityOfOne() const {
-    if(m_currentState <= 3) {
-      if(m_currentState <= 1) {
-        if (m_currentState == 0) return z4.probabilityOfOne();
-        else return z3.probabilityOfOne();
-      } else if (m_currentState == 2) return z2.probabilityOfOne();
-        else return z1.probabilityOfOne();
-    } else {
-      if(m_currentState <= 5) {
-        if (m_currentState == 4) return o1.probabilityOfOne();
-        else return o2.probabilityOfOne();
-      } else if(m_currentState == 6) return o3.probabilityOfOne();
-      else return o4.probabilityOfOne();
+    switch(m_currentState) {
+      case 0: return z4.probabilityOfOne();
+      case 1: return z3.probabilityOfOne();
+      case 2: return z2.probabilityOfOne();
+      case 3: return z1.probabilityOfOne();
+      case 4: return o1.probabilityOfOne();
+      case 5: return o2.probabilityOfOne();
+      case 6: return o3.probabilityOfOne();
+      default: case 7: return o4.probabilityOfOne();
     }
   }
 
@@ -230,6 +225,101 @@ class FSM8 : public ProbabilityModel {
   InversePredictor<Z3> o3;
   InversePredictor<Z4> o4;
 };
+
+template <typename Z4, typename Z3, typename Z2, typename Z1, typename D>
+class FSM9 : public ProbabilityModel {
+ public:
+  FSM9() : m_currentState(4) {}
+  ~FSM9() {}
+
+  void update(bool bit) {
+    switch(m_currentState) {
+      case 0: z4.update(bit); break;
+      case 1: z3.update(bit); break;
+      case 2: z2.update(bit); break;
+      case 3: z1.update(bit); break;
+      case 4: d.update(bit); break;
+      case 5: o1.update(bit); break;
+      case 6: o2.update(bit); break;
+      case 7: o3.update(bit); break;
+      case 8: o4.update(bit); break;
+    }
+    updateState(bit);
+  }
+
+  void updateState(bool bit) {
+    m_currentState = nextState<9>(m_currentState, bit);
+  }
+
+  Probability probabilityOfOne() const {
+    switch(m_currentState) {
+      case 0: return z4.probabilityOfOne();
+      case 1: return z3.probabilityOfOne();
+      case 2: return z2.probabilityOfOne();
+      case 3: return z1.probabilityOfOne();
+      case 4: return d.probabilityOfOne();
+      case 5: return o1.probabilityOfOne();
+      case 6: return o2.probabilityOfOne();
+      case 7: return o3.probabilityOfOne();
+      default: case 8: return o4.probabilityOfOne();
+    }
+  }
+
+  void resetModel() {
+    z4.resetModel();
+    z3.resetModel();
+    z2.resetModel();
+    z1.resetModel();
+    d.resetModel();
+    o1.resetModel();
+    o2.resetModel();
+    o3.resetModel();
+    o4.resetModel();
+  }
+
+ private:
+  uint32 m_currentState;
+  Z4 z4;
+  Z3 z3;
+  Z2 z2;
+  Z1 z1;
+  D d;
+  InversePredictor<Z1> o1;
+  InversePredictor<Z2> o2;
+  InversePredictor<Z3> o3;
+  InversePredictor<Z4> o4;
+};
+
+template <typename BitPredictor, uint32 History>
+class LimitedHistoryModel : public ProbabilityModel {
+ public:
+  LimitedHistoryModel() : m_history(0xAAAAAAAA & s_mask) {
+    m_predictors.resize(1 << History);
+  }
+
+  ~LimitedHistoryModel() {}
+
+  void update(bool bit) {
+    m_predictors[m_history].update(bit);
+    updateState(bit);
+  }
+  
+  Probability probabilityOfOne() const {
+    return m_predictors[m_history].probabilityOfOne();
+  }
+  
+  void updateState(bool bit) {
+    m_history = ((m_history << 1) + (bit?1:0))&s_mask;
+  }
+  
+
+ private:
+  std::vector<BitPredictor> m_predictors;
+  size_t m_history;
+
+  static const size_t s_mask = (1 << History) - 1;
+};
+
 
 } // namespace bwtc
 

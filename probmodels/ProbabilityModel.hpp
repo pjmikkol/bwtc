@@ -38,7 +38,7 @@ class ProbabilityModel {
   virtual ~ProbabilityModel() {}
   /* This will be called each time after single bit is coded. Updates to
    * model should be done here. */
-  virtual void update(bool bit) {}
+  virtual void update(bool) {}
   /* This probability will be used for coding each bit of the source. */
   virtual Probability probabilityOfOne() const {
     return kHalfProbability;
@@ -47,7 +47,7 @@ class ProbabilityModel {
   virtual void resetModel() {}
   /** Used to update the state of the normal model when encoding gap-bits in
    *  wavelet tree. */
-  virtual void updateState(bool bit) {}
+  virtual void updateState(bool) {}
 };
 
 /* Example how to integrate new probability model to program */

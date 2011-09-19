@@ -52,7 +52,7 @@ uint32 nextState(uint32 currentState, bool bit) {
 }
 
 template<>
-uint32 nextState<2>(uint32 currentState, bool bit) {
+uint32 nextState<2>(uint32 , bool bit) {
   return bit?1:0;
 }
 

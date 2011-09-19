@@ -11,7 +11,7 @@ find_package(Boost COMPONENTS program_options)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
 
 if(CMAKE_BUILD_TYPE MATCHES Release)
-  add_definitions(-DNDEBUG)
+#  add_definitions(-DNDEBUG)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fomit-frame-pointer -O3")
 elseif(CMAKE_BUILD_TYPE MATCHES Debug)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
@@ -39,14 +39,15 @@ set(DECOMPRESSOR_SRC uncompress.cpp)
 link_directories(${Boost_LIBRARY_DIR})
 include_directories(${Boost_INCLUDE_DIR})
 
-add_executable(compress ${COMMON_SRC} ${COMPRESSOR_SRC})
-target_link_libraries(compress preprocessors probmodels bwtransforms 
+add_executable(compress ${COMPRESSOR_SRC})
+target_link_libraries(compress common preprocessors probmodels bwtransforms 
   ${Boost_LIBRARIES})
 
-add_executable(uncompress ${COMMON_SRC} ${DECOMPRESSOR_SRC})
-target_link_libraries(uncompress preprocessors probmodels bwtransforms 
+add_executable(uncompress ${DECOMPRESSOR_SRC})
+target_link_libraries(uncompress common preprocessors probmodels bwtransforms
   ${Boost_LIBRARIES})
 
 enable_testing()
 
+set(CMAKE_BUILD_TYPE "Debug")
 add_subdirectory(${TEST_SRC_DIR})

@@ -52,7 +52,8 @@ std::vector<byte>* BWTransform::allocateMemory(uint64 size) {
 }
 
 BWTransform* giveTransformer(char transform) {
-    return new SAISBWTransform();
+  (void) transform;
+  return new SAISBWTransform();
 }
 
 }

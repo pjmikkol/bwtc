@@ -76,13 +76,13 @@ void testSA_IS() {
 void test_sais() {
   int size = (rand() & 0x0000FFFF) + 1;
   byte *str = new byte[size+1];
-  for(unsigned i = 0; i < size; ++i) {
+  for(int i = 0; i < size; ++i) {
     str[i] = rand() & 0xFF;
   }
   str[size] = 0;
   int *SA = new int[size + 1];
   saisxx(str, SA, size + 1, 256);
-  for(unsigned i = 1; i < size; ++i) {
+  for(int i = 1; i < size; ++i) {
     assert(SufCmp(str, SA[i], SA[i+1], size) < 0);
     assert(SA[i] < size);
   }

@@ -51,7 +51,7 @@ uint64 uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   /* initialize value of j to the first index of compressed data */
   uint64 j = 0;
   bool escaping = false;
-  byte escape_symbol;
+  byte escape_symbol = 0;
   if (data[0] == data[1] && data[1] == data[2]) j = 3;
   else {
     unsigned i = 0;
@@ -167,7 +167,7 @@ uint64 uncompressSequences(std::vector<byte> *compressed, uint64 length) {
     repls[i] = std::pair<uint64, unsigned>(0,1);
   }
   bool escaping = false;
-  byte escape_byte;
+  byte escape_byte = 0;
   uint64 source_pos = 0;
   if(data[1] == 0) {
     source_pos = 2;

@@ -162,7 +162,8 @@ void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
   for(int t = n-3; t >= 0; --t) {
     freqs[t] = freqs[freqs[t]] + 1;
   }
-  int a = 1, u = 0, depth = 0;
+  int a = 1, u = 0;
+  size_t depth = 0;
   int x = n-1, t = n-2;
   while(a > 0) {
     while(t >= 0 && freqs[t] == depth) { ++u; --t; }

@@ -51,6 +51,8 @@ const int kTimes = 1;
 void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
                      uint64 block_size, unsigned mem_constr)
 {
+  (void) threshold;
+  (void) mem_constr;
   bwtc::BlockManager bm(block_size, 1);
   bwtc::TestPreprocessor pp(block_size);
   bwtc::BWTransform *transformer = bwtc::giveTransformer('s');
@@ -112,6 +114,8 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
 void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
                      uint64 block_size, unsigned mem_constr)
 {
+  (void) threshold;
+  (void) mem_constr;
   bwtc::verbosity = 3;
   bwtc::BlockManager bm(block_size, 1);
   bwtc::TestPreprocessor pp(block_size);

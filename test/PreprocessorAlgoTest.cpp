@@ -35,8 +35,6 @@
 #include "../preprocessors/Postprocessor.hpp"
 #include "../globaldefs.hpp"
 
-#undef NDEBUG
-
 namespace bwtc {
 int verbosity = 2;
 }

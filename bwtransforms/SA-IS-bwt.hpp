@@ -56,9 +56,9 @@ class SAISBWTransform : public BWTransform {
   virtual std::vector<byte>* doTransform(uint64* eob_byte);
 
   /* The following values aren't correct */
-  virtual uint64 maxSizeInBytes(uint64 block_size) const { return 0; }
-  virtual uint64 maxBlockSize(uint64 memory_budget) const { return 0; }
-  virtual uint64 suggestedBlockSize(uint64 memory_budget) const { return 0; }
+  virtual uint64 maxSizeInBytes(uint64) const { return 0; }
+  virtual uint64 maxBlockSize(uint64) const { return 0; }
+  virtual uint64 suggestedBlockSize(uint64) const { return 0; }
   
 };
 } // namespace bwtc

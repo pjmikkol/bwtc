@@ -40,8 +40,6 @@
 #include "../globaldefs.hpp"
 #include "../Utils.hpp"
 
-#undef NDEBUG
-
 namespace bwtc {
 int verbosity = 1;
 }

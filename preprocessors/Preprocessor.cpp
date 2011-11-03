@@ -557,7 +557,8 @@ uint64 compressCommonPairs(byte *from, uint64 length)
 
 namespace longruns {
 
-const uint32 kMaxLenOfSeq = 1 << 15;
+// this exists because of faster computation of log
+const size_t kMaxLenOfSeq = 1 << 15;
 
 struct triple {
   triple(byte sym, uint32 len, uint32 freq) :
@@ -690,29 +691,25 @@ class SequenceHeap {
 #undef right
 };
 
-void updateFreqs(std::map<uint32, uint32> *run_freq, byte symbol,
-                 uint32 length)
+void updateFreqs(std::vector<size_t> *run_freq, byte symbol, uint32 length)
 {
   assert(length <= kMaxLenOfSeq);
   assert(length > 1);
-  length -= (length % 2);
-  uint32 original = length;
+  length &= 0xFFFFFFFE;
   while(length) { /* Compute the number of sequences of length 2^k for some k */
-    uint32 longest = utils::mostSignificantBit16(length);
-    if (run_freq[symbol].count(longest))
-      run_freq[symbol][longest] += original/longest;
-    else run_freq[symbol][longest] = original/longest;
-    length -= longest;
+    uint32 loglongest = utils::logFloor(length);
+    ++run_freq[symbol][loglongest-1];
+    length ^= (1 << loglongest); // TODO: tarkista päteekö ^= == -=
   }
 }
 
 void computeRunFrequencies(byte *from, uint64 *freq,
-                           std::map<uint32, uint32> *run_freq, uint64 length)
+                           std::vector<size_t> *run_freq, uint64 length)
 {
   byte prev = from[0];
-  uint32 run_length = 1;
+  size_t run_length = 1;
   ++freq[prev];
-  for(uint64 i = 1; i < length; ++i) {
+  for(size_t i = 1; i < length; ++i) {
     if (from[i] == prev && run_length < kMaxLenOfSeq)
       ++run_length;
     else {
@@ -881,7 +878,6 @@ uint64 writeReplacements(ReplacementTable *replacements, byte *to, byte *from,
 } // namespace longruns
 
 
-/* Use of map for replacements may be too slow. */
 uint64 compressLongRuns(byte *from, uint64 length)
 {
   using namespace longruns;
@@ -889,7 +885,14 @@ uint64 compressLongRuns(byte *from, uint64 length)
   assert(length > 0);
   assert(from);
   uint64 freq[256] = { 0 };
-  std::map<uint32, uint32> run_freq[256];
+  /* Table for runs. Vector is indexed by log(runlength) - 1 */
+  std::vector<size_t> run_freq[256];
+  size_t vsize = utils::logFloor(std::min(length, kMaxLenOfSeq));
+  for(size_t i = 0; i < 256; ++i) {
+    run_freq[i].resize(vsize-1);
+    std::fill(run_freq[i].begin(), run_freq[i].end(), 0);
+  }
+
   computeRunFrequencies(from, freq, run_freq, length);
 
   FreqTable freqs(freq);
@@ -900,12 +903,11 @@ uint64 compressLongRuns(byte *from, uint64 length)
   std::vector<triple> runs, longest_runs;
   runs.reserve(256);
   for(uint32 i = 0; i < 256; ++i) {
-    for(std::map<uint32, uint32>::const_iterator it = run_freq[i].begin();
-        it != run_freq[i].end(); ++it)
+    for(size_t j = 0; j < run_freq[i].size(); ++j) 
     {
-      assert(it->second > 0);
-      assert(it->first > 1);
-      runs.push_back(triple(static_cast<byte>(i), it->first, it->second));
+      if(run_freq[i][j] > 0) {
+        runs.push_back(triple(static_cast<byte>(i), 1 << (j+1), run_freq[i][j]));
+      }
     }
   }
   findReplaceableRuns(&runs,&longest_runs, &freqs);

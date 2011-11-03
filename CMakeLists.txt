@@ -11,10 +11,10 @@ find_package(Boost COMPONENTS program_options)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
 
 if(CMAKE_BUILD_TYPE MATCHES Release)
-#  add_definitions(-DNDEBUG)
+  add_definitions(-DNDEBUG)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fomit-frame-pointer -O3")
 elseif(CMAKE_BUILD_TYPE MATCHES Debug)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-inline")
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH bin/)
@@ -49,5 +49,5 @@ target_link_libraries(uncompress common preprocessors probmodels bwtransforms
 
 enable_testing()
 
-set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE Debug)
 add_subdirectory(${TEST_SRC_DIR})

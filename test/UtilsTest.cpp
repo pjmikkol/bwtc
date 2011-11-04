@@ -59,11 +59,18 @@ BOOST_AUTO_TEST_CASE(MostSigBit16) {
   BOOST_CHECK_EQUAL(0x200, mostSignificantBit16(0x3f3));
 }
 
-BOOST_AUTO_TEST_CASE(LogFlr) {
-  BOOST_CHECK_EQUAL(7, logFloor(0xff));
-  BOOST_CHECK_EQUAL(26, logFloor(0x61adf3f));
-  BOOST_CHECK_EQUAL(30, logFloor(0x561adf3f));
-  BOOST_CHECK_EQUAL(31, logFloor(0xf61adf3f));
+BOOST_AUTO_TEST_CASE(LogFlrU) {
+  BOOST_CHECK_EQUAL(7, logFloor(0xffu));
+  BOOST_CHECK_EQUAL(26, logFloor(0x61adf3fu));
+  BOOST_CHECK_EQUAL(30, logFloor(0x561adf3fu));
+  BOOST_CHECK_EQUAL(31, logFloor(0xf61adf3fu));
+}
+
+BOOST_AUTO_TEST_CASE(LogFlrUL) {
+  BOOST_CHECK_EQUAL(7, logFloor(0xfful));
+  BOOST_CHECK_EQUAL(26, logFloor(0x61adf3ful));
+  BOOST_CHECK_EQUAL(30, logFloor(0x561adf3ful));
+  BOOST_CHECK_EQUAL(31, logFloor(0xf61adf3ful));
 }
 
 BOOST_AUTO_TEST_CASE(RunFrequencyCounts1) {

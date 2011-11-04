@@ -41,16 +41,32 @@ using bwtc::uint32;
 /* Useful functions for debugging activites etc. */
 namespace utils {
 
-/** Floor of logarithm of base two */
-template <typename Unsigned>
-byte logFloor(Unsigned n) {
+static byte logFloor(unsigned n) {
   assert(n > 0);
+#ifdef __GNUC__
+  return  sizeof(n)*__CHAR_BIT__ - __builtin_clz(n) - 1;
+#else
   byte log = 0;
   while(n > 1) {
     n >>= 1;
     ++log;
   }
   return log;
+#endif
+}
+
+static byte logFloor(unsigned long n) {
+  assert(n > 0);
+#ifdef __GNUC__
+  return  sizeof(n)*__CHAR_BIT__ - __builtin_clzl(n) - 1;
+#else
+  byte log = 0;
+  while(n > 1) {
+    n >>= 1;
+    ++log;
+  }
+  return log;
+#endif
 }
 
 /** Ceiling of logarithm of base two */

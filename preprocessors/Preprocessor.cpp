@@ -25,7 +25,15 @@
  * most common pairs and another for replacing long runs of the same byte.
  */
 
+#include "../MainBlock.hpp"
+#include "../BlockManager.hpp"
+#include "../globaldefs.hpp"
+#include "../Streams.hpp"
+#include "../Utils.hpp"
+#include "Preprocessor.hpp"
+
 #include <cassert>
+#include <boost/static_assert.hpp>
 
 #include <algorithm>
 #include <iostream> /* for std::streamsize*/
@@ -33,12 +41,6 @@
 #include <string>
 #include <utility> /* for pair */
 
-#include "../MainBlock.hpp"
-#include "../BlockManager.hpp"
-#include "../globaldefs.hpp"
-#include "../Streams.hpp"
-#include "../Utils.hpp"
-#include "Preprocessor.hpp"
 
 namespace bwtc {
 
@@ -326,7 +328,7 @@ void findReplaceablePairs(std::vector<std::pair<uint16,uint32> >*
 
 /* Returns the index for the 'escape_char' in freqs-array or value of
  * free_symbols if freeing of the chars is not profitable */
-// TODO: uuint32 -> possibly 64-bit
+// TODO: uint32 -> possibly 64-bit
 uint32 escapeCharIndex(FreqTable* freqs,
                        const std::vector<std::pair<uint16, uint32> >&
                        suitable_pairs,
@@ -699,7 +701,7 @@ void updateFreqs(std::vector<size_t> *run_freq, byte symbol, uint32 length)
   while(length) { /* Compute the number of sequences of length 2^k for some k */
     uint32 loglongest = utils::logFloor(length);
     ++run_freq[symbol][loglongest-1];
-    length ^= (1 << loglongest); // TODO: tarkista päteekö ^= == -=
+    length ^= (1 << loglongest); 
   }
 }
 
@@ -812,11 +814,11 @@ class ReplacementTable {
     }
   }
 
-  int listBegin(byte symbol) {
+  int listBegin(byte symbol) const {
     return table_[symbol];
   }
 
-  runlist_elem listElement(int index) {
+  const runlist_elem& listElement(int index) const {
     assert(index >= 0);
     assert(index < static_cast<int>(rpls_.size()));
     return rpls_[index];
@@ -827,19 +829,111 @@ class ReplacementTable {
   std::vector<runlist_elem> rpls_;
 };
 
+class RepleacableRun {
+ public:
+  RepleacableRun(uint32 length, byte symbol, byte replacement)
+      : m_length(length), m_symbol(symbol), m_replacement(replacement) {}
+  byte symbol() const { return m_symbol;} 
+  byte replacement() const { return m_replacement;} 
+  uint32 length() const { return m_length;}
 
-uint32 writeRunReplacement(ReplacementTable *repl, uint32 run_length,
-                             byte escape, byte symbol, byte *to)
+  bool operator<(const RepleacableRun& other) const {
+    return symbol() < other.symbol() || length() < other.length();
+  }
+
+ private:
+  uint32 m_length;
+  byte m_symbol;
+  byte m_replacement;
+};
+
+
+class ReplacementTable2 {
+ public:
+ 
+  class RTIterator {
+   public:
+    RTIterator(const ReplacementTable2& rt, byte symbol, int index)
+        : m_rt(rt), m_index(index), m_symbol(symbol) {}
+    
+    void operator++() { ++m_index; }
+    void operator--() { --m_index; }
+
+    bool atEnd() const {
+      return m_index >= m_rt.m_buckets.size() || m_rt.m_buckets[m_index].symbol() != m_symbol;
+    }
+
+    bool onCorrectBucket() const {
+      return m_index >= 0 && m_rt.m_buckets[m_index].symbol() == m_symbol;
+    }
+
+    const RepleacableRun& operator*() const {
+      return m_rt.m_buckets[m_index];
+    }
+    
+   private:
+    const ReplacementTable2& m_rt;
+    int m_index;
+    const byte m_symbol;
+  };
+
+  typedef RTIterator iterator;
+  
+  ReplacementTable2() {
+    std::fill(m_bucketBegins, m_bucketBegins + 256, -1);
+  }
+
+  void addReplacement(byte symbol, uint32 length, byte replacement) {
+    m_buckets.push_back(RepleacableRun(length, symbol, replacement));
+  }
+
+  void addByteToBeEscaped(byte symbol) {
+    m_bucketBegins[symbol] = -2;
+  }
+
+  bool replaceable(byte symbol) const {
+    return m_bucketBegins[symbol] >= 0;
+  }
+  
+  bool toBeEscaped(byte symbol) const {
+    return m_bucketBegins[symbol] == -2;
+  }
+
+  RTIterator listBegin(byte symbol) const {
+    return RTIterator(*this, symbol, m_bucketBegins[symbol]);
+  }
+
+  void prepareForQueries() {
+    std::sort(m_buckets.begin(), m_buckets.end());
+    for(size_t i = 0; i < m_buckets.size(); ++i) {
+      byte symbol = m_buckets[i].symbol();
+      assert(m_bucketBegins[symbol] != -2);
+      if(m_bucketBegins[symbol] == -1) m_bucketBegins[symbol] = i;
+    }
+  }
+  
+ private:
+  /* There exists 256 (one for each byte) buckets (some of them may be empty)
+   * packed in a single vector. Single bucket is ordered in the ascending order
+   * of the length of runs. The starting indices of buckets are stored in
+   * m_bucketBegins. If there isn't bucket for character the value is -1.
+   * If the character is to be escaped the value is -2. */
+  int m_bucketBegins[256];
+  std::vector<RepleacableRun> m_buckets;
+};
+
+uint32 writeRunReplacement(const ReplacementTable& repl, uint32 run_length,
+                           byte escape, byte symbol, byte *to)
 {
-  int tbl_index = repl->listBegin(symbol);
+  int tbl_index = repl.listBegin(symbol);
   uint32 j = 0;
   do {
     if (tbl_index == -1) {
       std::fill(to + j, to + j + run_length, symbol);
       return run_length + j;
     }
-    runlist_elem el = repl->listElement(tbl_index);
-    uint32 times = run_length/el.length;
+    const runlist_elem& el = repl.listElement(tbl_index);
+    uint32 times = run_length/el.length; //el.length == 2^k for some k
     if(el.length == 1) {
       for(uint32 k = 0; k < times; ++k) {
         to[j++] = escape; to[j++] = symbol;
@@ -854,8 +948,8 @@ uint32 writeRunReplacement(ReplacementTable *repl, uint32 run_length,
   return j;
 }
 
-uint64 writeReplacements(ReplacementTable *replacements, byte *to, byte *from,
-                         uint64 length, byte escape)
+uint64 writeReplacements(const ReplacementTable& replacements, byte *to,
+                         byte *from, uint64 length, byte escape)
 {
   uint64 j = 0; /* Index of target */
   byte prev = from[0];
@@ -874,6 +968,62 @@ uint64 writeReplacements(ReplacementTable *replacements, byte *to, byte *from,
                            prev, to + j);
   return j;
 }
+
+size_t writeReplacements(const ReplacementTable2& rt, byte *to, byte *from,
+                         size_t length, byte escape)
+{
+
+  size_t j = 0, i = 1;
+  byte prev = from[0];
+  uint32 runLength = 1;
+  for(; i < length; ++i) {
+    if(!rt.replaceable(prev)) {
+      if(rt.toBeEscaped(prev)) to[j++] = escape;
+      to[j++] = prev;
+      prev = from[i];
+      runLength = 1;
+    } else {
+      ReplacementTable2::iterator it = rt.listBegin(prev);
+      while(i < length) {
+        if(prev == from[i]) {
+          ++runLength;
+          if(runLength == (*it).length())
+            ++it;
+          if(it.atEnd()) {
+            --it;
+            break;
+          }
+          ++i;
+        } else {
+          --i;
+          break;
+        }
+      }
+      while(runLength > 0) {
+        bool corrList = it.onCorrectBucket();
+        while(corrList && runLength < (*it).length()) {
+          --it;
+          corrList = it.onCorrectBucket();
+        }
+        if(corrList) {
+          size_t times = runLength/(*it).length();
+          std::fill(to + j, to + j + times, (*it).replacement());
+          j += times;
+          runLength -= times * (*it).length();
+        } else {
+          std::fill(to + j, to + j + runLength, prev);
+          j += runLength;
+          break;
+        }
+      }
+      if(i < length+1) prev = from[++i];
+      runLength = 1;
+    }
+  }
+  if(i == length) to[j++] = prev;
+  return j;
+}
+
 
 } // namespace longruns
 
@@ -938,7 +1088,7 @@ uint64 compressLongRuns(byte *from, uint64 length)
 
   if(symbols_in_use > 0) {
     //TODO: Store replacement in somewhere so they can be merged with other
-    uint32 limit = run_replacements - (run_replacements % 2);
+    uint32 limit = run_replacements & 0xFFFFFFFE;
 
     for(uint32 i = 0; i < limit; i += 2) {
       temp[position++] = freqs.key(i);
@@ -971,27 +1121,24 @@ uint64 compressLongRuns(byte *from, uint64 length)
     temp[position++] = 0;
   }
   ReplacementTable replacements(escape_byte);
+  //ReplacementTable2 replacements;
   /* Escaped characters*/
   if( new_symbols > 0) {
     for(uint32 i = free_symbols; i <= escape_index; ++i) {
       replacements.pushBack(freqs.key(i), 1, escape_byte);
+      //replacements.addByteToBeEscaped(freqs.key(i));
     }
   }
-  //  for(uint32 i = 0; i < 256; ++i) {
-  //  if(replacements.empty(i))
-  //   replacements.pushBack(i, 1, );
-  //}
   for (uint32 i = 0; i < run_replacements; ++i) {
     assert( i < longest_runs.size() );
     replacements.pushBack(longest_runs[i].symbol, longest_runs[i].length,
                           freqs.key(i));
+    //replacements.addReplacement(longest_runs[i].symbol, longest_runs[i].length,
+    //                            freqs.key(i));
   }
+  //replacements.prepareForQueries();
   uint64 total_size = position;
-  //  for(uint32 i = 0; i < 256; ++i) {
-  //std::sort(replacements[i].rbegin(), replacements[i].rend());
-    //std::reverse(replacements[i].begin(), replacements[i].end());
-  //}
-  total_size += writeReplacements(&replacements, temp + position, from, length,
+  total_size += writeReplacements(replacements, temp + position, from, length,
                                   escape_byte);
   std::copy(temp, temp + total_size, from);
   delete [] temp;

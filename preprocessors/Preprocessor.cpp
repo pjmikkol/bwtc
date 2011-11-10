@@ -767,6 +767,11 @@ uint32 escapeCharIndex(FreqTable *freqs, const std::vector<triple>& runs,
 
 struct runlist_elem {
   runlist_elem(int l, byte s, int n) : length(l), symbol(s), next_elem(n) {}
+
+  bool operator<(const runlist_elem& other) const {
+    return next_elem < other.next_elem || (next_elem == other.next_elem && length < other.length);
+  }
+
   int length;
   byte symbol;
   int next_elem;
@@ -776,8 +781,8 @@ class ReplacementTable {
 
  public:
   ReplacementTable(byte escape_byte) {
-    std::fill(table_, table_ + 256, -1);
     rpls_.push_back(runlist_elem(1, escape_byte, -1));
+    std::fill(table_, table_ + 256, -1);
   }
 
   bool empty(byte key) {
@@ -785,32 +790,25 @@ class ReplacementTable {
   }
 
   void pushBack(byte run_symbol, uint32 length, byte replacement) {
-    int list_index = table_[run_symbol];
-    if(list_index == 0) {
-      table_[run_symbol] = rpls_.size();
-      rpls_.push_back(runlist_elem(length, replacement, 0));
-      return;
-    }
-    runlist_elem *e = 0;
-    while(list_index != -1 && rpls_[list_index].length > (int)length) {
-      e = &rpls_[list_index];
-      list_index = e->next_elem;
-    }
-    int next = -1;
-    if(length > 1) {
-      if(!e)
-        table_[run_symbol] = rpls_.size();
-      else {
-        next = e->next_elem;
-        e->next_elem = rpls_.size();
-      }
-      rpls_.push_back(runlist_elem(length, replacement, next));
-    } else {
-      if(!e)
-        table_[run_symbol] = 0;
-      else {
-        e->next_elem = 0;
-      }
+    rpls_.push_back(runlist_elem(length, replacement, run_symbol));
+  }
+
+  void addEscaping(byte symbol) {
+    table_[symbol] = -2;
+  }
+
+  bool isEscaped(byte symbol) const {
+    return table_[symbol] == -2;
+  }
+
+  void prepare() {
+    std::sort(rpls_.begin(), rpls_.end());
+    for(size_t i = 0; i < rpls_.size(); ++i) {
+      byte symbol = (byte)rpls_[i].next_elem;
+      assert(table_[symbol] != -2);
+      int old = table_[symbol];
+      table_[symbol] = i;
+      rpls_[i].next_elem = old;
     }
   }
 
@@ -847,183 +845,58 @@ class RepleacableRun {
   byte m_replacement;
 };
 
-
-class ReplacementTable2 {
- public:
- 
-  class RTIterator {
-   public:
-    RTIterator(const ReplacementTable2& rt, byte symbol, int index)
-        : m_rt(rt), m_index(index), m_symbol(symbol) {}
-    
-    void operator++() { ++m_index; }
-    void operator--() { --m_index; }
-
-    bool atEnd() const {
-      return m_index >= m_rt.m_buckets.size() || m_rt.m_buckets[m_index].symbol() != m_symbol;
-    }
-
-    bool onCorrectBucket() const {
-      return m_index >= 0 && m_rt.m_buckets[m_index].symbol() == m_symbol;
-    }
-
-    const RepleacableRun& operator*() const {
-      return m_rt.m_buckets[m_index];
-    }
-    
-   private:
-    const ReplacementTable2& m_rt;
-    int m_index;
-    const byte m_symbol;
-  };
-
-  typedef RTIterator iterator;
-  
-  ReplacementTable2() {
-    std::fill(m_bucketBegins, m_bucketBegins + 256, -1);
-  }
-
-  void addReplacement(byte symbol, uint32 length, byte replacement) {
-    m_buckets.push_back(RepleacableRun(length, symbol, replacement));
-  }
-
-  void addByteToBeEscaped(byte symbol) {
-    m_bucketBegins[symbol] = -2;
-  }
-
-  bool replaceable(byte symbol) const {
-    return m_bucketBegins[symbol] >= 0;
-  }
-  
-  bool toBeEscaped(byte symbol) const {
-    return m_bucketBegins[symbol] == -2;
-  }
-
-  RTIterator listBegin(byte symbol) const {
-    return RTIterator(*this, symbol, m_bucketBegins[symbol]);
-  }
-
-  void prepareForQueries() {
-    std::sort(m_buckets.begin(), m_buckets.end());
-    for(size_t i = 0; i < m_buckets.size(); ++i) {
-      byte symbol = m_buckets[i].symbol();
-      assert(m_bucketBegins[symbol] != -2);
-      if(m_bucketBegins[symbol] == -1) m_bucketBegins[symbol] = i;
-    }
-  }
-  
- private:
-  /* There exists 256 (one for each byte) buckets (some of them may be empty)
-   * packed in a single vector. Single bucket is ordered in the ascending order
-   * of the length of runs. The starting indices of buckets are stored in
-   * m_bucketBegins. If there isn't bucket for character the value is -1.
-   * If the character is to be escaped the value is -2. */
-  int m_bucketBegins[256];
-  std::vector<RepleacableRun> m_buckets;
-};
-
-uint32 writeRunReplacement(const ReplacementTable& repl, uint32 run_length,
+size_t writeRunReplacement(const ReplacementTable& repl, uint32 run_length,
                            byte escape, byte symbol, byte *to)
 {
+  size_t j = 0;
+  if(repl.isEscaped(symbol)) {
+    for(size_t i = 0; i < run_length; ++i) {
+      to[j++] = escape; to[j++] = symbol;
+    }
+    return j;
+  }
   int tbl_index = repl.listBegin(symbol);
-  uint32 j = 0;
   do {
     if (tbl_index == -1) {
       std::fill(to + j, to + j + run_length, symbol);
       return run_length + j;
     }
     const runlist_elem& el = repl.listElement(tbl_index);
-    uint32 times = run_length/el.length; //el.length == 2^k for some k
-    if(el.length == 1) {
-      for(uint32 k = 0; k < times; ++k) {
-        to[j++] = escape; to[j++] = symbol;
-      }
-    } else if (times > 0) {
+    uint32 times = (el.length == 0)?0:run_length/el.length;
+    if (times > 0) {
       std::fill(to + j, to + j + times, el.symbol);
       j += times;
+      run_length -= times*el.length;
     }
-    run_length -= times*el.length;
     tbl_index = el.next_elem;
   } while(run_length > 0);
   return j;
 }
 
 uint64 writeReplacements(const ReplacementTable& replacements, byte *to,
-                         byte *from, uint64 length, byte escape)
+                         byte *from, size_t length, byte escape)
 {
-  uint64 j = 0; /* Index of target */
+  size_t j = 0; /* Index of target */
   byte prev = from[0];
-  uint32 run_length = 1;
-  for(uint64 i = 1; i < length; ++i) {
-    if(prev == from[i] && run_length < kMaxLenOfSeq)
-      ++run_length;
-    else {
+  for(size_t i = 1; i < length; ++i) {
+    if(prev != from[i]) {
+      if(replacements.isEscaped(prev)) to[j++] = escape;
+      to[j++] = prev;
+    } else {
+      uint32 run_length = 2;
+      ++i;
+      while(i < length && prev == from[i]) { ++i; ++run_length;}
       j += writeRunReplacement(replacements, run_length, escape,
                                prev, to + j);
-      prev = from[i];
-      run_length = 1;
     }
+    prev = from[i];
   }
-  j += writeRunReplacement(replacements, run_length, escape,
-                           prev, to + j);
+  if(prev != from[length - 2]) {
+    if(replacements.isEscaped(prev)) to[j++] = escape;
+    to[j++] = prev;
+  }
   return j;
 }
-
-size_t writeReplacements(const ReplacementTable2& rt, byte *to, byte *from,
-                         size_t length, byte escape)
-{
-
-  size_t j = 0, i = 1;
-  byte prev = from[0];
-  uint32 runLength = 1;
-  for(; i < length; ++i) {
-    if(!rt.replaceable(prev)) {
-      if(rt.toBeEscaped(prev)) to[j++] = escape;
-      to[j++] = prev;
-      prev = from[i];
-      runLength = 1;
-    } else {
-      ReplacementTable2::iterator it = rt.listBegin(prev);
-      while(i < length) {
-        if(prev == from[i]) {
-          ++runLength;
-          if(runLength == (*it).length())
-            ++it;
-          if(it.atEnd()) {
-            --it;
-            break;
-          }
-          ++i;
-        } else {
-          --i;
-          break;
-        }
-      }
-      while(runLength > 0) {
-        bool corrList = it.onCorrectBucket();
-        while(corrList && runLength < (*it).length()) {
-          --it;
-          corrList = it.onCorrectBucket();
-        }
-        if(corrList) {
-          size_t times = runLength/(*it).length();
-          std::fill(to + j, to + j + times, (*it).replacement());
-          j += times;
-          runLength -= times * (*it).length();
-        } else {
-          std::fill(to + j, to + j + runLength, prev);
-          j += runLength;
-          break;
-        }
-      }
-      if(i < length+1) prev = from[++i];
-      runLength = 1;
-    }
-  }
-  if(i == length) to[j++] = prev;
-  return j;
-}
-
 
 } // namespace longruns
 
@@ -1121,22 +994,19 @@ uint64 compressLongRuns(byte *from, uint64 length)
     temp[position++] = 0;
   }
   ReplacementTable replacements(escape_byte);
-  //ReplacementTable2 replacements;
   /* Escaped characters*/
   if( new_symbols > 0) {
     for(uint32 i = free_symbols; i <= escape_index; ++i) {
-      replacements.pushBack(freqs.key(i), 1, escape_byte);
-      //replacements.addByteToBeEscaped(freqs.key(i));
+      replacements.addEscaping(freqs.key(i));
+      //replacements.pushBack(freqs.key(i), 1, escape_byte);
     }
   }
   for (uint32 i = 0; i < run_replacements; ++i) {
     assert( i < longest_runs.size() );
     replacements.pushBack(longest_runs[i].symbol, longest_runs[i].length,
                           freqs.key(i));
-    //replacements.addReplacement(longest_runs[i].symbol, longest_runs[i].length,
-    //                            freqs.key(i));
   }
-  //replacements.prepareForQueries();
+  replacements.prepare();
   uint64 total_size = position;
   total_size += writeReplacements(replacements, temp + position, from, length,
                                   escape_byte);

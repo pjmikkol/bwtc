@@ -178,7 +178,7 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   } while(--str_index >= 0);
 
   std::vector<byte>& uncompressed = *pp.m_currentBlock->m_block;
-  assert(uncompr_size == original.size());
+  std::cout << uncompr_size << " " <<  original.size() << std::endl;
   for(uint64 j = 0; j < original.size(); ++j) {
     assert(uncompressed[j] == original[j]);
   }
@@ -209,8 +209,8 @@ int main(int argc, char **argv) {
   uint64 block_size = 259715200;
   unsigned mem_constr = 2;
   if (argc < 4) {
-    std::cout << "Usage: ./" << argv[0] << "[lpr]+ <n> input_file "
-              << "[mem_constr] [buffer]\n";
+    std::cout << "Usage: " << argv[0] << " [lpr]+ <n> input_file "
+              << "[mem_constr] [buffer]" << std::endl;
     return 0;
   }
   if (argc > 4) mem_constr = atoi(argv[4]);

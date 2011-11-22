@@ -61,23 +61,6 @@ class Preprocessor {
   Preprocessor(const Preprocessor&);
 };
 
-/* Data structure for holding the frequencies of bytes. */
-class FreqTable {
- public:
-  FreqTable();
-  FreqTable(uint64* frequencies); /* Constructs FreqTable from given freqs */
-  const uint64& operator[](uint32 i) const; /* Returns the i:th lowest freq*/
-  byte key(uint32 i) const ; /* Returns the key which has i:th lowest freq*/
-  bool decrease(uint32 key, uint64 decrement);
-  void increase(uint32 key, uint64 increment);
-
- private:
-  void initLocations();
-  bool test();
-  std::pair<byte, uint64> m_frequencies[256];
-  byte m_location[256];
-};
-
 /* This function returns chosen preprocessor */ 
 Preprocessor* givePreprocessor(
     char choice, uint64 block_size, const std::string& input);

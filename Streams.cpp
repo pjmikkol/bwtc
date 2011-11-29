@@ -93,15 +93,16 @@ uint64 InStream::read48bits() {
   return result;
 }
 
-InStream::InStream(std::string file_name) :
-    m_name(file_name), m_from(NULL), m_infile(NULL), m_buffer(0),
+InStream::InStream(const std::string& file_name) :
+    m_name(file_name), m_from(0), m_infile(0), m_buffer(0),
     m_bitsInBuffer(0)
 {
   if (m_name != "") {
     m_infile = new std::ifstream(m_name.c_str());
     m_from = dynamic_cast<std::istream*>(m_infile);
-  } else
+  } else {
     m_from = &std::cin;
+  }
   assert(m_from);
 }
 

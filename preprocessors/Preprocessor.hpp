@@ -43,9 +43,9 @@ class Preprocessor {
  public:
   Preprocessor(uint64 block_size);
   virtual ~Preprocessor();
-  virtual void connect(std::string source_name);
+  virtual void connect(const std::string& source_name);
   virtual void addBlockManager(BlockManager* bm);
-  /* Reads and preprocesses data to byte array provided by block_manager_*/
+  /* Reads and preprocesses data to byte array provided by m_blockManager */
   virtual MainBlock* readBlock();
 
  protected:

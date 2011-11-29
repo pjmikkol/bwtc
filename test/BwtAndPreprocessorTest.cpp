@@ -65,6 +65,7 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   /* Preprocessing */
   int str_index = 0;
   clock_t prepr_start = clock();
+
   do {
     switch (preprocs[str_index]) {
       /*
@@ -147,7 +148,6 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
         break;
       default: /* Replace common pairs */
         compressed_size -= pp.compressPairs();
-        
         break;
     }
   } while(preprocs[++str_index]);

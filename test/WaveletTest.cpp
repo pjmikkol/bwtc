@@ -436,5 +436,5 @@ BOOST_AUTO_TEST_SUITE_END()
 
 
 } //namespace tests
-} //namespace long_sequences
+} //namespace bwtc
 

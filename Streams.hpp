@@ -84,7 +84,7 @@ class OutStream {
 
 class InStream {
  public:
-  explicit InStream(std::string file_name);
+  explicit InStream(const std::string& file_name);
   ~InStream();
   /* Copies block from stream to given char array.
    * Returns the number of read chars. */

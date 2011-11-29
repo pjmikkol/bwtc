@@ -54,6 +54,7 @@ uint64 uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   byte escape_symbol = 0;
   if (data[0] == data[1] && data[1] == data[2]) j = 3;
   else {
+    std::cout << "replacements:" << std::endl;
     unsigned i = 0;
     do {
       replacements[data[i]] = (data[i+1] << 8) | data[i+2];
@@ -70,20 +71,25 @@ uint64 uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
     if(escaping) std::clog << " Escaping in use.";
     std::clog << "\n";
   }
+  int e=0, c = 0, p = 0;
   for( ; j < length; ++j) {
     byte current = data[j];
     if (escaping && escape_symbol == current) {
       result.push_back(data[++j]);
+      ++e;
     }
     else if (replacements[current] == no_repl) {
       result.push_back(current);
+      ++c;
     }
     else {
+      ++p;
       uint16 pair = replacements[current]&0xFFFF;
       result.push_back(pair >> 8);
       result.push_back(pair & 0xFF);
     }
   }
+  std::cout << "Escapes: " << e << std::endl << "Commons: " << c << std::endl << "Pairs: " << p << std::endl;
   data.resize(result.size());
   std::copy(result.begin(), result.end(), data.begin());
   return result.size();

@@ -48,6 +48,10 @@ FrequencyTable::FrequencyTable() {
 }
 
 FrequencyTable::FrequencyTable(size_t* frequencies) {
+  initialize(frequencies);
+}
+
+void FrequencyTable::initialize(size_t* frequencies) {
   /* Assumes that frequencies has length of 256 */
   for(int i = 0; i < 256; ++i) {
     m_frequencies[i] = std::make_pair(static_cast<byte>(i), frequencies[i]);
@@ -56,6 +60,7 @@ FrequencyTable::FrequencyTable(size_t* frequencies) {
             comparePairSecondAsc<std::pair<byte, size_t> >);
   initLocations();
 }
+
 
 size_t FrequencyTable::getFrequency(int i) const {
   assert(i >= 0 && i <= 255);

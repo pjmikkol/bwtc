@@ -74,7 +74,7 @@ void Preprocessor::buildStats(std::vector<byte>* data,
     (*stats)[(*data)[i]]++; 
 }
 
-void Preprocessor::connect(std::string source_name) {
+void Preprocessor::connect(const std::string& source_name) {
   m_source = new InStream(source_name);
 }
 

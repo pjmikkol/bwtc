@@ -42,6 +42,9 @@ class FrequencyTable {
   /** Constructs FrequencyTable from given freqs */
   FrequencyTable(size_t* frequencies); 
 
+  /**Does basically the same as the above ctor. */
+  void initialize(size_t* frequencies);
+
   /** Returns the i:th lowest freq*/
   size_t getFrequency(int i) const; 
 

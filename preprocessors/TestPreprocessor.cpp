@@ -34,6 +34,7 @@
 #include "../Streams.hpp"
 #include "Preprocessor.hpp"
 #include "TestPreprocessor.hpp"
+#include "PairReplacer.hpp"
 
 namespace bwtc {
 
@@ -45,11 +46,27 @@ TestPreprocessor::~TestPreprocessor() {
 }
 
 uint64 TestPreprocessor::compressPairs() {
+  PairReplacer pr(true);
+
+  size_t origSize = m_currentBlock->m_filled;
+  byte *src = &(*m_currentBlock->m_block)[0];
+  pr.analyseData(src, origSize);
+  pr.decideReplacements();
+
+  byte *tmp = new byte[origSize + 3];
+  size_t hSize = pr.writeHeader(tmp);
+  size_t compr = pr.writeReplacedVersion(src, origSize, tmp+hSize);
+  size_t compressedSize = compr + hSize;
+  std::copy(tmp, tmp + compressedSize, src);
+  m_currentBlock->m_filled = compressedSize;
+  delete [] tmp;
+  return origSize - compressedSize;
+  /*
   uint64 filled = compressCommonPairs(&(*m_currentBlock->m_block)[0],
                                       m_currentBlock->m_filled);
   uint64 result = m_currentBlock->m_filled - filled;
   m_currentBlock->m_filled = filled;
-  return result;
+  return result;*/
 }
 
 uint64 TestPreprocessor::compressRuns() {

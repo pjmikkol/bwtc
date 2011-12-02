@@ -47,6 +47,8 @@ class PairReplacer {
   
   void beginAnalysing(byte first, bool reset);
 
+  void finishAnalysation();
+
   size_t decideReplacements();
   
   void makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
@@ -97,7 +99,7 @@ class PairReplacer {
    * analyseData(byte next) asserts that analysation has been started.*/
   bool m_analysationStarted;
 
-  /**Tells if we print the results of analysis and replacements. */
+  /**Tells if the results of analysis and replacements are printed. */
   bool m_verbose;
 };
 

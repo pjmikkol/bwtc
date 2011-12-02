@@ -27,12 +27,13 @@
 #ifndef BWTC_UTILS_HPP_
 #define BWTC_UTILS_HPP_
 
+#include "globaldefs.hpp"
+
+#include <cassert>
 #include <iostream>
 #include <stack>
 #include <utility>
 #include <vector>
-
-#include "globaldefs.hpp"
 
 using bwtc::uint64;
 using bwtc::byte;

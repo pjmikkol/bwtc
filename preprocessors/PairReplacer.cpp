@@ -60,9 +60,10 @@ PairReplacer::~PairReplacer() {}
 
 void PairReplacer::analyseData(const byte *data, size_t length, bool reset) {
   assert(length > 0);
-  if(!m_analysationStarted) beginAnalysing(*data, reset);
+  size_t i = 0;
+  if(!m_analysationStarted) beginAnalysing(data[i++], reset);
 
-  for(size_t i = 1; i < length; ++i) {
+  for(; i < length; ++i) {
     m_prev = (m_prev << 8) | data[i];
 
     ++m_pairFrequencies[m_prev];
@@ -70,6 +71,7 @@ void PairReplacer::analyseData(const byte *data, size_t length, bool reset) {
   }
 }
 
+void PairReplacer::finishAnalysation() {}
 
 void PairReplacer::analyseData(byte next) {
   assert(m_analysationStarted);

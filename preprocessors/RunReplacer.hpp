@@ -50,7 +50,7 @@ struct Runs {
   Runs& operator=(const Runs& r);
   
   size_t frequency;
-  uint16 length;
+  uint32 length;
   byte symbol;
 
   /**Does length have range big enough for storing the maximal runs? */
@@ -62,8 +62,8 @@ bool operator<(const Runs& r1, const Runs& r2);
 struct RunReplacement {
   RunReplacement(int next, size_t len, byte symbol);
 
+  uint32 length;
   int16 nextElement;
-  uint16 length;
   byte replacementSymbol;
   /**Does length have range big enough for storing the maximal runs? */
   BOOST_STATIC_ASSERT(RunReplacerConsts::s_maxLengthOfSequence <= (1 << 16) - 1);
@@ -73,8 +73,6 @@ struct RunReplacement {
  * nextElement stores actually the symbol of run represented by this
  * RunReplacement. */
 bool operator<(const RunReplacement& r1, const RunReplacement& r2);
-
-class ReplacementsConstIterator;
 
 /**ReplacementTable stores the replacements for runs of same character.
  * It also stores the information about the characters to be escaped.
@@ -93,11 +91,7 @@ class ReplacementsConstIterator;
  *   same as above but m_escaped[c] == true.
  */
 class RunReplacementTable {
-  friend class ReplacementsConstIterator;
-
  public:
-  typedef ReplacementsConstIterator const_iterator; 
-
   RunReplacementTable();
 
   /**Should be called when the replacements are stored in table.*/
@@ -117,10 +111,6 @@ class RunReplacementTable {
   
   size_t size() const;
 
-  const_iterator begin() const;
-
-  const_iterator end() const;
-
   bool escapingInUse() const;
 
   void printReplacements() const;
@@ -133,40 +123,6 @@ class RunReplacementTable {
   bool m_escaped[256];
 
 };
-
-class ReplacementsConstIterator {
- public:
-  ReplacementsConstIterator(const RunReplacementTable& tbl);
-
-  ReplacementsConstIterator(const RunReplacementTable& tbl, int p, int sym);
-  
-  ReplacementsConstIterator(const ReplacementsConstIterator& it);
-
-  bool operator==(const ReplacementsConstIterator& it) const;
-
-  bool operator!=(const ReplacementsConstIterator& it) const;
-
-  std::pair<byte, const RunReplacement&> replacement() const;
-  
-  ReplacementsConstIterator& operator++();
-
- private:
-  ReplacementsConstIterator& operator=(const ReplacementsConstIterator& it);
-
-  const RunReplacementTable& m_table;
-  int16 m_pointer;
-  int16 m_currentSymbol;
-
-  template <typename Ostream>
-  friend Ostream& operator<<(Ostream& out, const ReplacementsConstIterator it);
-
-};
-
-template <typename Ostream>
-Ostream& operator<<(Ostream& out, const ReplacementsConstIterator it) {
-  out << "pointer = " << it.m_pointer << " symbol = " << it.m_currentSymbol;
-  return out;
-}
 
 
 class RunReplacer {

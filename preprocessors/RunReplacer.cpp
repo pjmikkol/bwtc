@@ -49,7 +49,7 @@ bool operator<(const Runs& r1, const Runs& r2) {
 }
 
 RunReplacement::RunReplacement(int next, size_t len, byte symbol)
-    : nextElement(next), length(len), replacementSymbol(symbol) {}
+    : length(len), nextElement(next), replacementSymbol(symbol) {}
 
 bool operator<(const RunReplacement& r1, const RunReplacement& r2) {
   return r1.nextElement < r2.nextElement ||
@@ -83,12 +83,7 @@ Runs SequenceHeap::removeMax() {
   for(std::map<uint16, uint16>::iterator it = m_runLocations[max.symbol].begin();
       it != m_runLocations[max.symbol].end(); ++it)
   {
-    if(it->first >= max.length) {
-      remove(it->second);
-    } else {
-      Runs target = m_runs[it->second];
-      decreaseFrequency(it->second, (max.length/target.length)*max.frequency);
-    }
+    if(it->first >= max.length) remove(it->second);
   }
   return max;
 }
@@ -176,14 +171,6 @@ void RunReplacementTable::prepare() {
   }
 }
 
-RunReplacementTable::const_iterator RunReplacementTable::begin() const {
-  return RunReplacementTable::const_iterator(*this);
-}
-
-RunReplacementTable::const_iterator RunReplacementTable::end() const {
-  return RunReplacementTable::const_iterator(*this, -1, 256);
-}
-
 void RunReplacementTable::addReplacement(byte runSymbol, size_t length,
                                          byte replacementSymbol)
 {
@@ -238,50 +225,6 @@ replacements(std::vector<std::pair<byte, RunReplacement> >& runReplacements) con
 }
 
 // End of RunReplacementTable's implementation
-
-// Begin of ReplacementsConstIterator's implementation
-
-ReplacementsConstIterator::
-ReplacementsConstIterator(const RunReplacementTable& tbl)
-    : m_table(tbl), m_pointer(-1), m_currentSymbol(0) {
-  ++(*this);
-}
-
-ReplacementsConstIterator::
-ReplacementsConstIterator(const RunReplacementTable& tbl, int p, int s)
-    : m_table(tbl), m_pointer(p), m_currentSymbol(s) {}
-
-ReplacementsConstIterator::
-ReplacementsConstIterator(const ReplacementsConstIterator& it)
-    : m_table(it.m_table), m_pointer(it.m_pointer),
-      m_currentSymbol(it.m_currentSymbol) {}
-
-bool ReplacementsConstIterator::
-operator==(const ReplacementsConstIterator& it) const {
-  return m_pointer == it.m_pointer && m_currentSymbol == it.m_currentSymbol;
-}
-
-bool ReplacementsConstIterator::
-operator!=(const ReplacementsConstIterator& it) const {
-  return !(*this == it);
-}
-
-std::pair<byte, const RunReplacement&>
-ReplacementsConstIterator::replacement() const {
-  return std::make_pair(((byte)m_currentSymbol)-1, m_table.m_replacements[m_pointer]);
-}
-
-ReplacementsConstIterator& ReplacementsConstIterator::operator++() {
-  if(m_pointer != -1)
-    m_pointer = m_table.m_replacements[m_pointer].nextElement;
-  while(m_pointer == -1 && m_currentSymbol < 256) {
-    m_pointer = m_table.m_listBegins[m_currentSymbol++];
-  }
-  return *this;
-}
-
-
-// End of ReplacementsConstIterator's implementation
 
 RunReplacer::RunReplacer()
     : m_numOfReplacements(0), m_prevRun(std::make_pair(0, 0)),
@@ -403,7 +346,6 @@ size_t RunReplacer::writeHeader(byte *to) const {
   assert(replacements.size() == m_numOfReplacements);
   
   size_t pos = 0;
-  RunReplacementTable::const_iterator it = m_replacements.begin();
   size_t pairs = m_numOfReplacements & 0xfffffffe;
   byte prev = m_escapeByte;
   for(size_t i = 0; i < pairs; i += 2) {
@@ -528,7 +470,7 @@ void RunReplacer::analyseData(const byte* data, size_t length, bool reset) {
 void RunReplacer::analyseData(byte next) {
   assert(m_analysationStarted);
   if (next == m_prevRun.second &&
-      m_prevRun.first < RunReplacerConsts::s_maxLengthOfSequence)
+      m_prevRun.first < (int)RunReplacerConsts::s_maxLengthOfSequence)
   {
     ++m_prevRun.first;
   } else {

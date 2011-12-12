@@ -35,6 +35,7 @@
 #include "Preprocessor.hpp"
 #include "TestPreprocessor.hpp"
 #include "PairReplacer.hpp"
+#include "RunReplacer.hpp"
 
 namespace bwtc {
 
@@ -51,6 +52,7 @@ uint64 TestPreprocessor::compressPairs() {
   size_t origSize = m_currentBlock->m_filled;
   byte *src = &(*m_currentBlock->m_block)[0];
   pr.analyseData(src, origSize);
+  pr.finishAnalysation();
   pr.decideReplacements();
 
   byte *tmp = new byte[origSize + 3];
@@ -70,11 +72,28 @@ uint64 TestPreprocessor::compressPairs() {
 }
 
 uint64 TestPreprocessor::compressRuns() {
+  RunReplacer rr(true);
+
+  size_t origSize = m_currentBlock->m_filled;
+  byte *src = &(*m_currentBlock->m_block)[0];
+  rr.analyseData(src, origSize);
+  rr.finishAnalysation();
+  rr.decideReplacements();
+
+  byte *tmp = new byte[origSize + 3];
+  size_t hSize = rr.writeHeader(tmp);
+  size_t compr = rr.writeReplacedVersion(src, origSize, tmp+hSize);
+  size_t compressedSize = compr + hSize;
+  std::copy(tmp, tmp + compressedSize, src);
+  m_currentBlock->m_filled = compressedSize;
+  delete [] tmp;
+  return origSize - compressedSize;
+  /*
   uint64 filled = compressLongRuns(&(*m_currentBlock->m_block)[0],
                                    m_currentBlock->m_filled);
   uint64 result = m_currentBlock->m_filled - filled;
   m_currentBlock->m_filled = filled;
-  return result;
+  return result;*/
 }
 
 void TestPreprocessor::initializeTarget() {

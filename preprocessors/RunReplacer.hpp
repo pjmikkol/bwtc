@@ -45,18 +45,9 @@ static const size_t s_logMaxLengthOfSequence = 15;
 }
 
 struct Runs {
-  Runs(size_t freq, uint16 len, byte sym)
-      : frequency(freq), length(len), symbol(sym) {}
-
-  Runs(const Runs& r)
-      : frequency(r.frequency), length(r.length), symbol(r.symbol) {}
-
-  Runs& operator=(const Runs& r) {
-    frequency = r.frequency;
-    length = r.length;
-    symbol = r.symbol;
-    return *this;
-  }
+  Runs(size_t freq, uint16 len, byte sym);
+  Runs(const Runs& r);
+  Runs& operator=(const Runs& r);
   
   size_t frequency;
   uint16 length;
@@ -66,21 +57,10 @@ struct Runs {
   BOOST_STATIC_ASSERT(RunReplacerConsts::s_maxLengthOfSequence <= (1 << 16) - 1);
 };
 
-bool operator<(const Runs& r1, const Runs& r2) {
-  return (r1.length - 1)*r1.frequency < (r2.length - 1)*r2.frequency;
-}
+bool operator<(const Runs& r1, const Runs& r2);
 
 struct RunReplacement {
-  RunReplacement(int next, size_t len, byte symbol)
-      : nextElement(next), length(len), replacementSymbol(symbol) {}
-
-  /**This is used when constructing the RunReplacementTable. In that phase
-   * nextElement stores actually the symbol of run represented by this
-   * RunReplacement. */
-  bool operator<(const RunReplacement& rr) const {
-    return nextElement < rr.nextElement ||
-        (nextElement == rr.nextElement && length < rr.length);
-  }
+  RunReplacement(int next, size_t len, byte symbol);
 
   int16 nextElement;
   uint16 length;
@@ -88,6 +68,13 @@ struct RunReplacement {
   /**Does length have range big enough for storing the maximal runs? */
   BOOST_STATIC_ASSERT(RunReplacerConsts::s_maxLengthOfSequence <= (1 << 16) - 1);
 };
+
+/**This is used when constructing the RunReplacementTable. In that phase
+ * nextElement stores actually the symbol of run represented by this
+ * RunReplacement. */
+bool operator<(const RunReplacement& r1, const RunReplacement& r2);
+
+class ReplacementsConstIterator;
 
 /**ReplacementTable stores the replacements for runs of same character.
  * It also stores the information about the characters to be escaped.
@@ -100,13 +87,17 @@ struct RunReplacement {
  *   m_listBegins[c] is the index of the replacement of longest run of c
  *   in array m_replacements. The second longest run is stored in index
  *   pointed by m_replacements[m_listBegins[c]].nextElement. Rest of the
- *   replacements are stored in same way. The value odflast replacement's
+ *   replacements are stored in same way. The value of last replacement's
  *   nextElement field is -1. In addition m_escaped[c] == false
  * * If runs of c are replaced and it is escaped, then
  *   same as above but m_escaped[c] == true.
  */
 class RunReplacementTable {
+  friend class ReplacementsConstIterator;
+
  public:
+  typedef ReplacementsConstIterator const_iterator; 
+
   RunReplacementTable();
 
   /**Should be called when the replacements are stored in table.*/
@@ -124,11 +115,59 @@ class RunReplacementTable {
 
   const RunReplacement& replacement(int pointer) const;
   
+  size_t size() const;
+
+  const_iterator begin() const;
+
+  const_iterator end() const;
+
+  bool escapingInUse() const;
+
+  void printReplacements() const;
+
+  void replacements(std::vector<std::pair<byte, RunReplacement> >& runReplacements) const;
+  
  private:
   std::vector<RunReplacement> m_replacements;
   int16 m_listBegins[256];
   bool m_escaped[256];
+
 };
+
+class ReplacementsConstIterator {
+ public:
+  ReplacementsConstIterator(const RunReplacementTable& tbl);
+
+  ReplacementsConstIterator(const RunReplacementTable& tbl, int p, int sym);
+  
+  ReplacementsConstIterator(const ReplacementsConstIterator& it);
+
+  bool operator==(const ReplacementsConstIterator& it) const;
+
+  bool operator!=(const ReplacementsConstIterator& it) const;
+
+  std::pair<byte, const RunReplacement&> replacement() const;
+  
+  ReplacementsConstIterator& operator++();
+
+ private:
+  ReplacementsConstIterator& operator=(const ReplacementsConstIterator& it);
+
+  const RunReplacementTable& m_table;
+  int16 m_pointer;
+  int16 m_currentSymbol;
+
+  template <typename Ostream>
+  friend Ostream& operator<<(Ostream& out, const ReplacementsConstIterator it);
+
+};
+
+template <typename Ostream>
+Ostream& operator<<(Ostream& out, const ReplacementsConstIterator it) {
+  out << "pointer = " << it.m_pointer << " symbol = " << it.m_currentSymbol;
+  return out;
+}
+
 
 class RunReplacer {
  public:
@@ -161,6 +200,7 @@ class RunReplacer {
  private:
   void resetAnalyseData();
   void updateRunFrequency(std::pair<uint16, byte> run);
+  size_t writeRunReplacement(byte runSymbol, int runLength, byte *dst) const;
 
   RunReplacer& operator=(const RunReplacer&);
 
@@ -179,7 +219,7 @@ class RunReplacer {
   uint16 m_numOfReplacements;
 
   /**Used in analysation phase. */
-  std::pair<uint16, byte> m_prevRun;
+  std::pair<int, byte> m_prevRun;
 
   /**Used as an escaping character. */
   byte m_escapeByte;

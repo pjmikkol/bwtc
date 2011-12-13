@@ -135,7 +135,7 @@ class RunReplacer {
 
   void analyseData(const byte *data, size_t length, bool reset=true);
 
-  void analyseData(byte next);
+  inline void analyseData(byte next);
   
   void beginAnalysing(byte first, bool reset);
 
@@ -155,7 +155,7 @@ class RunReplacer {
   
  private:
   void resetAnalyseData();
-  void updateRunFrequency(std::pair<uint16, byte> run);
+  inline void updateRunFrequency(std::pair<int, byte> run);
   size_t writeRunReplacement(byte runSymbol, int runLength, byte *dst) const;
 
   RunReplacer& operator=(const RunReplacer&);

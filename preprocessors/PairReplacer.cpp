@@ -190,11 +190,11 @@ void PairReplacer::constructReplacementTable(
 }
 
 size_t PairReplacer::writeHeader(byte *to) const {
-  size_t pos = 0;
   if(m_numOfReplacements == 0)  {
-    for(size_t i = 0; i < 3; ++i) to[pos++] = 0;
-    return pos;
+    to[0] = to[1] = to[2] = 0;
+    return 3;
   }
+  size_t pos = 0;
   byte prevValue = m_escapeByte;
   for(size_t i = 0; i < (1 << 16); ++i) {
     byte val = m_replacements[i];
@@ -215,22 +215,18 @@ size_t PairReplacer::writeReplacedVersion(const byte *src, size_t length, byte *
   size_t j = 0; /* Is used for indexing the target. */
   uint16 pair = src[0];
   size_t i = 1;
-  int p = 0, c=0, e=0;
   while(true) {
     pair = (pair << 8) | src[i];
     byte replValue = m_replacements[pair];
     if(replValue == m_commonByte) {
       dst[j++] = src[i-1];
-      ++c;
     } else if(replValue != m_escapeByte) {
       dst[j++] = replValue;
-      ++p;
       if(i == length - 1) break;
       pair = src[++i];
     } else {
       dst[j++] = m_escapeByte;
       dst[j++] = src[i-1];
-      ++e;
     }
     if(i == length - 1) {
       pair = (src[i] << 8) | 0;
@@ -279,6 +275,7 @@ size_t PairReplacer::decideReplacements() {
     constructReplacementTable(replaceablePairs, freqTable, freeSymbols);
   } else {
     m_commonByte = m_escapeByte = freqTable.getKey(255);
+    std::fill(m_replacements, m_replacements + (1 << 16), m_commonByte);
   }
 
   return m_numOfReplacements;

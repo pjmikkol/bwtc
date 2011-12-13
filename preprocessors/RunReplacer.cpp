@@ -274,8 +274,8 @@ void RunReplacer::beginAnalysing(byte first, bool reset) {
   ++m_frequencies[first];
 }
 
-void RunReplacer::updateRunFrequency(std::pair<uint16, byte> run) {
-  assert(run.first <= RunReplacerConsts::s_maxLengthOfSequence);
+inline void RunReplacer::updateRunFrequency(std::pair<int, byte> run) {
+  assert(run.first <= (int)RunReplacerConsts::s_maxLengthOfSequence);
   assert(run.first > 1);
   run.first &= 0xfffffffe;
   while(run.first) {
@@ -356,6 +356,7 @@ size_t RunReplacer::writeHeader(byte *to) const {
     to[pos++] = replacements[i].first;
     to[pos++] = replacements[i+1].second.replacementSymbol;
     to[pos++] = replacements[i+1].first;
+    prev = replacements[i+1].second.replacementSymbol;
   }
 
   if(m_numOfReplacements != pairs) {
@@ -379,7 +380,8 @@ writeRunReplacement(byte runSymbol, int runLength, byte *dst) const {
     const RunReplacement& rr = m_replacements.replacement(pointer);
     if((int)rr.length <= runLength) {
       // TODO: optimize (rr.length == 2^k, for some k)
-      size_t times = runLength/rr.length;
+      //size_t times = runLength/rr.length;
+      size_t times = runLength >> utils::logFloor(rr.length);
       std::fill(dst +j, dst + j + times, rr.replacementSymbol);
       runLength -= times*rr.length;
       j += times;
@@ -433,18 +435,11 @@ size_t RunReplacer::decideReplacements() {
 
   size_t escapeIndex = (replaceableRuns.size() <= freeSymbols)?freeSymbols:
       findEscapeIndex(freqTable, freeSymbols, replaceableRuns);
+  m_escapeByte = freqTable.getKey(escapeIndex);
 
   m_numOfReplacements = (escapeIndex > freeSymbols)?
       escapeIndex:std::min(freeSymbols, replaceableRuns.size());
 
-  if(m_verbose) {
-    std::clog << "Replacing " << m_numOfReplacements << " runs. ";
-    if(m_numOfReplacements > freeSymbols)
-      std::clog << "Made " << (escapeIndex - freeSymbols + 1)
-                << " symbols free." << std::endl;
-    else
-      std::clog << "No symbols made free." << std::endl;
-  }
   if(escapeIndex > freeSymbols) {
     for(size_t i = freeSymbols; i <= escapeIndex; ++i)
       m_replacements.addEscaping(freqTable.getKey(i));
@@ -454,6 +449,19 @@ size_t RunReplacer::decideReplacements() {
     m_replacements.addReplacement(r.symbol, r.length, freqTable.getKey(i));
   }
   m_replacements.prepare();
+
+  if(m_verbose) {
+    std::clog << "Replacing " << m_numOfReplacements << " runs. ";
+    if(m_numOfReplacements > freeSymbols) {
+      std::clog << "Made " << (escapeIndex - freeSymbols + 1)
+                << " symbols free." << std::endl;
+      assert(m_replacements.escapingInUse());
+    } else {
+      std::clog << "No symbols made free." << std::endl;
+      assert(!m_replacements.escapingInUse());
+    }
+  }
+
   return m_replacements.size();
 }
 
@@ -467,7 +475,7 @@ void RunReplacer::analyseData(const byte* data, size_t length, bool reset) {
   }
 }
 
-void RunReplacer::analyseData(byte next) {
+inline void RunReplacer::analyseData(byte next) {
   assert(m_analysationStarted);
   if (next == m_prevRun.second &&
       m_prevRun.first < (int)RunReplacerConsts::s_maxLengthOfSequence)

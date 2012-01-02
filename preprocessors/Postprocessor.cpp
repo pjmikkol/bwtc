@@ -37,13 +37,30 @@
 #include "../Utils.hpp"
 
 namespace bwtc {
+namespace postprocessor {
 
-uint64 uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
+Replacement::Replacement()
+    : length(0), replacement(0), isPair(false) {}
+
+Replacement::Replacement(uint32 len, uint16 repl, bool pair)
+    : length(len), replacement(repl), isPair(pair) {}
+
+Replacement::Replacement(const Replacement& r)
+    : length(r.length), replacement(r.replacement), isPair(r.isPair) {}
+
+Replacement& Replacement::operator=(const Replacement& r) {
+  length = r.length;
+  replacement = r.replacement;
+  isPair = r.isPair;
+  return *this;
+}
+
+size_t uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   static const unsigned no_repl = 70000;
   std::vector<byte>& data = *compressed;
   assert(length > 2);
   std::vector<byte> result;
-  //result.reserve(length - 3); /* Minimum size of result */
+  result.reserve(length - 3); /* Minimum size of result */
   /* Prepare the replacement table */
   unsigned replacements[256];
   std::fill(replacements, replacements + 256, no_repl);
@@ -68,21 +85,15 @@ uint64 uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   if (verbosity) {
     std::clog << ((j - 2)/3) << " pair replacements.";
     if(escaping) std::clog << " Escaping in use.";
-    std::clog << "\n";
+    std::clog << std::endl;
   }
-  int e=0, c = 0, p = 0;
   for( ; j < length; ++j) {
     byte current = data[j];
     if (escaping && escape_symbol == current) {
       result.push_back(data[++j]);
-      ++e;
-    }
-    else if (replacements[current] == no_repl) {
+    } else if (replacements[current] == no_repl) {
       result.push_back(current);
-      ++c;
-    }
-    else {
-      ++p;
+    } else {
       uint16 pair = replacements[current]&0xFFFF;
       result.push_back(pair >> 8);
       result.push_back(pair & 0xFF);
@@ -93,7 +104,7 @@ uint64 uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   return result.size();
 }
 
-uint64 uncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
+size_t uncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
   std::vector<byte>& data = *compressed;
   assert(length > 2);
   std::vector<byte> result;
@@ -161,6 +172,91 @@ uint64 uncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
   return result.size();
 }
 
+
+size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length) {
+  std::vector<byte>& data = *compressed;
+  assert(length > 2);
+  std::vector<byte> result;
+  result.reserve(length - 3); /* Minimum size of result */
+  /* Prepare the replacement table */
+  Replacement replacements[256];
+  std::fill(replacements, replacements + 256, Replacement(0,0,true));
+
+  /* initialize value of j to the first index of compressed data */
+  size_t j = 0;
+  bool escaping = false;
+  byte escapeSymbol = 0;
+  if (data[0] == data[1] && data[1] == data[2]) j = 3;
+  else {
+    unsigned i = 0;
+    do {
+      replacements[data[i]] = Replacement(2, (data[i+1] << 8)|data[i+2], true);
+      i += 3;
+    } while( data[i] != data[i-3]);
+    if (data[i] != data[i+1]) {
+      escaping = true;
+      escapeSymbol = data[i+1];
+    }
+    j = i + 2;
+  }
+  size_t afterPairHeader = j;
+  size_t pairReplacements = (j - 2)/3;
+
+  if(data[j+1] == 0) j += 2;
+  else {
+    byte checkVal = ~data[j];
+    while(true) {
+      byte lengths = data[j+1];
+      if(lengths == 0) {
+        escapeSymbol = data[j];
+        escaping = checkVal != escapeSymbol;
+        j += 2;
+        break;
+      }
+      replacements[data[j]] = Replacement(1 << (lengths >> 4), data[j+2], false);
+      if ((lengths & 0x0F) == 0) {
+        checkVal = data[j];
+        j += 4;
+        escapeSymbol = data[j-1];
+        escaping = checkVal != escapeSymbol;
+        break;
+      } else {
+        replacements[data[j+3]] = Replacement(1 << (lengths & 0x0F),data[j+4],false);
+        checkVal = data[j+3];
+        j += 5;
+      }
+    }
+  }
+  size_t runReplacements = j - afterPairHeader;
+  if((2*runReplacements-3) % 5 == 0) runReplacements = (2*runReplacements-3) /5;
+  else runReplacements = (2*runReplacements-4) /5;
+
+  if (verbosity) {
+    std::clog << pairReplacements << " pair replacements and "
+              << runReplacements << " run replacements.";
+    if(escaping) std::clog << " Escaping in use.";
+    std::clog << std::endl;
+  }
+
+  for(; j < length; ++j) {
+    byte current = data[j];
+    if(escaping && escapeSymbol == current) {
+      result.push_back(data[++j]);
+    } else if (replacements[current].length == 0) {
+      result.push_back(current);
+    } else if(replacements[current].isPair) {
+      result.push_back(replacements[current].replacement >> 8);
+      result.push_back(replacements[current].replacement & 0xff);
+    } else {
+      for(size_t i = 0; i < replacements[current].length; ++i)
+        result.push_back(replacements[current].replacement);
+    }
+  }
+  data.resize(result.size());
+  std::copy(result.begin(), result.end(), data.begin());
+  return result.size();
+}
+
 uint64 uncompressSequences(std::vector<byte> *compressed, uint64 length) {
   std::vector<byte>& data = *compressed;
   std::vector<byte> result;
@@ -217,6 +313,6 @@ uint64 uncompressSequences(std::vector<byte> *compressed, uint64 length) {
   return data.size();
 }
 
-
+} //namespace postprocessor
 } //namespace bwtc
 

@@ -64,16 +64,13 @@ void PairReplacer::analyseData(const byte *data, size_t length, bool reset) {
   if(!m_analysationStarted) beginAnalysing(data[i++], reset);
 
   for(; i < length; ++i) {
-    m_prev = (m_prev << 8) | data[i];
-
-    ++m_pairFrequencies[m_prev];
-    ++m_frequencies[data[i]];
+    analyseData(data[i]);
   }
 }
 
 void PairReplacer::finishAnalysation() {}
 
-void PairReplacer::analyseData(byte next) {
+inline void PairReplacer::analyseData(byte next) {
   assert(m_analysationStarted);
   m_prev = (m_prev << 8) | next;
   
@@ -81,21 +78,23 @@ void PairReplacer::analyseData(byte next) {
   ++m_frequencies[next];
 }
 
+void PairReplacer::resetAnalyseData() {
+  std::fill(m_pairFrequencies, m_pairFrequencies + (1 << 16), 0);
+  std::fill(m_frequencies, m_frequencies + 256, 0);
+}
+
 void PairReplacer::beginAnalysing(byte first, bool reset) {
   assert(!m_analysationStarted);
-  if(reset) {
-    std::fill(m_pairFrequencies, m_pairFrequencies + (1 << 16), 0);
-    std::fill(m_frequencies, m_frequencies + 256, 0);
-  }
+  if(reset) resetAnalyseData();
 
   m_analysationStarted = true;
   m_prev = first;
   ++m_frequencies[first];
 }
 
-void PairReplacer::makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
-                                const size_t *pairFrequencies) const
-{
+void PairReplacer::
+makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
+             const size_t *pairFrequencies) {
   assert(pairs.empty());
   for(size_t i = 0; i < (1 << 16); ++i) {
     if((i & 0xff) == ((i >> 8) & 0xff)) continue;
@@ -210,8 +209,8 @@ size_t PairReplacer::writeHeader(byte *to) const {
   return pos;    
 }
 
-size_t PairReplacer::writeReplacedVersion(const byte *src, size_t length, byte *dst) const
-{
+size_t PairReplacer::
+writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
   size_t j = 0; /* Is used for indexing the target. */
   uint16 pair = src[0];
   size_t i = 1;
@@ -252,7 +251,6 @@ size_t PairReplacer::decideReplacements() {
   std::vector<std::pair<size_t, uint16> > replaceablePairs;
   findReplaceablePairs(pairs, replaceablePairs, freqTable);
 
-
   size_t escapeIndex = (replaceablePairs.size() > freeSymbols)?
       findEscapeIndex(freqTable, freeSymbols, replaceablePairs):freeSymbols;
 
@@ -267,15 +265,14 @@ size_t PairReplacer::decideReplacements() {
       std::clog << "No symbols made free." << std::endl;
   }
   
+  m_commonByte = freqTable.getKey(255);
+  std::fill(m_replacements, m_replacements + (1 << 16), m_commonByte);
   if(m_numOfReplacements > 0) {
-    m_commonByte = freqTable.getKey(255);
-    std::fill(m_replacements, m_replacements + (1 << 16), m_commonByte);
-    m_escapeByte =(m_numOfReplacements <= freeSymbols)?
+    m_escapeByte = (m_numOfReplacements <= freeSymbols)?
         m_commonByte:freqTable.getKey(escapeIndex);
     constructReplacementTable(replaceablePairs, freqTable, freeSymbols);
   } else {
-    m_commonByte = m_escapeByte = freqTable.getKey(255);
-    std::fill(m_replacements, m_replacements + (1 << 16), m_commonByte);
+    m_escapeByte = m_commonByte;
   }
 
   return m_numOfReplacements;

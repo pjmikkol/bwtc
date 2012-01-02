@@ -36,6 +36,7 @@
 #include "TestPreprocessor.hpp"
 #include "PairReplacer.hpp"
 #include "RunReplacer.hpp"
+#include "PairAndRunReplacer.hpp"
 
 namespace bwtc {
 
@@ -94,6 +95,25 @@ uint64 TestPreprocessor::compressRuns() {
   uint64 result = m_currentBlock->m_filled - filled;
   m_currentBlock->m_filled = filled;
   return result;*/
+}
+
+size_t TestPreprocessor::compressPairsAndRuns() {
+  pairs_and_runs::PairAndRunReplacer pr(true);
+
+  size_t origSize = m_currentBlock->m_filled;
+  byte *src = &(*m_currentBlock->m_block)[0];
+  pr.analyseData(src, origSize);
+  pr.finishAnalysation();
+  pr.decideReplacements();
+
+  byte *tmp = new byte[origSize + 3];
+  size_t hSize = pr.writeHeader(tmp);
+  size_t compr = pr.writeReplacedVersion(src, origSize, tmp+hSize);
+  size_t compressedSize = compr + hSize;
+  std::copy(tmp, tmp + compressedSize, src);
+  m_currentBlock->m_filled = compressedSize;
+  delete [] tmp;
+  return origSize - compressedSize;
 }
 
 void TestPreprocessor::initializeTarget() {

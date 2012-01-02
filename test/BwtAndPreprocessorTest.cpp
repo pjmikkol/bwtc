@@ -76,6 +76,9 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
                                                   ,threshold);
         pp.m_currentBlock->filled_ = compressed_size;
         break;*/
+      case 'c': /* Replcae pairs and runs.*/
+        compressed_size -= pp.compressPairsAndRuns();
+        break;
       case 'r': /* Replace runs of same byte */
         compressed_size -= pp.compressRuns();
         break;
@@ -143,6 +146,9 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
                                                   ,threshold);
         pp.m_currentBlock->filled_ = compressed_size;
         break;*/
+      case 'c': /* Replcae pairs and runs.*/
+        compressed_size -= pp.compressPairsAndRuns();
+        break;
       case 'r': /* Replace runs of same byte */
         compressed_size -= pp.compressRuns();
         break;
@@ -164,14 +170,22 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
                                                  pp.m_currentBlock->filled_);
         pp.m_currentBlock->filled_ = uncompr_size;
         break;*/
+      case 'c': /* Replcae pairs and runs.*/
+        uncompr_size = bwtc::postprocessor::
+            uncompressPairsAndRuns(pp.m_currentBlock->m_block,
+                                   pp.m_currentBlock->m_filled);
+        pp.m_currentBlock->m_filled = uncompr_size;
+        break;
       case 'r':
-        uncompr_size = bwtc::uncompressLongRuns(pp.m_currentBlock->m_block,
-                                                pp.m_currentBlock->m_filled);
+        uncompr_size = bwtc::postprocessor::
+            uncompressLongRuns(pp.m_currentBlock->m_block,
+                               pp.m_currentBlock->m_filled);
         pp.m_currentBlock->m_filled = uncompr_size;
         break;
       default:
-        uncompr_size = bwtc::uncompressCommonPairs(pp.m_currentBlock->m_block,
-                                                   pp.m_currentBlock->m_filled);
+        uncompr_size = bwtc::postprocessor::
+            uncompressCommonPairs(pp.m_currentBlock->m_block,
+                                  pp.m_currentBlock->m_filled);
         pp.m_currentBlock->m_filled = uncompr_size; 
     }
       
@@ -209,15 +223,14 @@ int main(int argc, char **argv) {
   uint64 block_size = 259715200;
   unsigned mem_constr = 2;
   if (argc < 4) {
-    std::cout << "Usage: " << argv[0] << " [lpr]+ <n> input_file "
+    std::cout << "Usage: " << argv[0] << " [clpr]+ <n> input_file "
               << "[mem_constr] [buffer]" << std::endl;
     return 0;
   }
   if (argc > 4) mem_constr = atoi(argv[4]);
   if (argc > 5) block_size = atoi(argv[5]);
-  tests::PreprocBWTSpeed(argv[1], atoi(argv[2]), std::string(argv[3]),
-                         block_size, mem_constr);
   tests::ValidatePreproc(argv[1], atoi(argv[2]), std::string(argv[3]),
                          block_size, mem_constr);
-
+  tests::PreprocBWTSpeed(argv[1], atoi(argv[2]), std::string(argv[3]),
+                         block_size, mem_constr);
 }

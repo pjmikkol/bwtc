@@ -49,6 +49,8 @@ class TestPreprocessor : public Preprocessor {
   uint64 compressPairs();
   /* Same as above, but different compression algorithm */
   uint64 compressRuns();
+  /* Same as above, but different compression algorithm */
+  size_t compressPairsAndRuns();
   /* Initialize target-array for reading */
   void initializeTarget();
   /* Fills the buffer from instream. returns true if something is read*/

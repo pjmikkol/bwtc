@@ -35,11 +35,26 @@
 //      postprocessing exists
 
 namespace bwtc {
-  
+namespace postprocessor {
+
+struct Replacement {
+  Replacement();
+  Replacement(uint32 len, uint16 repl, bool pair);
+  Replacement(const Replacement& r);
+  Replacement& operator=(const Replacement& repl);
+
+  uint32 length;
+  uint16 replacement;
+  bool isPair;
+};
+
+
 uint64 uncompressCommonPairs(std::vector<byte> *from, uint64 length);
 uint64 uncompressLongRuns(std::vector<byte> *from, uint64 length);
 uint64 uncompressSequences(std::vector<byte> *from, uint64 length);
+size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length);
 
-}
+} //namespace postprocessor
+} //namespace bwtc
 
 #endif

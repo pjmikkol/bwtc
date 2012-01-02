@@ -1,5 +1,5 @@
 /**
- * @file PairReplacer.hpp
+ * @file PairAndRunReplacer.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -21,25 +21,41 @@
  *
  * @section DESCRIPTION
  *
- * Header for preprocessor which replaces the most often occurring pairs.
+ * Header for preprocessor which replaces the most often occurring pairs
+ * and runs of the same character.
  */
-#ifndef PAIR_REPLACER_HPP_
-#define PAIR_REPLACER_HPP_
+#ifndef PAIR_AND_RUN_REPLACER_HPP_
+#define PAIR_AND_RUN_REPLACER_HPP_
 
 #include "../globaldefs.hpp"
 #include "FrequencyTable.hpp"
+#include "RunReplacer.hpp"
 
 #include <vector>
 #include <utility>
 
 namespace bwtc {
 
-class PairReplacer {
+namespace pairs_and_runs {
+struct Replacement {
+  Replacement(size_t freq, uint32 len, uint16 repl, bool isPair);
+  Replacement(const Replacement& r);
+  Replacement& operator=(const Replacement& r);
+  
+  size_t frequency;
+  /**Length of run, if the replacement is for run. */
+  uint32 length;
+  /**Pair or the symbol to be replaced. */
+  uint16 replaceable;
+  bool pair;
+};
+
+class PairAndRunReplacer {
  public:
-  PairReplacer();
-  PairReplacer(bool verbose);
-  PairReplacer(const PairReplacer& pr);
-  ~PairReplacer();
+  PairAndRunReplacer();
+  PairAndRunReplacer(bool verbose);
+  PairAndRunReplacer(const PairAndRunReplacer& pr);
+  ~PairAndRunReplacer();
 
   void analyseData(const byte *data, size_t length, bool reset=true);
 
@@ -47,44 +63,52 @@ class PairReplacer {
   
   void beginAnalysing(byte first, bool reset);
 
-  void resetAnalyseData();
-
   void finishAnalysation();
 
-  size_t decideReplacements();
-  
-  static void makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
-                           const size_t *pairFrequencies);
-
-  void findReplaceablePairs(std::vector<std::pair<size_t, uint16> >& pairs,
-                            std::vector<std::pair<size_t, uint16> >& replaceablePairs,
-                            FrequencyTable& freqs) const;
-
+  void findReplaceablePairsAndRuns(
+      std::vector<std::pair<size_t, uint16> >& pairs,
+      std::vector<Replacement>& replaceables, FrequencyTable& freqs) const;
 
   size_t findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
-                     std::vector<std::pair<size_t, uint16> >& suitablePairs);
-
-  size_t writeHeader(byte *to) const;
+                         std::vector<Replacement>& replaceables);
+  
+  size_t decideReplacements();
+  
+  size_t writeHeader(byte *dst) const;
 
   size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
+
+  size_t writeRunReplacement(byte runSymbol, int runLength, byte *dst) const;
+
+  inline void updateRunFrequency(std::pair<int, byte> run);
   
  private:
-  PairReplacer& operator=(const PairReplacer&);
-  void constructReplacementTable(
-      const std::vector<std::pair<size_t, uint16> >& pairs,
-      const FrequencyTable& freqTable, size_t freeSymbols);
+  void resetAnalyseData();
+  PairAndRunReplacer& operator=(const PairAndRunReplacer&);
 
   /**Stores the frequencies of bytes. */
   size_t m_frequencies[256];
 
+  /**Stores the frequencies of runs. The value stored in m_runFreqs[c][l],
+   * is the amount of how many times the run of c of the length (1 << (l+1))
+   * has been appeared. */
+  std::vector<size_t> m_runFreqs[256];
+
   /**Used for storing the counters when analyzing data. */
   size_t m_pairFrequencies[1 << 16];
 
+  /**Stores the pair replacements after analysation phase. */
+  RunReplacementTable m_runReplacements;
+
+
   /** In replacement writing phase the replacements are stored in this. */
-  byte m_replacements[1 << 16];
+  byte m_pairReplacements[1 << 16];
 
   /**Used in the analysation phase. */
   uint16 m_prev;
+
+  /**Used in analysation phase. */
+  std::pair<int, byte> m_prevRun;
 
   /** Stores the total number of replacements stored and to be executed. */
   uint16 m_numOfReplacements;
@@ -105,6 +129,7 @@ class PairReplacer {
   bool m_verbose;
 };
 
+} //namespace pairs_and_runs
 } //namespace bwtc
 
 #endif

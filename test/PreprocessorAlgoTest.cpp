@@ -71,8 +71,9 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::uncompressLongRuns(pp.m_currentBlock->m_block,
-                                                   pp.m_currentBlock->m_filled);
+      uncompressed_size = bwtc::postprocessor::
+          uncompressLongRuns(pp.m_currentBlock->m_block,
+                             pp.m_currentBlock->m_filled);
       /* This one should be done in same kind of wrapper than
        * Preprocessor::compressPairs*/
       pp.m_currentBlock->m_filled = uncompressed_size; 
@@ -119,8 +120,9 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::uncompressCommonPairs(pp.m_currentBlock->m_block,
-                                                      pp.m_currentBlock->m_filled);
+      uncompressed_size = bwtc::postprocessor::
+          uncompressCommonPairs(pp.m_currentBlock->m_block,
+                                pp.m_currentBlock->m_filled);
       /* This one should be done in same kind of wrapper than
        * Preprocessor::compressPairs*/
       pp.m_currentBlock->m_filled = uncompressed_size; 
@@ -207,11 +209,13 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
 
     uint64 uncompressed_size = 0;
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::uncompressLongRuns(pp.m_currentBlock->m_block,
-                                                   pp.m_currentBlock->m_filled);
+      uncompressed_size = bwtc::postprocessor::
+          uncompressLongRuns(pp.m_currentBlock->m_block,
+                             pp.m_currentBlock->m_filled);
       pp.m_currentBlock->m_filled = uncompressed_size; 
-      uncompressed_size = bwtc::uncompressCommonPairs(pp.m_currentBlock->m_block,
-                                                      pp.m_currentBlock->m_filled);
+      uncompressed_size = bwtc::postprocessor::
+          uncompressCommonPairs(pp.m_currentBlock->m_block,
+                                pp.m_currentBlock->m_filled);
       pp.m_currentBlock->m_filled = uncompressed_size; 
     }
     std::vector<byte>& uncompressed = *pp.m_currentBlock->m_block;

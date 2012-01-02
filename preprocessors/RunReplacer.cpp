@@ -233,7 +233,6 @@ RunReplacer::RunReplacer()
   size_t size = RunReplacerConsts::s_logMaxLengthOfSequence - 1;
   for(size_t i = 0; i < 256; ++i) 
     m_runFreqs[i].resize(size);
-  resetAnalyseData();
 }
 
 RunReplacer::RunReplacer(bool verbose)
@@ -243,7 +242,6 @@ RunReplacer::RunReplacer(bool verbose)
   size_t size = RunReplacerConsts::s_logMaxLengthOfSequence - 1;
   for(size_t i = 0; i < 256; ++i) 
     m_runFreqs[i].resize(size);
-  resetAnalyseData();
 }
 
 RunReplacer::RunReplacer(const RunReplacer& rr)

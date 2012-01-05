@@ -32,6 +32,9 @@
 #include "../Utils.hpp"
 #include "Preprocessor.hpp"
 #include "FrequencyTable.hpp"
+#include "PairReplacer.hpp"
+#include "PairAndRunReplacer.hpp"
+#include "RunReplacer.hpp"
 
 #include <cassert>
 #include <boost/static_assert.hpp>
@@ -59,8 +62,12 @@ Preprocessor* givePreprocessor(char choice, uint64 block_size,
   return pp;
 }
 
+Preprocessor::Preprocessor(uint64 block_size, const std::string& prepr) :
+    m_source(0), m_blockSize(block_size), m_blockManager(0),
+    m_preprocessingOptions(prepr) {}
+
 Preprocessor::Preprocessor(uint64 block_size) :
-    m_source(0), m_blockSize(block_size), m_blockManager(0) { }
+    m_source(0), m_blockSize(block_size), m_blockManager(0) {}
 
 Preprocessor::~Preprocessor() {
   delete m_source;
@@ -93,13 +100,52 @@ MainBlock* Preprocessor::readBlock() {
    * blocksize as an uint64 we may end up in problems if user is on 32-bit
    * platform and wants to use too large blocks (amount of bits needed to
    * represent block size is more than 32)?? */
-  /*** Stub implementation ***/
-  /* We leave on unused byte to the block so that we can use SA-IS-transformer */
+
+  /* The unused byte is left the block so that SA-IS-transformer can be used.
+  *  Also prepare for the worst case with preprocessing algorithms. */
   std::streamsize read = m_source->readBlock(
-      &(*to)[0], static_cast<std::streamsize>(m_blockSize - 1));
+      &(*to)[0], static_cast<std::streamsize>(
+          m_blockSize - 1 - m_preprocessingOptions.size()*5));
   if (!read) return 0;
-  return m_blockManager->makeBlock(to, stats, static_cast<uint64>(read));
+  
+  size_t preprocessedSize = preprocess(&(*to)[0], read);
+  
+  return m_blockManager->makeBlock(to, stats, preprocessedSize);
 }
+
+#define PREPROCESS(Type, verb, src, dst) \
+  Type r((verb)); \
+  r.analyseData((src), length); \
+  r.finishAnalysation(); \
+  r.decideReplacements(); \
+  size_t hSize = r.writeHeader((dst)); \
+  size_t comprSize = r.writeReplacedVersion((src), length, (dst)+hSize); \
+  length = comprSize + hSize
+  
+
+size_t Preprocessor::preprocess(byte *src, size_t length) {
+  std::vector<byte> tmp;
+  tmp.resize(length + 5);
+  byte *dst = &tmp[0];
+  for(size_t i = 0; i < m_preprocessingOptions.size(); ++i) {
+    char c = m_preprocessingOptions[i];
+    if(c == 'p') {
+      PREPROCESS(PairReplacer, verbosity > 1, src, dst);
+    } else if(c == 'r') {
+      PREPROCESS(RunReplacer, verbosity > 1, src, dst);
+    } else if(c == 'c') {
+      PREPROCESS(pairs_and_runs::PairAndRunReplacer, verbosity > 1, src, dst);
+    }
+    if(length + 5 > tmp.size()) tmp.resize(length + 5);
+    std::swap(src, dst);
+  }
+  if(m_preprocessingOptions.size() & 1) {
+    std::copy(src, src + length, dst);
+  }
+  return length;
+}
+
+#undef PREPROCESS
 
 /*#################### Preprocessing algorithms #############################*/
 

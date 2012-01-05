@@ -29,6 +29,7 @@
 #include <iterator>
 #include <iostream> // For std::streampos
 #include <numeric> // for std::accumulate
+#include <string>
 #include <vector>
 
 #include "MainBlock.hpp"
@@ -50,10 +51,33 @@ WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
   m_destination.connect(m_out);
 }
 
-void WaveletEncoder::writeGlobalHeader(char preproc, char encoding) {
+void WaveletEncoder::writeGlobalHeader(const std::string& preproc, char encoding) {
   /* At the moment dummy implementation. In future should use
    * bit-fields of a bytes as a flags. */
-  m_out->writeByte(static_cast<byte>(preproc));
+  // bitpatterns in encoding of preprocessing:
+  // 00 -- pair, 01 -- run, 10 -- pairAndrun. 11 -- end 
+  byte b = 0;
+  size_t i = 0;
+  for(; i < preproc.size(); ++i) {
+    if((i & 3) == 0 && i != 0) m_out->writeByte(b);
+    if(preproc[i] == 'p') b = (b << 2);
+    else if (preproc[i] == 'r') b = (b << 2) | 1;
+    else if (preproc[i] == 'c') b = (b << 2) | 2;
+  }
+  if((i & 3) == 0){
+    m_out->writeByte(b);
+    m_out->writeByte(static_cast<byte>(0xff));
+  } else {
+    b = (b << 2) | 3;
+    ++i;
+    while(i & 3) {b <<= 2; ++i;}
+    m_out->writeByte(static_cast<byte>(0xff));
+  }
+
+  if(preproc.size() == 0) {
+    m_out->writeByte(static_cast<byte>(0xff));
+  }
+
   m_out->writeByte(static_cast<byte>(encoding));
 }
 

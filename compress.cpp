@@ -47,7 +47,7 @@ namespace po = boost::program_options;
 using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
-              uint64 block_size, const std::string preproc, char encoding)
+              uint64 block_size, const std::string& preproc, char encoding)
 {
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
@@ -55,20 +55,21 @@ void compress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::Preprocessor* preprocessor = bwtc::givePreprocessor(
-      'n', block_size, input_name);
+  bwtc::Preprocessor preprocessor(block_size, preproc);
+  preprocessor.connect(input_name);
+
   bwtc::BlockManager block_manager(block_size, 1);
-  preprocessor->addBlockManager(&block_manager);
+  preprocessor.addBlockManager(&block_manager);
 
   bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
 
   //bwtc::Encoder encoder(output_name, encoding);
   bwtc::WaveletEncoder encoder(output_name, encoding);
-  encoder.writeGlobalHeader('n', encoding);
+  encoder.writeGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
   uint64 last_s = 0;
-  while( bwtc::MainBlock* block = preprocessor->readBlock() ) {
+  while( bwtc::MainBlock* block = preprocessor.readBlock() ) {
     uint64 eob_byte;
     ++blocks;
     //Transformer could have some memory manager..
@@ -93,7 +94,6 @@ void compress(const std::string& input_name, const std::string& output_name,
     std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
   }
   delete transformer;
-  delete preprocessor;
 }
 
 /* Notifier function for preprocessing option choice */

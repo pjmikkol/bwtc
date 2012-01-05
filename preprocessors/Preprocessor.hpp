@@ -38,27 +38,32 @@
 
 namespace bwtc {
 
-//TODO: Make this class to abstract class (interface for real implementations)
 class Preprocessor {
  public:
   Preprocessor(uint64 block_size);
-  virtual ~Preprocessor();
-  virtual void connect(const std::string& source_name);
-  virtual void addBlockManager(BlockManager* bm);
+  Preprocessor(uint64 block_size, const std::string& prepr);
+  ~Preprocessor();
+  void connect(const std::string& source_name);
+  void addBlockManager(BlockManager* bm);
   /* Reads and preprocesses data to byte array provided by m_blockManager */
-  virtual MainBlock* readBlock();
+  MainBlock* readBlock();
+
+  size_t preprocess(byte *src, size_t length);
 
  protected:
   InStream* m_source;
   uint64 m_blockSize;
   BlockManager* m_blockManager;
-
+  
  private:
   /* This should be done during preprocessing*/
   void buildStats(std::vector<byte>* data, std::vector<uint64>* stats,
                   uint64 data_size);
   Preprocessor& operator=(const Preprocessor& p);
   Preprocessor(const Preprocessor&);
+
+  std::string m_preprocessingOptions;
+  
 };
 
 /* This function returns chosen preprocessor */ 

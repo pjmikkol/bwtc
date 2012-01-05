@@ -42,7 +42,7 @@ class WaveletEncoder {
  public:
   WaveletEncoder(const std::string& destination, char prob_model);
   ~WaveletEncoder();
-  void writeGlobalHeader(char preproc, char encoding);
+  void writeGlobalHeader(const std::string& preproc, char encoding);
   void encodeData(std::vector<byte>* data, std::vector<uint64>* stats,
                   uint64 data_size);
   void writeBlockHeader(std::vector<uint64>* stats);

@@ -56,6 +56,8 @@ class TestPreprocessor : public Preprocessor {
   /* Fills the buffer from instream. returns true if something is read*/
   uint64 fillBuffer();
 
+  size_t pppr();
+  
   MainBlock *m_currentBlock;
 };
 

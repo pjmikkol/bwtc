@@ -31,6 +31,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstring>
 
 #include "../preprocessors/TestPreprocessor.hpp"
 #include "../preprocessors/Postprocessor.hpp"
@@ -66,6 +67,7 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   int str_index = 0;
   clock_t prepr_start = clock();
 
+  #if 1
   do {
     switch (preprocs[str_index]) {
       /*
@@ -76,19 +78,22 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
                                                   ,threshold);
         pp.m_currentBlock->filled_ = compressed_size;
         break;*/
-      case 'c': /* Replcae pairs and runs.*/
+      case 'c': // Replace pairs and runs.
         compressed_size -= pp.compressPairsAndRuns();
         break;
-      case 'r': /* Replace runs of same byte */
+      case 'r': // Replace runs of same byte
         compressed_size -= pp.compressRuns();
         break;
-      case 'p': /* Replace common pairs */
+      case 'p': // Replace common pairs
         compressed_size -= pp.compressPairs();
         break;
       default:
-        break;
+      break;
     }
   } while(preprocs[++str_index]);
+  #else
+  compressed_size -= pp.pppr();
+  #endif
   clock_t prepr_end = clock();
 
   /* Burrows-Wheeler Transform */
@@ -136,6 +141,7 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   std::cout << "############################\n";
   std::cout << "Preprocessing\n";
   int str_index = 0;
+  #if 1
   do {
     switch (preprocs[str_index]) {
       /*
@@ -146,17 +152,23 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
                                                   ,threshold);
         pp.m_currentBlock->filled_ = compressed_size;
         break;*/
-      case 'c': /* Replcae pairs and runs.*/
+      case 'c': // Replace pairs and runs.
         compressed_size -= pp.compressPairsAndRuns();
         break;
-      case 'r': /* Replace runs of same byte */
+      case 'r': // Replace runs of same byte
         compressed_size -= pp.compressRuns();
         break;
-      default: /* Replace common pairs */
+      case 'p': // Replace common pairs
         compressed_size -= pp.compressPairs();
         break;
+      default:
+      break;
     }
   } while(preprocs[++str_index]);
+  #else
+  compressed_size -= pp.pppr();
+  str_index = strlen(preprocs);
+#endif
 
   --str_index;
   uint64 uncompr_size = 0;
@@ -229,8 +241,8 @@ int main(int argc, char **argv) {
   }
   if (argc > 4) mem_constr = atoi(argv[4]);
   if (argc > 5) block_size = atoi(argv[5]);
-  tests::ValidatePreproc(argv[1], atoi(argv[2]), std::string(argv[3]),
-                         block_size, mem_constr);
   tests::PreprocBWTSpeed(argv[1], atoi(argv[2]), std::string(argv[3]),
+                         block_size, mem_constr);
+  tests::ValidatePreproc(argv[1], atoi(argv[2]), std::string(argv[3]),
                          block_size, mem_constr);
 }

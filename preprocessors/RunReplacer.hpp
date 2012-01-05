@@ -33,6 +33,7 @@
 
 #include <boost/static_assert.hpp>
 
+#include <cassert>
 #include <map>
 #include <utility>
 #include <vector>
@@ -135,9 +136,24 @@ class RunReplacer {
 
   void analyseData(const byte *data, size_t length, bool reset=true);
 
-  inline void analyseData(byte next);
+  inline void analyseData(byte next) {
+    assert(m_analysationStarted);
+    if (next == m_prevRun.second &&
+        m_prevRun.first < (int)RunReplacerConsts::s_maxLengthOfSequence)
+    {
+      ++m_prevRun.first;
+    } else {
+      if(m_prevRun.first > 1) {
+        updateRunFrequency(m_prevRun);
+      }
+    m_prevRun = std::make_pair(1, next);
+    }
+    ++m_frequencies[next];
+  }
   
   void beginAnalysing(byte first, bool reset);
+
+  void beginAnalysing(bool reset);
 
   void finishAnalysation();
 
@@ -155,7 +171,18 @@ class RunReplacer {
   
  private:
   void resetAnalyseData();
-  inline void updateRunFrequency(std::pair<int, byte> run);
+
+  inline void updateRunFrequency(std::pair<int, byte> run) {
+    assert(run.first <= (int)RunReplacerConsts::s_maxLengthOfSequence);
+    assert(run.first > 1);
+    run.first &= 0xfffffffe;
+    while(run.first) {
+      int logLongest = utils::logFloor((unsigned)run.first);
+      ++m_runFreqs[run.second][logLongest - 1];
+      run.first ^= (1 << logLongest);
+    }
+  }
+
   size_t writeRunReplacement(byte runSymbol, int runLength, byte *dst) const;
 
   RunReplacer& operator=(const RunReplacer&);

@@ -70,26 +70,22 @@ void PairReplacer::analyseData(const byte *data, size_t length, bool reset) {
 
 void PairReplacer::finishAnalysation() {}
 
-inline void PairReplacer::analyseData(byte next) {
-  assert(m_analysationStarted);
-  m_prev = (m_prev << 8) | next;
-  
-  ++m_pairFrequencies[m_prev];
-  ++m_frequencies[next];
-}
-
 void PairReplacer::resetAnalyseData() {
   std::fill(m_pairFrequencies, m_pairFrequencies + (1 << 16), 0);
   std::fill(m_frequencies, m_frequencies + 256, 0);
 }
 
 void PairReplacer::beginAnalysing(byte first, bool reset) {
+  beginAnalysing(reset);
+  m_prev = first;
+  ++m_frequencies[first];
+}
+
+void PairReplacer::beginAnalysing(bool reset) {
   assert(!m_analysationStarted);
   if(reset) resetAnalyseData();
 
   m_analysationStarted = true;
-  m_prev = first;
-  ++m_frequencies[first];
 }
 
 void PairReplacer::

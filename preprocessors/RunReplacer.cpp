@@ -264,23 +264,16 @@ void RunReplacer::resetAnalyseData() {
 }
 
 void RunReplacer::beginAnalysing(byte first, bool reset) {
-  if(reset) {
-    resetAnalyseData();
-  }
-  m_analysationStarted = true;
+  beginAnalysing(reset);
   m_prevRun = std::make_pair(1, first);
   ++m_frequencies[first];
 }
 
-inline void RunReplacer::updateRunFrequency(std::pair<int, byte> run) {
-  assert(run.first <= (int)RunReplacerConsts::s_maxLengthOfSequence);
-  assert(run.first > 1);
-  run.first &= 0xfffffffe;
-  while(run.first) {
-    int logLongest = utils::logFloor((unsigned)run.first);
-    ++m_runFreqs[run.second][logLongest - 1];
-    run.first ^= (1 << logLongest);
+void RunReplacer::beginAnalysing(bool reset) {
+  if(reset) {
+    resetAnalyseData();
   }
+  m_analysationStarted = true;
 }
 
 void RunReplacer::findReplaceableRuns(std::vector<Runs>& replaceableRuns,
@@ -471,21 +464,6 @@ void RunReplacer::analyseData(const byte* data, size_t length, bool reset) {
   for(;i < length; ++i) {
     analyseData(data[i]);
   }
-}
-
-inline void RunReplacer::analyseData(byte next) {
-  assert(m_analysationStarted);
-  if (next == m_prevRun.second &&
-      m_prevRun.first < (int)RunReplacerConsts::s_maxLengthOfSequence)
-  {
-    ++m_prevRun.first;
-  } else {
-    if(m_prevRun.first > 1) {
-      updateRunFrequency(m_prevRun);
-    }
-    m_prevRun = std::make_pair(1, next);
-  }
-  ++m_frequencies[next];
 }
 
 void RunReplacer::finishAnalysation() {

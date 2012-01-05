@@ -47,6 +47,49 @@ TestPreprocessor::~TestPreprocessor() {
   if(m_currentBlock) delete m_currentBlock;
 }
 
+/* Testing the case where preprocessing algorithms are interleaved */
+size_t TestPreprocessor::pppr() {
+  PairReplacer pr1(true);
+  PairReplacer pr2(true);
+  PairReplacer pr3(true);
+  RunReplacer rr1(true);
+
+  size_t origSize = m_currentBlock->m_filled;
+  byte *src = &(*m_currentBlock->m_block)[0];
+  pr1.analyseData(src, origSize);
+  pr1.finishAnalysation();
+  pr1.decideReplacements();
+
+  byte *tmp = new byte[origSize + 3];
+  size_t hSize = pr1.writeAndAnalyseHeader(tmp, pr2);
+  size_t compr = pr1.writeAndAnalyseReplacedVersion(src, origSize, tmp+hSize, pr2);
+  size_t compressedSize = compr + hSize;
+
+  pr2.finishAnalysation();
+  pr2.decideReplacements();
+  hSize = pr2.writeAndAnalyseHeader(src, pr3);
+  compr = pr2.writeAndAnalyseReplacedVersion(tmp, compressedSize, src+hSize, pr3);
+  compressedSize = compr + hSize;
+
+  pr3.finishAnalysation();
+  pr3.decideReplacements();
+  hSize = pr3.writeAndAnalyseHeader(tmp, rr1);
+  compr = pr3.writeAndAnalyseReplacedVersion(src, compressedSize, tmp+hSize, rr1);
+  compressedSize = compr + hSize;
+
+  rr1.finishAnalysation();
+  rr1.decideReplacements();
+  hSize = rr1.writeHeader(src);
+  compr = rr1.writeReplacedVersion(tmp, compressedSize, src+hSize);
+  compressedSize = compr + hSize;
+  
+  //std::copy(tmp, tmp + compressedSize, src);
+  m_currentBlock->m_filled = compressedSize;
+  delete [] tmp;
+  return origSize - compressedSize;
+
+}
+
 uint64 TestPreprocessor::compressPairs() {
   PairReplacer pr(true);
 

@@ -116,7 +116,7 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length);
  */
 void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
                              uint64 *freqs);
-
+ 
 template <typename Unsigned, typename BitVector>
 void pushBits(Unsigned n, byte bits, BitVector& bitVector) {
   for(size_t i = 1; i <= bits; ++i) {

@@ -29,6 +29,7 @@
 #include "../globaldefs.hpp"
 #include "FrequencyTable.hpp"
 
+#include <cassert>
 #include <vector>
 #include <utility>
 
@@ -43,8 +44,16 @@ class PairReplacer {
 
   void analyseData(const byte *data, size_t length, bool reset=true);
 
-  inline void analyseData(byte next);
+  inline void analyseData(byte next) {
+      assert(m_analysationStarted);
+      m_prev = (m_prev << 8) | next;
+      
+      ++m_pairFrequencies[m_prev];
+      ++m_frequencies[next];
+  }
   
+  void beginAnalysing(bool reset);
+
   void beginAnalysing(byte first, bool reset);
 
   void resetAnalyseData();
@@ -67,7 +76,75 @@ class PairReplacer {
   size_t writeHeader(byte *to) const;
 
   size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
-  
+
+  template <typename PreProc>
+  size_t writeAndAnalyseHeader(byte *to, PreProc& pp) const {
+    pp.beginAnalysing(true);
+    if(m_numOfReplacements == 0)  {
+      to[0] = to[1] = to[2] = 0;
+      pp.analyseData(0); pp.analyseData(0); pp.analyseData(0);
+      return 3;
+    }
+    size_t pos = 0;
+    byte prevValue = m_escapeByte;
+    for(size_t i = 0; i < (1 << 16); ++i) {
+      byte val = m_replacements[i];
+      if(val != m_commonByte && val != m_escapeByte) {
+        prevValue = val;
+        to[pos] = prevValue;
+        pp.analyseData(to[pos++]);
+        to[pos] = (i >> 8) & 0xff;
+        pp.analyseData(to[pos++]);
+        to[pos] = i & 0xff;
+        pp.analyseData(to[pos++]);
+      }
+    }
+    to[pos] = prevValue;
+    pp.analyseData(to[pos++]);
+    to[pos] = (m_escapeByte != m_commonByte)?m_escapeByte:prevValue;
+    pp.analyseData(to[pos++]);
+    return pos;    
+  }
+
+  template <typename PreProc>
+  size_t writeAndAnalyseReplacedVersion(
+      const byte *src, size_t length, byte *dst, PreProc& pp) const
+  {
+    size_t j = 0; /* Is used for indexing the target. */
+    uint16 pair = src[0];
+    size_t i = 1;
+    while(true) {
+      pair = (pair << 8) | src[i];
+      byte replValue = m_replacements[pair];
+      if(replValue == m_commonByte) {
+        dst[j] = src[i-1];
+        pp.analyseData(dst[j++]);
+      } else if(replValue != m_escapeByte) {
+        dst[j] = replValue;
+        pp.analyseData(dst[j++]);
+        if(i == length - 1) break;
+        pair = src[++i];
+      } else {
+        dst[j] = m_escapeByte;
+        pp.analyseData(dst[j++]);
+        dst[j] = src[i-1];
+        pp.analyseData(dst[j++]);
+      }
+      if(i == length - 1) {
+        pair = (src[i] << 8) | 0;
+        if(m_replacements[pair] == m_escapeByte && m_escapeByte != m_commonByte) {
+          dst[j] = m_escapeByte;
+          pp.analyseData(dst[j++]);
+        }
+        dst[j] = src[i];
+        pp.analyseData(dst[j++]);
+        break;
+      }
+      ++i;
+    }
+    return j;
+  }
+
  private:
   PairReplacer& operator=(const PairReplacer&);
   void constructReplacementTable(

@@ -47,7 +47,7 @@ namespace po = boost::program_options;
 using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
-              uint64 block_size, char preproc, char encoding)
+              uint64 block_size, const std::string preproc, char encoding)
 {
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
@@ -56,7 +56,7 @@ void compress(const std::string& input_name, const std::string& output_name,
     else std::clog << "Output: stdout" << std::endl;
   }
   bwtc::Preprocessor* preprocessor = bwtc::givePreprocessor(
-      preproc, block_size, input_name);
+      'n', block_size, input_name);
   bwtc::BlockManager block_manager(block_size, 1);
   preprocessor->addBlockManager(&block_manager);
 
@@ -64,7 +64,7 @@ void compress(const std::string& input_name, const std::string& output_name,
 
   //bwtc::Encoder encoder(output_name, encoding);
   bwtc::WaveletEncoder encoder(output_name, encoding);
-  encoder.writeGlobalHeader(preproc, encoding);
+  encoder.writeGlobalHeader('n', encoding);
 
   unsigned blocks = 0;
   uint64 last_s = 0;
@@ -97,16 +97,17 @@ void compress(const std::string& input_name, const std::string& output_name,
 }
 
 /* Notifier function for preprocessing option choice */
-void validatePreprocOption(char c) {
-  if (c == 'n' /* || c == <other option> */) return;
-
+void validatePreprocOption(const std::string& p) {
   class PreprocException : public std::exception {
     virtual const char* what() const throw() {
       return "Invalid choice for preprocessing.";
     }
   } exc;
 
-  throw exc;
+  for(size_t i = 0; i < p.size(); ++i) {
+    char c = p[i];
+    if(c != 'c' && c != 'p' && c != 'r') throw exc;
+  }
 }
 
 
@@ -127,8 +128,8 @@ void validateEncodingOption(char c) {
 
 int main(int argc, char** argv) {
   uint64 block_size;
-  char preproc, encoding;
-  std::string input_name, output_name;
+  char encoding;
+  std::string input_name, output_name, preprocessing;
   bool stdout, stdin;
 
   try {
@@ -145,10 +146,13 @@ int main(int argc, char** argv) {
         ("input-file", po::value<std::string>(&input_name),
          "file to compress, defaults to stdin")
         ("output-file", po::value<std::string>(&output_name),"target file")
-        ("pre,p", po::value<char>(&preproc)->default_value('n')->
+        ("prepr", po::value<std::string>(&preprocessing)->default_value("")->
          notifier(&validatePreprocOption),
-         "pre-processing algorithm, options:\n"
-         "  n -- does nothing")
+         "preprocessor options:\n"
+         "  p -- pair replacer\n"
+         "  r -- run replacer\n"
+         "  c -- pair and run replacer\n"
+         "For example \"ppr\" would run pair replacer twice and run replacer once")
         ("enc,e", po::value<char>(&encoding)->default_value('B')->
          notifier(&validateEncodingOption),
          "entropy encoding scheme, options:\n"
@@ -197,7 +201,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preproc, encoding);
+  compress(input_name, output_name, block_size*1024, preprocessing, encoding);
 
   return 0;
 }

@@ -29,6 +29,7 @@
 
 #include "globaldefs.hpp"
 #include "Utils.hpp"
+#include "Profiling.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -229,6 +230,7 @@ WaveletTree<BitVector>::WaveletTree() {
 
 template <typename BitVector>
 WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length) {
+  PROFILE("WaveletTree::WaveletTree");
   uint64 runFreqs[256] = {0};
   utils::calculateRunFrequencies(runFreqs, src, length);
 
@@ -434,6 +436,7 @@ template <typename Encoder, typename ProbabilisticModel, typename GammaModel,
 void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
                                           GammaModel& gm, GapModel& gapm) const
 {
+  PROFILE("WaveletTree::encodeTreeBF");
   /* Additional bitvector is used to encode gaps and continuous runs in the
    * parent's bitvector. */
   typedef std::pair<TreeNode<BitVector>*, BitVector> InternalNode;

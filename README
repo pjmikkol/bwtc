@@ -22,9 +22,11 @@ at the moment: in early development phase
 ...
 
 In Linux you can compile this by first generating makefiles with CMake.
-Go to the root-directory and say
-  'cmake -DCMAKE_BUILD_TYPE=type', where type is 'Release' or 'Debug'
+Go to the root-directory and type
+  'cmake -DCMAKE_BUILD_TYPE=type .', where type is 'Release' or 'Debug'
 After this program can be compiled by saying 'make'. Tests are run by
 'make test'.
+Profiling can be turned on by giving "-D PROFILER=1" to cmake, for example:
+  'cmake -DCMAKE_BUILD_TYPE=Release -D PROFILER=1 .'
 
 ...

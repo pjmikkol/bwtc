@@ -8,7 +8,11 @@ project(bwtc)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost COMPONENTS program_options)
 
+if(PROFILER MATCHES 1)
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic -DPROFILER_ON")
+else(PROFILER_ON MATCHES 1)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
+endif()
 
 if(CMAKE_BUILD_TYPE MATCHES Release)
   add_definitions(-DNDEBUG)

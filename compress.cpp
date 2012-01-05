@@ -44,6 +44,8 @@ namespace po = boost::program_options;
 #include "globaldefs.hpp"
 #include "bwtransforms/BWTransform.hpp"
 
+#include "Profiling.hpp"
+
 using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
@@ -94,6 +96,8 @@ void compress(const std::string& input_name, const std::string& output_name,
     std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
   }
   delete transformer;
+
+  PRINT_PROFILE_DATA
 }
 
 /* Notifier function for preprocessing option choice */

@@ -38,6 +38,7 @@
 #include "Utils.hpp"
 #include "probmodels/ProbabilityModel.hpp"
 #include "WaveletTree.hpp"
+#include "Profiling.hpp"
 
 namespace bwtc {
 
@@ -145,6 +146,7 @@ int WaveletEncoder::writeTrailer(uint64 trailer) {
 void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* stats,
                                 uint64 block_size)
 {
+  PROFILE("WaveletEncoder::encodeData");
   (void) block_size;
   size_t beg = 0;
   for(size_t i = 0; i < stats->size(); ++i) {

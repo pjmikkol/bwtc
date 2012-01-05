@@ -35,6 +35,7 @@
 #include "PairReplacer.hpp"
 #include "PairAndRunReplacer.hpp"
 #include "RunReplacer.hpp"
+#include "../Profiling.hpp"
 
 #include <cassert>
 #include <boost/static_assert.hpp>
@@ -91,6 +92,7 @@ void Preprocessor::addBlockManager(BlockManager* manager) {
 
 /* We append sentinel to the block here */
 MainBlock* Preprocessor::readBlock() {
+  PROFILE("Preprocessor::readBlock");
   assert(m_source);
   assert(m_blockManager);
   std::vector<byte>* to = m_blockManager->getFreeBuffer();
@@ -124,6 +126,7 @@ MainBlock* Preprocessor::readBlock() {
   
 
 size_t Preprocessor::preprocess(byte *src, size_t length) {
+  PROFILE("Preprocessor::preprocess");
   std::vector<byte> tmp;
   tmp.resize(length + 5);
   byte *dst = &tmp[0];

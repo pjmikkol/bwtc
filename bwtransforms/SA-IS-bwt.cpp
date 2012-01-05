@@ -33,12 +33,14 @@
 #include "sais.hxx"
 #include "../MainBlock.hpp"
 #include "../globaldefs.hpp"
+#include "../Profiling.hpp"
 
 namespace bwtc {
 
 SAISBWTransform::SAISBWTransform() {}
 
 std::vector<byte>* SAISBWTransform::doTransform(uint64 *eob_byte) {
+  PROFILE("SAISBWTransform::doTransform");
   if(!m_currentBlock) return 0;
 
   int block_size = m_currentBlock->size();

@@ -53,37 +53,43 @@ WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
 }
 
 void WaveletEncoder::writeGlobalHeader(const std::string& preproc, char encoding) {
-  /* At the moment dummy implementation. In future should use
-   * bit-fields of a bytes as a flags. */
   // bitpatterns in encoding of preprocessing:
   // 00 -- pair, 01 -- run, 10 -- pairAndrun. 11 -- end 
   byte b = 0;
   size_t i = 0;
   for(; i < preproc.size(); ++i) {
-    if((i & 3) == 0 && i != 0) m_out->writeByte(b);
-    if(preproc[i] == 'p') b = (b << 2);
+    if(i % 4  == 0 && i != 0) { m_out->writeByte(b); b = 0; }
+    if(preproc[i] == 'p') b = (b << 2) | 3;
     else if (preproc[i] == 'r') b = (b << 2) | 1;
     else if (preproc[i] == 'c') b = (b << 2) | 2;
   }
-  if((i & 3) == 0){
+  if(preproc.size() == 0) {
+    m_out->writeByte(static_cast<byte>(0));
+  } else if(i % 4 == 0){
     m_out->writeByte(b);
-    m_out->writeByte(static_cast<byte>(0xff));
+    m_out->writeByte(static_cast<byte>(0));
   } else {
-    b = (b << 2) | 3;
-    ++i;
-    while(i & 3) {b <<= 2; ++i;}
-    m_out->writeByte(static_cast<byte>(0xff));
+    while(i % 4 != 0) { b <<= 2; ++i; }
+    m_out->writeByte(static_cast<byte>(b));
   }
 
-  if(preproc.size() == 0) {
-    m_out->writeByte(static_cast<byte>(0xff));
-  }
 
   m_out->writeByte(static_cast<byte>(encoding));
 }
 
-char WaveletDecoder::readGlobalHeader() {
-  char preproc = static_cast<char>(m_in->readByte());
+std::string WaveletDecoder::readGlobalHeader() {
+  std::string preproc;
+  bool loop = true;
+  while(loop) {
+    char b = static_cast<char>(m_in->readByte());
+    for(int i = 6; i >= 0; i -= 2) {
+      int bits = (b >> i) & 0x3;
+      if(bits == 0) { loop = false; break; }
+      else if (bits == 2) preproc += 'c';
+      else if (bits == 1) preproc += 'r';
+      else if (bits == 3) preproc += 'p';
+    }
+  }
   char probmodel = static_cast<char>(m_in->readByte());
   delete m_probModel;
   m_probModel = giveProbabilityModel(probmodel);
@@ -161,6 +167,7 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
     //wavelet.treeShape(shape);
     wavelet.treeShape2(shape);
 
+    // Write shape vector to output
     for(size_t k = 0; k < shape.size();) {
       byte b = 0; size_t j = 0;
       for(; j < 8 && k < shape.size(); ++k, ++j) {

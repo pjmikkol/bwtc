@@ -183,19 +183,19 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
         pp.m_currentBlock->filled_ = uncompr_size;
         break;*/
       case 'c': /* Replcae pairs and runs.*/
-        uncompr_size = bwtc::postprocessor::
+        uncompr_size = bwtc::PostProcessor::
             uncompressPairsAndRuns(pp.m_currentBlock->m_block,
                                    pp.m_currentBlock->m_filled);
         pp.m_currentBlock->m_filled = uncompr_size;
         break;
       case 'r':
-        uncompr_size = bwtc::postprocessor::
+        uncompr_size = bwtc::PostProcessor::
             uncompressLongRuns(pp.m_currentBlock->m_block,
                                pp.m_currentBlock->m_filled);
         pp.m_currentBlock->m_filled = uncompr_size;
         break;
       default:
-        uncompr_size = bwtc::postprocessor::
+        uncompr_size = bwtc::PostProcessor::
             uncompressCommonPairs(pp.m_currentBlock->m_block,
                                   pp.m_currentBlock->m_filled);
         pp.m_currentBlock->m_filled = uncompr_size; 

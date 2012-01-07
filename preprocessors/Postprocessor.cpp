@@ -37,25 +37,44 @@
 #include "../Utils.hpp"
 
 namespace bwtc {
-namespace postprocessor {
 
-Replacement::Replacement()
+PostProcessor::Replacement::Replacement()
     : length(0), replacement(0), isPair(false) {}
 
-Replacement::Replacement(uint32 len, uint16 repl, bool pair)
+PostProcessor::Replacement::Replacement(uint32 len, uint16 repl, bool pair)
     : length(len), replacement(repl), isPair(pair) {}
 
-Replacement::Replacement(const Replacement& r)
+PostProcessor::Replacement::Replacement(const Replacement& r)
     : length(r.length), replacement(r.replacement), isPair(r.isPair) {}
 
-Replacement& Replacement::operator=(const Replacement& r) {
+PostProcessor::Replacement&
+PostProcessor::Replacement::operator=(const PostProcessor::Replacement& r) {
   length = r.length;
   replacement = r.replacement;
   isPair = r.isPair;
   return *this;
 }
 
-size_t uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
+PostProcessor::PostProcessor(const std::string& postProcOptions)
+    : m_options(postProcOptions) {}
+
+void PostProcessor::postProcess(std::vector<byte> *data) {
+  // TODO: optimize unnecessary copying away
+  size_t length = data->size();
+  for(size_t i = 0; i < m_options.size(); ++i) {
+    if(m_options[i] == 'r') {
+      length = uncompressLongRuns(data, length);
+    } else if (m_options[i] == 'p') {
+      length = uncompressCommonPairs(data, length);
+    } else if (m_options[i] == 'c') {
+      length = uncompressPairsAndRuns(data, length);
+    }
+  }
+}
+
+
+size_t PostProcessor::
+uncompressCommonPairs(std::vector<byte> *compressed, size_t length) {
   static const unsigned no_repl = 70000;
   std::vector<byte>& data = *compressed;
   assert(length > 2);
@@ -104,7 +123,8 @@ size_t uncompressCommonPairs(std::vector<byte> *compressed, uint64 length) {
   return result.size();
 }
 
-size_t uncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
+size_t PostProcessor::
+uncompressLongRuns(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   assert(length > 2);
   std::vector<byte> result;
@@ -173,7 +193,8 @@ size_t uncompressLongRuns(std::vector<byte> *compressed, uint64 length) {
 }
 
 
-size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length) {
+size_t PostProcessor::
+uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   assert(length > 2);
   std::vector<byte> result;
@@ -257,7 +278,8 @@ size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length) {
   return result.size();
 }
 
-uint64 uncompressSequences(std::vector<byte> *compressed, uint64 length) {
+size_t PostProcessor::
+uncompressSequences(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   std::vector<byte> result;
   result.reserve(length/2);
@@ -313,6 +335,5 @@ uint64 uncompressSequences(std::vector<byte> *compressed, uint64 length) {
   return data.size();
 }
 
-} //namespace postprocessor
 } //namespace bwtc
 

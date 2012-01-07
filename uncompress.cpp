@@ -1,5 +1,5 @@
 /**
- * @file uncompr.cpp
+ * @file uncompress.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -30,10 +30,12 @@
 /* bwtc-decompressor main program */
 #include <iostream>
 #include <iterator>
+#include <algorithm>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include "preprocessors/Postprocessor.hpp"
 #include "Coders.hpp"
 #include "WaveletCoders.hpp"
 #include "Streams.hpp"
@@ -52,7 +54,16 @@ void decompress(const std::string& input_name, const std::string& output_name,
   }
   //bwtc::Decoder decoder(input_name);
   bwtc::WaveletDecoder decoder(input_name);
-  char preproc = decoder.readGlobalHeader();
+  std::string postproc = decoder.readGlobalHeader();
+  std::reverse(postproc.begin(), postproc.end());
+  bwtc::PostProcessor postProcessor(postproc);
+
+  if(verbosity > 1) {
+    std::clog << "Postprocessor initiated with parameter: " << postproc
+              << std::endl;
+  }
+
+  
   bwtc::OutStream out(output_name);
 
   bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
@@ -64,10 +75,11 @@ void decompress(const std::string& input_name, const std::string& output_name,
     std::vector<byte>* unbwt_block = transformer->doTransform(&(*bwt_block)[0],
                                                               bwt_block->size(),
                                                               eob_byte);
-    // PostProcess
+    delete bwt_block;
+
+    postProcessor.postProcess(unbwt_block);
     out.writeBlock(unbwt_block->begin(), unbwt_block->end());
     out.flush();
-    delete bwt_block;
     delete unbwt_block;
   }
   if (verbosity > 0) {

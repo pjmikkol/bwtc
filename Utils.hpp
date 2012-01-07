@@ -243,13 +243,15 @@ size_t binaryInterpolativeDecode(std::vector<Integer>& list, Input& input,
 {
   if(elements == 0) return 0;
   if(elements == hi - lo + 1) {
-    for(Integer i = lo; i <= hi; ++i) list.push_back(i);
+    size_t i = lo;
+    for(Integer b = lo; i <= hi; ++i, ++b) list.push_back(b);
     return 0;
   }
   size_t bitsRead = 0;
   size_t h = (elements-1)/2;
   size_t r = elements/2 - h;
   Integer mid = binaryDecode(input, lo + h, hi - h - r, &bitsRead);
+
   bitsRead += binaryInterpolativeDecode(list, input, lo, mid-1, h);
   list.push_back(mid);
   bitsRead +=  binaryInterpolativeDecode(list, input, mid+1, hi, elements-h-1);

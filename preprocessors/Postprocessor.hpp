@@ -35,26 +35,33 @@
 //      postprocessing exists
 
 namespace bwtc {
-namespace postprocessor {
 
-struct Replacement {
-  Replacement();
-  Replacement(uint32 len, uint16 repl, bool pair);
-  Replacement(const Replacement& r);
-  Replacement& operator=(const Replacement& repl);
+class PostProcessor {
+ public:
+  struct Replacement {
+    Replacement();
+    Replacement(uint32 len, uint16 repl, bool pair);
+    Replacement(const Replacement& r);
+    Replacement& operator=(const Replacement& repl);
+    
+    uint32 length;
+    uint16 replacement;
+    bool isPair;
+  };
 
-  uint32 length;
-  uint16 replacement;
-  bool isPair;
+  PostProcessor(const std::string& postProcOptions);
+
+  void postProcess(std::vector<byte> *data);
+
+  static size_t uncompressCommonPairs(std::vector<byte> *from, size_t length);
+  static size_t uncompressLongRuns(std::vector<byte> *from, size_t length);
+  static size_t uncompressSequences(std::vector<byte> *from, size_t length);
+  static size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length);
+
+ private:
+  std::string m_options;
 };
-
-
-uint64 uncompressCommonPairs(std::vector<byte> *from, uint64 length);
-uint64 uncompressLongRuns(std::vector<byte> *from, uint64 length);
-uint64 uncompressSequences(std::vector<byte> *from, uint64 length);
-size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length);
-
-} //namespace postprocessor
+  
 } //namespace bwtc
 
 #endif

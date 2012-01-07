@@ -275,6 +275,8 @@ size_t WaveletTree<BitVector>::readShape2(Input& input) {
   assert(m_root->m_left == 0 && m_root->m_right == 0);
   size_t maxSym = input.readByte();
   size_t symbols = input.readByte();
+  if(symbols == 0) symbols = 256;
+
   size_t bitsRead = 16;
   size_t maxLen = 0;
   size_t read = 0xff;
@@ -285,9 +287,11 @@ size_t WaveletTree<BitVector>::readShape2(Input& input) {
     j += 7;
     bitsRead += 8;
   }
+
   std::vector<byte> alphabet;
   bitsRead += utils::binaryInterpolativeDecode(alphabet, input,
                                                maxSym, symbols);
+
   std::vector<std::pair<uint64, byte> > codeLengths;
   for(size_t i = 0; i < symbols; ++i) {
     size_t n = utils::unaryDecode(input);
@@ -402,6 +406,7 @@ void WaveletTree<BitVector>::treeShape2(BitVector& vec) const {
   utils::pushBits(vec, symbols.back(), 8);
   // Number of distinct symbols
   utils::pushBits(vec, symbols.size(), 8);
+
   int bytesInLongestCode;
   size_t packedInt = utils::packInteger(maxLen, &bytesInLongestCode);
   utils::pushBits(vec, packedInt, bytesInLongestCode*8);

@@ -72,9 +72,9 @@ class WaveletDecoder {
  public:
   WaveletDecoder(const std::string& source);
   ~WaveletDecoder();
-  /* ReadGlobalHeader returns char denoting the preprocessing algorithm.
+  /* ReadGlobalHeader returns the string describing the preprocessing algorithm.
    * It changes the used probability model automatically. */
-  char readGlobalHeader();
+  std::string readGlobalHeader();
   //void start() { m_source->start(); }
   /* If end symbol is encountered, then the most significant bit is activated */
   uint64 readPackedInteger();

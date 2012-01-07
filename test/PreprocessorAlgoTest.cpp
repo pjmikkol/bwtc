@@ -71,7 +71,7 @@ void TestRunUncompression(std::string source, int times, uint64 block_size)
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::postprocessor::
+      uncompressed_size = bwtc::PostProcessor::
           uncompressLongRuns(pp.m_currentBlock->m_block,
                              pp.m_currentBlock->m_filled);
       /* This one should be done in same kind of wrapper than
@@ -120,7 +120,7 @@ void TestPairUncompression(std::string source, int times, uint64 block_size)
     uint64 uncompressed_size = 0;
     /* Make sure that we can also uncompress the thing */
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::postprocessor::
+      uncompressed_size = bwtc::PostProcessor::
           uncompressCommonPairs(pp.m_currentBlock->m_block,
                                 pp.m_currentBlock->m_filled);
       /* This one should be done in same kind of wrapper than
@@ -209,11 +209,11 @@ void TestComboCompression(std::string source_name, int times, uint64 block_size)
 
     uint64 uncompressed_size = 0;
     for(int j = 0; j < times; ++j) {
-      uncompressed_size = bwtc::postprocessor::
+      uncompressed_size = bwtc::PostProcessor::
           uncompressLongRuns(pp.m_currentBlock->m_block,
                              pp.m_currentBlock->m_filled);
       pp.m_currentBlock->m_filled = uncompressed_size; 
-      uncompressed_size = bwtc::postprocessor::
+      uncompressed_size = bwtc::PostProcessor::
           uncompressCommonPairs(pp.m_currentBlock->m_block,
                                 pp.m_currentBlock->m_filled);
       pp.m_currentBlock->m_filled = uncompressed_size; 

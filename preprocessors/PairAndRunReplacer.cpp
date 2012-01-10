@@ -54,19 +54,19 @@ Replacement& Replacement::operator=(const Replacement& r) {
   return *this;
 }
 
-PairAndRunReplacer::PairAndRunReplacer()
+PairAndRunReplacer::PairAndRunReplacer(bool useEscaping)
     : m_prev(0), m_prevRun(std::make_pair(0,0)), m_numOfReplacements(0),
       m_escapeByte(0), m_commonByte(0), m_analysationStarted(false),
-      m_verbose(false) {
+      m_verbose(false), m_useEscaping(useEscaping) {
   size_t size = RunReplacerConsts::s_logMaxLengthOfSequence - 1;
   for(size_t i = 0; i < 256; ++i) 
     m_runFreqs[i].resize(size);
 }
 
-PairAndRunReplacer::PairAndRunReplacer(bool verbose)
+PairAndRunReplacer::PairAndRunReplacer(bool useEscaping, bool verbose)
     : m_prev(0), m_prevRun(std::make_pair(0,0)), m_numOfReplacements(0),
       m_escapeByte(0), m_commonByte(0), m_analysationStarted(false),
-      m_verbose(verbose) {
+      m_verbose(verbose), m_useEscaping(useEscaping) {
   size_t size = RunReplacerConsts::s_logMaxLengthOfSequence - 1;
   for(size_t i = 0; i < 256; ++i) 
     m_runFreqs[i].resize(size);
@@ -77,7 +77,7 @@ PairAndRunReplacer::PairAndRunReplacer(const PairAndRunReplacer& pr)
       m_prev(pr.m_prev), m_prevRun(pr.m_prevRun),
       m_numOfReplacements(pr.m_numOfReplacements), m_escapeByte(pr.m_escapeByte),
       m_commonByte(pr.m_commonByte), m_analysationStarted(pr.m_analysationStarted),
-      m_verbose(pr.m_verbose) {
+      m_verbose(pr.m_verbose), m_useEscaping(pr.m_useEscaping) {
   std::copy(pr.m_frequencies, pr.m_frequencies + 256, m_frequencies);
   std::copy(pr.m_pairFrequencies, pr.m_pairFrequencies + (1 << 16), m_pairFrequencies);
   for(size_t i = 0; i < 256; ++i) {
@@ -149,7 +149,8 @@ void PairAndRunReplacer::beginAnalysing(byte first, bool reset) {
 
 void PairAndRunReplacer::findReplaceablePairsAndRuns(
     std::vector<std::pair<size_t, uint16> >& pairs,
-    std::vector<Replacement>& replaceables, FrequencyTable& freqs) const {
+    std::vector<Replacement>& replaceables, FrequencyTable& freqs,
+    size_t maxReplaceables) const {
   bool usedFst[256] = {false}, usedSnd[256] = {false}, usedRun[256] = {false};
   SequenceHeap seqHeap;
   for(size_t i = 0; i < 256; ++i) {
@@ -164,7 +165,7 @@ void PairAndRunReplacer::findReplaceablePairsAndRuns(
 
   size_t currentSymbol = 0, currentPair = 0;
 
-  while(currentSymbol < 254) {
+  while(currentSymbol < maxReplaceables) {
     bool isPair = true;
     size_t utility = 0;
     bool runsLeft = !seqHeap.empty(), pairsLeft = currentPair < pairs.size();
@@ -395,13 +396,21 @@ size_t PairAndRunReplacer::decideReplacements() {
   while(freqTable.getFrequency(freeSymbols) == 0) ++freeSymbols;
 
   std::vector<Replacement> replaceables;
+  size_t escapeIndex;
   {
     std::vector<std::pair<size_t, uint16> > pairs;
     PairReplacer::makePairList(pairs, m_pairFrequencies);
-    findReplaceablePairsAndRuns(pairs, replaceables, freqTable);
+    if(m_useEscaping) {
+      findReplaceablePairsAndRuns(pairs, replaceables, freqTable, 254);
+      escapeIndex = (replaceables.size() <= freeSymbols)?freeSymbols:
+          findEscapeIndex(freqTable, freeSymbols, replaceables);
+    } else { 
+      findReplaceablePairsAndRuns(pairs, replaceables, freqTable, freeSymbols);
+      escapeIndex = freeSymbols;
+    }
   }
 
-  size_t escapeIndex = (replaceables.size() <= freeSymbols)?freeSymbols:
+  escapeIndex = (replaceables.size() <= freeSymbols)?freeSymbols:
       findEscapeIndex(freqTable, freeSymbols, replaceables);
   m_escapeByte = freqTable.getKey(escapeIndex);
 

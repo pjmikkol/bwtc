@@ -226,18 +226,18 @@ replacements(std::vector<std::pair<byte, RunReplacement> >& runReplacements) con
 
 // End of RunReplacementTable's implementation
 
-RunReplacer::RunReplacer()
+RunReplacer::RunReplacer(bool useEscaping)
     : m_numOfReplacements(0), m_prevRun(std::make_pair(0, 0)),
-      m_analysationStarted(false), m_verbose(false)
+      m_analysationStarted(false), m_verbose(false), m_useEscaping(useEscaping)
 {
   size_t size = RunReplacerConsts::s_logMaxLengthOfSequence - 1;
   for(size_t i = 0; i < 256; ++i) 
     m_runFreqs[i].resize(size);
 }
 
-RunReplacer::RunReplacer(bool verbose)
+RunReplacer::RunReplacer(bool useEscaping, bool verbose)
     : m_numOfReplacements(0), m_prevRun(std::make_pair(0, 0)),
-      m_analysationStarted(false), m_verbose(verbose)
+      m_analysationStarted(false), m_verbose(verbose), m_useEscaping(useEscaping)
 {
   size_t size = RunReplacerConsts::s_logMaxLengthOfSequence - 1;
   for(size_t i = 0; i < 256; ++i) 
@@ -246,7 +246,8 @@ RunReplacer::RunReplacer(bool verbose)
 
 RunReplacer::RunReplacer(const RunReplacer& rr)
     : m_numOfReplacements(rr.m_numOfReplacements), m_prevRun(rr.m_prevRun),
-      m_analysationStarted(rr.m_analysationStarted), m_verbose(rr.m_verbose)
+      m_analysationStarted(rr.m_analysationStarted), m_verbose(rr.m_verbose),
+      m_useEscaping(rr.m_useEscaping)
 {
   std::copy(rr.m_frequencies, rr.m_frequencies + 256, m_frequencies);
   for(size_t i = 0; i < 256; ++i) {
@@ -276,8 +277,9 @@ void RunReplacer::beginAnalysing(bool reset) {
   m_analysationStarted = true;
 }
 
-void RunReplacer::findReplaceableRuns(std::vector<Runs>& replaceableRuns,
-                                      FrequencyTable& freqs) const
+void RunReplacer::
+findReplaceableRuns(std::vector<Runs>& replaceableRuns, FrequencyTable& freqs,
+                    size_t maxReplacements) const
 {
   assert(replaceableRuns.size() == 0);
   SequenceHeap seqHeap;
@@ -290,7 +292,7 @@ void RunReplacer::findReplaceableRuns(std::vector<Runs>& replaceableRuns,
   }
   seqHeap.prepare();
   size_t currentSymbol = 0;
-  while(!seqHeap.empty()) {
+  while(!seqHeap.empty() && replaceableRuns.size() < maxReplacements) {
     Runs best = seqHeap.removeMax();
     size_t score = best.length*best.frequency;
     freqs.decrease(best.symbol, score);
@@ -422,10 +424,16 @@ size_t RunReplacer::decideReplacements() {
   while(freqTable.getFrequency(freeSymbols) == 0) ++freeSymbols;
 
   std::vector<Runs> replaceableRuns;
-  findReplaceableRuns(replaceableRuns, freqTable);
+  size_t escapeIndex;
+  if(m_useEscaping) {
+    findReplaceableRuns(replaceableRuns, freqTable, 254);
+    escapeIndex = (replaceableRuns.size() <= freeSymbols)?freeSymbols:
+        findEscapeIndex(freqTable, freeSymbols, replaceableRuns);
+  } else {
+    findReplaceableRuns(replaceableRuns, freqTable, freeSymbols);
+    escapeIndex = freeSymbols;
+  }
 
-  size_t escapeIndex = (replaceableRuns.size() <= freeSymbols)?freeSymbols:
-      findEscapeIndex(freqTable, freeSymbols, replaceableRuns);
   m_escapeByte = freqTable.getKey(escapeIndex);
 
   m_numOfReplacements = (escapeIndex > freeSymbols)?

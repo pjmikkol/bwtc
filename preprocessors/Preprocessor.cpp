@@ -63,12 +63,14 @@ Preprocessor* givePreprocessor(char choice, uint64 block_size,
   return pp;
 }
 
-Preprocessor::Preprocessor(uint64 block_size, const std::string& prepr) :
-    m_source(0), m_blockSize(block_size), m_blockManager(0),
-    m_preprocessingOptions(prepr) {}
+Preprocessor::Preprocessor(uint64 block_size, const std::string& prepr,
+                           bool useEscaping)
+    : m_source(0), m_blockSize(block_size), m_blockManager(0),
+      m_preprocessingOptions(prepr), m_useEscaping(useEscaping) {}
 
 Preprocessor::Preprocessor(uint64 block_size) :
-    m_source(0), m_blockSize(block_size), m_blockManager(0) {}
+    m_source(0), m_blockSize(block_size), m_blockManager(0),
+    m_useEscaping(true) {}
 
 Preprocessor::~Preprocessor() {
   delete m_source;
@@ -116,14 +118,13 @@ MainBlock* Preprocessor::readBlock() {
 }
 
 #define PREPROCESS(Type, verb, src, dst) \
-  Type r((verb)); \
+  Type r(m_useEscaping, (verb));          \
   r.analyseData((src), length); \
   r.finishAnalysation(); \
   r.decideReplacements(); \
   size_t hSize = r.writeHeader((dst)); \
   size_t comprSize = r.writeReplacedVersion((src), length, (dst)+hSize); \
   length = comprSize + hSize
-  
 
 size_t Preprocessor::preprocess(byte *src, size_t length) {
   PROFILE("Preprocessor::preprocess");

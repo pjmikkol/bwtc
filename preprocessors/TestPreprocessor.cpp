@@ -49,10 +49,10 @@ TestPreprocessor::~TestPreprocessor() {
 
 /* Testing the case where preprocessing algorithms are interleaved */
 size_t TestPreprocessor::pppr() {
-  PairReplacer pr1(true);
-  PairReplacer pr2(true);
-  PairReplacer pr3(true);
-  RunReplacer rr1(true);
+  PairReplacer pr1(true,true);
+  PairReplacer pr2(true,true);
+  PairReplacer pr3(true,true);
+  RunReplacer rr1(true, true);
 
   size_t origSize = m_currentBlock->m_filled;
   byte *src = &(*m_currentBlock->m_block)[0];
@@ -91,7 +91,7 @@ size_t TestPreprocessor::pppr() {
 }
 
 uint64 TestPreprocessor::compressPairs() {
-  PairReplacer pr(true);
+  PairReplacer pr(true,true);
 
   size_t origSize = m_currentBlock->m_filled;
   byte *src = &(*m_currentBlock->m_block)[0];
@@ -116,7 +116,7 @@ uint64 TestPreprocessor::compressPairs() {
 }
 
 uint64 TestPreprocessor::compressRuns() {
-  RunReplacer rr(true);
+  RunReplacer rr(true, true);
 
   size_t origSize = m_currentBlock->m_filled;
   byte *src = &(*m_currentBlock->m_block)[0];
@@ -141,7 +141,7 @@ uint64 TestPreprocessor::compressRuns() {
 }
 
 size_t TestPreprocessor::compressPairsAndRuns() {
-  pairs_and_runs::PairAndRunReplacer pr(true);
+  pairs_and_runs::PairAndRunReplacer pr(true, true);
 
   size_t origSize = m_currentBlock->m_filled;
   byte *src = &(*m_currentBlock->m_block)[0];

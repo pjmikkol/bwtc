@@ -49,7 +49,8 @@ namespace po = boost::program_options;
 using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
-              uint64 block_size, const std::string& preproc, char encoding)
+              uint64 block_size, const std::string& preproc, char encoding,
+              bool escaping)
 {
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
@@ -57,7 +58,7 @@ void compress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::Preprocessor preprocessor(block_size, preproc);
+  bwtc::Preprocessor preprocessor(block_size, preproc, escaping);
   preprocessor.connect(input_name);
 
   bwtc::BlockManager block_manager(block_size, 1);
@@ -134,7 +135,7 @@ int main(int argc, char** argv) {
   uint64 block_size;
   char encoding;
   std::string input_name, output_name, preprocessing;
-  bool stdout, stdin;
+  bool stdout, stdin, escaping;
 
   try {
     po::options_description description(
@@ -147,6 +148,8 @@ int main(int argc, char** argv) {
          "Block size for compression (in kB)")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
+        ("escape", po::value<bool>(&escaping)->default_value(true),
+         "are preprocessing algorithms using escaping (0 to disable)")
         ("input-file", po::value<std::string>(&input_name),
          "file to compress, defaults to stdin")
         ("output-file", po::value<std::string>(&output_name),"target file")
@@ -205,7 +208,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preprocessing, encoding);
+  compress(input_name, output_name, block_size*1024, preprocessing, encoding, escaping);
 
   return 0;
 }

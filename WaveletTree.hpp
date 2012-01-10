@@ -299,7 +299,7 @@ size_t WaveletTree<BitVector>::readShape2(Input& input) {
     size_t len = maxLen - n + 1;
     codeLengths.push_back(std::make_pair(len, alphabet[i]));
   }
-  
+
   assignPrefixCodes(codeLengths);
   collectCodes(m_codes, m_root);
   
@@ -412,6 +412,7 @@ void WaveletTree<BitVector>::treeShape2(BitVector& vec) const {
   utils::pushBits(vec, packedInt, bytesInLongestCode*8);
 
   utils::binaryInterpolativeCode(symbols, symbols.back(), vec);
+
   for(size_t i = 0; i < symbols.size(); ++i) 
     utils::unaryCode(vec, maxLen - m_codes[symbols[i]].size() + 1);
 }

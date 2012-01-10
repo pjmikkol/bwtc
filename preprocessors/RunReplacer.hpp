@@ -128,8 +128,8 @@ class RunReplacementTable {
 
 class RunReplacer {
  public:
-  RunReplacer();
-  RunReplacer(bool verbose);
+  RunReplacer(bool useEscaping);
+  RunReplacer(bool useEscaping, bool verbose);
   RunReplacer(const RunReplacer& rr);
   ~RunReplacer();
 
@@ -164,7 +164,7 @@ class RunReplacer {
   size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
 
   void findReplaceableRuns(std::vector<Runs>& replaceableRuns,
-                           FrequencyTable& freqs) const;
+                           FrequencyTable& freqs, size_t maxRuns) const;
 
   size_t findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
                          const std::vector<Runs>& replaceableRuns) const;
@@ -212,6 +212,9 @@ class RunReplacer {
 
   /**Tells if the results of analysis and replacements are printed. */
   bool m_verbose;
+
+  /**Tells if the results of analysis and replacements are printed. */
+  const bool m_useEscaping;
 };
 
 /**Class for storing the counts of runs, picking the most profitable run and

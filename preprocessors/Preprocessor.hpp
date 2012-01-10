@@ -41,7 +41,7 @@ namespace bwtc {
 class Preprocessor {
  public:
   Preprocessor(uint64 block_size);
-  Preprocessor(uint64 block_size, const std::string& prepr);
+  Preprocessor(uint64 block_size, const std::string& prepr, bool useEscaping);
   ~Preprocessor();
   void connect(const std::string& source_name);
   void addBlockManager(BlockManager* bm);
@@ -63,6 +63,7 @@ class Preprocessor {
   Preprocessor(const Preprocessor&);
 
   std::string m_preprocessingOptions;
+  const bool m_useEscaping;
   
 };
 

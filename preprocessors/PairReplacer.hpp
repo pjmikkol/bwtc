@@ -37,8 +37,8 @@ namespace bwtc {
 
 class PairReplacer {
  public:
-  PairReplacer();
-  PairReplacer(bool verbose);
+  PairReplacer(bool useEscaping);
+  PairReplacer(bool useEscaping, bool verbose);
   PairReplacer(const PairReplacer& pr);
   ~PairReplacer();
 
@@ -67,7 +67,7 @@ class PairReplacer {
 
   void findReplaceablePairs(std::vector<std::pair<size_t, uint16> >& pairs,
                             std::vector<std::pair<size_t, uint16> >& replaceablePairs,
-                            FrequencyTable& freqs) const;
+                            FrequencyTable& freqs, size_t maxReplacements) const;
 
 
   size_t findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
@@ -180,6 +180,9 @@ class PairReplacer {
 
   /**Tells if the results of analysis and replacements are printed. */
   bool m_verbose;
+
+  /**Tells if some rare symbols will be stolen. */
+  const bool m_useEscaping;
 };
 
 } //namespace bwtc

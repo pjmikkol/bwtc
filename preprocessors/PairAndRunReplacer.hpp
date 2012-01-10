@@ -52,8 +52,8 @@ struct Replacement {
 
 class PairAndRunReplacer {
  public:
-  PairAndRunReplacer();
-  PairAndRunReplacer(bool verbose);
+  PairAndRunReplacer(bool useEscaping);
+  PairAndRunReplacer(bool useEscaping, bool verbose);
   PairAndRunReplacer(const PairAndRunReplacer& pr);
   ~PairAndRunReplacer();
 
@@ -67,7 +67,8 @@ class PairAndRunReplacer {
 
   void findReplaceablePairsAndRuns(
       std::vector<std::pair<size_t, uint16> >& pairs,
-      std::vector<Replacement>& replaceables, FrequencyTable& freqs) const;
+      std::vector<Replacement>& replaceables, FrequencyTable& freqs,
+      size_t maxReplaceables) const;
 
   size_t findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
                          std::vector<Replacement>& replaceables);
@@ -127,6 +128,8 @@ class PairAndRunReplacer {
 
   /**Tells if the results of analysis and replacements are printed. */
   bool m_verbose;
+
+  const bool m_useEscaping;
 };
 
 } //namespace pairs_and_runs

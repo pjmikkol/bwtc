@@ -57,15 +57,31 @@ class SequenceReplacer {
   void resizeAndInitTable(size_t preference);
   uint64 initHash(const byte* data) const;
   void initHashConstant();
+  void scanAndStore(const byte* data, size_t length);
+  size_t gatherDuplicates(size_t index,
+                          const std::vector<std::pair<size_t, uint32> >& buffer,
+                          size_t bufferSize, size_t hash, size_t extraHash);
+  void calculateFrequencies(const byte* data, uint32 begin, uint32 end);
+  void sortIntoBuckets();
+  void sortSubBucket(int begin, int end, const byte* data);
+  int strCmp(uint32 pos1, uint32 pos2, const byte* data);
+  void sortPositions(int begin, int end);
+  void insertionSort(int begin, int end, const byte* data);
+  void sortAndMarkBuckets(const byte* data);
 
   static const uint64 s_hashConstant = 37;
-  
+  static const uint32 s_errorVal = 0xffffffff;
+  static const int s_insertionSortLimit = 10;
+
   /**Stores the frequencies of bytes. */
   size_t m_frequencies[256];
 
-  /**Stores the hash values, counters and lengths of replaceable sequences. */
+  /**Stores the hash values, counters and lengths of replaceable sequences.
+   * When scanning, the first one is counter and second is h* */
   std::vector<std::pair<uint32, uint32> > m_hashValues;
 
+  std::vector<std::pair<uint32, uint32> > m_sequences;
+  
   uint64 m_runningHash;
 
   uint64 m_hashRemovalConstant;

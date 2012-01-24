@@ -191,7 +191,7 @@ void PairAndRunReplacer::findReplaceablePairsAndRuns(
       Runs best = seqHeap.removeMax();
       if(usedFst[best.symbol] || usedSnd[best.symbol]) continue;
       freqs.decrease(best.symbol, utility + best.frequency);
-      if(freqs.getFrequency(currentSymbol) + 3 >= utility) {
+      if(freqs.getFrequency(currentSymbol) + 1003 >= utility) {
         freqs.increase(best.symbol, utility + best.frequency);
         break;
       }
@@ -218,7 +218,7 @@ void PairAndRunReplacer::findReplaceablePairsAndRuns(
         continue;
       }
       
-      if(freqs.getFrequency(currentSymbol) + 3 >= pairs[currentPair].first) {
+      if(freqs.getFrequency(currentSymbol) + 1003 >= pairs[currentPair].first) {
         freqs.increase(fst, pairs[currentPair].first);
         freqs.increase(snd, pairs[currentPair].first);
         ++currentPair;
@@ -275,9 +275,10 @@ writeRunReplacement(byte runSymbol, int runLength, byte *dst) const {
     if((int)rr.length <= runLength) {
       // TODO: optimize (rr.length == 2^k, for some k)
       //size_t times = runLength/rr.length;
-      size_t times = runLength >> utils::logFloor(rr.length);
+      size_t logLen = utils::logFloor(rr.length);
+      size_t times = runLength >> logLen;
       std::fill(dst +j, dst + j + times, rr.replacementSymbol);
-      runLength -= times*rr.length;
+      runLength -= (times << logLen);
       j += times;
     }
     pointer = rr.nextElement;
@@ -322,11 +323,13 @@ writeReplacedVersion(const byte *src, size_t length, byte* dst) const {
       while(i < length && prev == src[i]) {++i; ++runLength; }
       j += writeRunReplacement(prev, runLength, dst + j);
     }
-    if(i == length - 1) {
-      pair = (src[i] << 8) | 0;
-      if(m_pairReplacements[pair] == m_escapeByte && m_escapeByte != m_commonByte)
-        dst[j++] = m_escapeByte;
-      dst[j++] = src[i];
+    if(i >= length - 1) {
+      if(i == length - 1) {
+        pair = (src[i] << 8) | 0;
+        if(m_pairReplacements[pair] == m_escapeByte && m_escapeByte != m_commonByte)
+          dst[j++] = m_escapeByte;
+        dst[j++] = src[i];
+      }
       break;
     }
     pair = prev = src[i];

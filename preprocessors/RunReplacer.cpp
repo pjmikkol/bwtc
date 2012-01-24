@@ -296,7 +296,7 @@ findReplaceableRuns(std::vector<Runs>& replaceableRuns, FrequencyTable& freqs,
     Runs best = seqHeap.removeMax();
     size_t score = best.length*best.frequency;
     freqs.decrease(best.symbol, score);
-    if(freqs.getFrequency(currentSymbol) + 3 >= score - best.frequency) {
+    if(freqs.getFrequency(currentSymbol) + 1003 >= score - best.frequency) {
       freqs.increase(best.symbol, score);
       break;
     }

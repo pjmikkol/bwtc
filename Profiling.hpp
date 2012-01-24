@@ -13,7 +13,7 @@ class ProfileManager {
     
     void clear() {
       calls = 0; time = 0;
-    }		
+    }
     size_t calls;
     double time;		
   };
@@ -28,9 +28,9 @@ class ProfileManager {
   static void printProfilerData() {
     ProfileManager& prof = *getInstance();
     const Results& results = prof.getResults();
-    std::cout << "name,calls,time" << std::endl;
+    std::clog << "name,calls,time" << std::endl;
     for(Results::const_iterator it = results.begin(); it != results.end(); ++it) {
-      std::cout << it->first << "," << it->second.calls << ","
+      std::clog << it->first << "," << it->second.calls << ","
                 << it->second.time << std::endl;
     }
   }

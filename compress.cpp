@@ -52,6 +52,8 @@ void compress(const std::string& input_name, const std::string& output_name,
               uint64 block_size, const std::string& preproc, char encoding,
               bool escaping)
 {
+  PROFILE("TOTAL_compression_time");
+
   if (verbosity > 1) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
     else std::clog << "Input: stdin" << std::endl;
@@ -77,16 +79,16 @@ void compress(const std::string& input_name, const std::string& output_name,
     ++blocks;
     //Transformer could have some memory manager..
     transformer->connect(block);
-    transformer->buildStats(); 
-    encoder.writeBlockHeader(block->m_stats); 
-    /* This may be altered if we want to use some memory manager,
-     * because then it may be possible that we are having bigger
-     * vector than there exists data. Then we may have to return pair
-     * (vector, data_length) from doTransform. */
+    transformer->buildStats();
+    encoder.writeBlockHeader(block->m_stats);
+
+    /* The following way enables the calculation of transformation in 
+     * several phases */
     while(std::vector<byte>* b =  transformer->doTransform(&eob_byte)) {
       encoder.encodeData(b, block->m_stats, b->size());
       delete b;
     }
+
     encoder.finishBlock(eob_byte);
     last_s = block->m_filled;
     delete block;
@@ -97,8 +99,6 @@ void compress(const std::string& input_name, const std::string& output_name,
     std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
   }
   delete transformer;
-
-  PRINT_PROFILE_DATA
 }
 
 /* Notifier function for preprocessing option choice */
@@ -210,5 +210,6 @@ int main(int argc, char** argv) {
 
   compress(input_name, output_name, block_size*1024, preprocessing, encoding, escaping);
 
+  PRINT_PROFILE_DATA
   return 0;
 }

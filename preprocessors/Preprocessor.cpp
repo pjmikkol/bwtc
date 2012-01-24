@@ -146,6 +146,9 @@ size_t Preprocessor::preprocess(byte *src, size_t length) {
   if(m_preprocessingOptions.size() & 1) {
     std::copy(src, src + length, dst);
   }
+  if(verbosity > 0) {
+    std::clog << "Size of preprocessed block is " << length <<std::endl;
+  }
   return length;
 }
 

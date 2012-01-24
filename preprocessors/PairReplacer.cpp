@@ -129,7 +129,7 @@ void PairReplacer::findReplaceablePairs(
       continue;
     }
 
-    if(freqs.getFrequency(currentSymbol) + 3 >= pairs[currentPair].first) {
+    if(freqs.getFrequency(currentSymbol) + 1003 >= pairs[currentPair].first) {
       freqs.increase(fst, pairs[currentPair].first);
       freqs.increase(snd, pairs[currentPair].first);
       ++currentPair;

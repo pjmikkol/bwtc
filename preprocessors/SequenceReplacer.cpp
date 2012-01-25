@@ -156,7 +156,7 @@ void SequenceReplacer::sortIntoBuckets() {
     }
   }
   if(m_verbose) {
-    std::cout << "Total recurring sequences detected: " << total << std::endl;
+    std::clog << "Total recurring sequences detected: " << total << std::endl;
   }
   std::vector<std::pair<uint32, uint32> > sequences;
   sequences.resize(total);
@@ -275,15 +275,18 @@ gatherDuplicates(size_t index,
                  size_t bufferSize, size_t hash, size_t extraHash, size_t mask)
 {
   std::pair<uint32, uint32>& pair = m_hashValues[hash];
+  uint32 prevPos = buffer[index].second;
   ++pair.first;
   pair.second = extraHash;
   m_sequences.push_back(std::make_pair(hash, buffer[index++].second));
   for(; index < bufferSize; ++index) {
-    if((buffer[index].first & mask) != hash) return buffer[index-1].second;
+    if((buffer[index].first & mask) != hash) break;
+    if(buffer[index].second < s_minPeriod + prevPos) continue;
+    prevPos = buffer[index].second;
     ++pair.first;
     m_sequences.push_back(std::make_pair(hash, buffer[index].second));
   }
-  return buffer[index-1].second;
+  return m_sequences.back().second;
 }
 
 void SequenceReplacer::nameRange(uint32 begin, uint32 end, uint32 name) {
@@ -296,13 +299,15 @@ uint32 SequenceReplacer::nameHashValues() {
   uint32 name = 0;
   uint32 prev = 0;
   m_sequences[0].second &= 0x7fffffff;
+  uint32 j = 0;
   for(uint32 i = 1; i < m_sequences.size(); ++i) {
     if(m_sequences[i].second & 0x80000000) {
       if(i > prev + 1) {
         nameRange(prev, i, name);
         ++name;
-      } else {
-        nameRange(prev, i, s_errorVal);
+        for(uint32 k = prev; k < i; ++k) {
+          m_sequences[j++] = m_sequences[k];
+        }
       }
       prev = i;
       m_sequences[i].second &= 0x7fffffff;
@@ -310,9 +315,11 @@ uint32 SequenceReplacer::nameHashValues() {
   }
   if(m_sequences.size() > prev + 1) {
     nameRange(prev, m_sequences.size(), name);
-  } else {
-    nameRange(prev, m_sequences.size(), s_errorVal);
+    for(uint32 k = prev; k < m_sequences.size(); ++k) {
+      m_sequences[j++] = m_sequences[k];
+    }
   }
+  m_sequences.resize(j);
   return ++name;
 }
 
@@ -383,7 +390,12 @@ void SequenceReplacer::analyseData(const byte *data, size_t length, bool reset) 
   std::cout << "Sorted into buckets" << std::endl;
   sortAndMarkBuckets(data);
   std::cout << "Sorted and marked buckets" << std::endl;
-  nameHashValues();
+  uint32 separateStrings = nameHashValues();
+  if(m_verbose) {
+    std::clog << separateStrings << " separate strings in " <<
+        m_sequences.size() << " values." << std::endl;
+  }
+
   if(validatePhase2(data)) {
     std::cout << "Everything ok" << std::endl;
   } else {

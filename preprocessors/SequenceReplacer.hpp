@@ -68,6 +68,8 @@ class SequenceReplacer {
   void sortPositions(int begin, int end);
   void insertionSort(int begin, int end, const byte* data);
   void sortAndMarkBuckets(const byte* data);
+  /**Names hash values and removes useless strings. Returns number of
+   * separate string.*/
   uint32 nameHashValues();
   void nameRange(uint32 begin, uint32 end, uint32 name);
   bool validatePhase2(const byte* data) const;
@@ -76,6 +78,8 @@ class SequenceReplacer {
   static const uint64 s_hashConstant = 37;
   static const uint32 s_errorVal = 0xffffffff;
   static const uint32 s_defaultWindowSize = 32;
+  static const uint32 s_minPeriod = 4;
+  static const uint32 s_maxExpandableBucket = 10;
   static const int s_insertionSortLimit = 10;
 
   /**Stores the frequencies of bytes. */

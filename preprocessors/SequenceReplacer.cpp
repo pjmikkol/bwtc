@@ -33,6 +33,47 @@
 
 namespace bwtc {
 
+SequenceReplacer::SequenceReplacer(bool useEscaping)
+    : m_windowSize(s_defaultWindowSize), m_numOfReplacements(0),
+      m_escapeByte(0), m_phase(0), m_verbose(false), m_useEscaping(useEscaping)
+{}
+
+SequenceReplacer::SequenceReplacer(bool useEscaping, bool verbose)
+    : m_windowSize(s_defaultWindowSize), m_numOfReplacements(0),
+      m_escapeByte(0), m_phase(0), m_verbose(verbose), m_useEscaping(useEscaping)
+{}
+
+SequenceReplacer::SequenceReplacer(const SequenceReplacer& sr)
+    : m_windowSize(sr.m_windowSize), m_numOfReplacements(sr.m_numOfReplacements),
+      m_escapeByte(sr.m_escapeByte), m_phase(sr.m_phase), m_verbose(sr.m_verbose),
+      m_useEscaping(sr.m_useEscaping)
+
+{
+  std::copy(sr.m_frequencies, sr.m_frequencies + 256, m_frequencies);
+  m_hashValues = sr.m_hashValues;
+  m_sequences = sr.m_sequences;
+}
+
+SequenceReplacer::~SequenceReplacer() {}
+
+void SequenceReplacer::resetAnalyseData() {
+  std::fill(m_frequencies, m_frequencies + 256, 0);
+  m_sequences.clear();
+}
+
+size_t SequenceReplacer::decideReplacements() {
+
+}
+
+size_t SequenceReplacer::writeHeader(byte *to) const {
+
+}
+
+size_t SequenceReplacer::
+writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
+
+}
+
 uint64 SequenceReplacer::initHash(const byte* data) const {
   uint64 h = 0;
   for(size_t i = 0; i < m_windowSize; ++i) {
@@ -55,20 +96,21 @@ void SequenceReplacer::scanAndStore(const byte* data, size_t length) {
   uint32 pos = 0;
   const uint32 limit = 2 * m_windowSize - 2;
   std::vector<std::pair<size_t, uint32> > buffer;
-  buffer.resize(m_windowSize);
+  buffer.resize(m_windowSize-1);
   //TODO: Is the use of buffer too slow?
-  //TODO: frequencies!!
   while(pos + limit < length) {
     uint32 bufferIndex = 0;
     uint64 h = initHash(data + pos);
-    if((h >> logMask) == m_hashValues[h & mask].second || m_hashValues[h & mask].first == 0 )
+    if(((h >> logMask)&0xffffffff) == m_hashValues[h & mask].second || m_hashValues[h & mask].first == 0 )
       buffer[bufferIndex++] = std::make_pair(h, pos);
 
-    for(size_t i = 1; i < m_windowSize; ++i) {
-      h = (h - data[i-1]*m_hashRemovalConstant)*s_hashConstant + data[i+m_windowSize];
-      if((h >> logMask) == m_hashValues[h & mask].second  || m_hashValues[h & mask].first == 0 )
+    for(size_t i = 1; i < m_windowSize - 1; ++i) {
+      h = (h - data[pos + i - 1]*m_hashRemovalConstant)*s_hashConstant + data[pos + i - 1 + m_windowSize];
+      if(((h >> logMask)&0xffffffff) == m_hashValues[h & mask].second  || m_hashValues[h & mask].first == 0 )
         buffer[bufferIndex++] = std::make_pair(h, pos+i);
     }
+    if(bufferIndex == 0) { pos += limit; continue; }
+
     std::sort(buffer.begin(), buffer.begin()+bufferIndex);
 
     size_t prevHash = buffer[0].first & mask;
@@ -78,7 +120,7 @@ void SequenceReplacer::scanAndStore(const byte* data, size_t length) {
     for(size_t i = 1; i < bufferIndex; ++i) {
       size_t hash = buffer[i].first & mask;
       if(hash == prevHash) {
-        size_t last = gatherDuplicates(i-1, buffer, bufferIndex, hash, buffer[i].first >> logMask);
+        size_t last = gatherDuplicates(i-1, buffer, bufferIndex, hash, buffer[i].first >> logMask, mask);
         calculateFrequencies(data, pos, last + m_windowSize);
         pos = last + m_windowSize;
         duplicates = true;
@@ -94,7 +136,7 @@ void SequenceReplacer::scanAndStore(const byte* data, size_t length) {
     if(!duplicates) {
       size_t hash = buffer[maxPos].first;
       std::pair<uint32, uint32>& pair = m_hashValues[hash & mask];
-      m_sequences.push_back(std::make_pair(hash, buffer[maxPos].second));
+      m_sequences.push_back(std::make_pair(hash & mask, buffer[maxPos].second));
       ++pair.first;
       pair.second = hash >> logMask;
       calculateFrequencies(data, pos, buffer[maxPos].second + m_windowSize);
@@ -113,13 +155,16 @@ void SequenceReplacer::sortIntoBuckets() {
       m_hashValues[i].first = s_errorVal;
     }
   }
+  if(m_verbose) {
+    std::cout << "Total recurring sequences detected: " << total << std::endl;
+  }
   std::vector<std::pair<uint32, uint32> > sequences;
   sequences.resize(total);
   const size_t size = m_sequences.size();
   for(size_t i = 0; i < size; ++i) {
     std::pair<uint32, uint32> p = m_sequences.back();
-    if(p.first == s_errorVal) continue;
     m_sequences.pop_back();
+    if(m_hashValues[p.first].first == s_errorVal) continue;
     sequences[--m_hashValues[p.first].first] = p;
   }
   assert(m_sequences.size() == 0);
@@ -127,7 +172,7 @@ void SequenceReplacer::sortIntoBuckets() {
 }
 
 int SequenceReplacer::
-strCmp(uint32 pos1, uint32 pos2, const byte* data) {
+strCmp(uint32 pos1, uint32 pos2, const byte* data) const {
   for(uint32 i = 0; i < m_windowSize; ++i) {
     int diff = data[pos1++] - data[pos2++];
     if(diff != 0) return diff;
@@ -148,8 +193,7 @@ void SequenceReplacer::sortPositions(int begin, int end) {
             long_sequences::comparePosition);
 }
 
-#define POS(x) ((x)&0x7fffffff)
-
+// TODO: Recognize and mark subbuckets
 void SequenceReplacer::insertionSort(int begin, int end, const byte* data) {
   assert(end - begin > 0);
   for(int i = begin + 1; i < end; ++i) {
@@ -157,27 +201,29 @@ void SequenceReplacer::insertionSort(int begin, int end, const byte* data) {
     std::pair<uint32, uint32> val = m_sequences[j];
     int cmp = 0;
     while(j > begin) {
-      cmp = strCmp(POS(m_sequences[j].second), POS(m_sequences[j-1].second), data);
-      if(cmp > 0 || (cmp == 0 && POS(m_sequences[j].second) > POS(m_sequences[j-1].second)))
+      cmp = strCmp(m_sequences[j].second, m_sequences[j-1].second, data);
+      if(cmp > 0 || (cmp == 0 && m_sequences[j].second > m_sequences[j-1].second))
         break;
       m_sequences[j] = m_sequences[j-1];
       --j;
     }
     m_sequences[j] = val;
-    if(cmp > 0 || j == begin) m_sequences[j].second |= 0x80000000;
   }
 }
 
-#undef POS
 
 void SequenceReplacer::
 sortSubBucket(int begin, int end, const byte* data) {
   int len = end - begin;
-  if(len <= s_insertionSortLimit) {
-    if(len > 1) insertionSort(begin, end, data);
-    else if (len == 1) m_sequences[begin].second |= 0x80000000;
+  if(len <= 1) {
+    if(len == 1) m_sequences[begin].second |= 0x80000000;
     return;
   }
+  /*if(len <= s_insertionSortLimit) {
+    if(len > 1) insertionSort(begin, end, data);
+    m_sequences[begin].second |= 0x80000000;
+    return;
+    }*/
   int pivot = end-1;
   int i = begin - 1, j = begin;
   for(; j < end - 1; ++j) {
@@ -198,6 +244,7 @@ sortSubBucket(int begin, int end, const byte* data) {
   sortPositions(equalBucket, i);
   m_sequences[equalBucket].second |= 0x80000000;
   sortSubBucket(i, end, data);
+  m_sequences[begin].second |= 0x80000000;
 }
 
 void SequenceReplacer::sortAndMarkBuckets(const byte* data) {
@@ -208,7 +255,6 @@ void SequenceReplacer::sortAndMarkBuckets(const byte* data) {
   for(int i = 1; i < s; ++i) {
     if(prevHash != m_sequences[i].first) {
       sortSubBucket(prevPos, i, data);
-      //m_sequences[prevPos].second |= 0x80000000;
       prevPos = i;
       prevHash = m_sequences[i].first;
     }
@@ -226,35 +272,123 @@ void SequenceReplacer::finishAnalysation() {
 size_t SequenceReplacer::
 gatherDuplicates(size_t index,
                  const std::vector<std::pair<size_t, uint32> >& buffer,
-                 size_t bufferSize, size_t hash, size_t extraHash)
+                 size_t bufferSize, size_t hash, size_t extraHash, size_t mask)
 {
   std::pair<uint32, uint32>& pair = m_hashValues[hash];
   ++pair.first;
   pair.second = extraHash;
   m_sequences.push_back(std::make_pair(hash, buffer[index++].second));
   for(; index < bufferSize; ++index) {
-    if(buffer[index].first != hash) return buffer[index-1].second;
+    if((buffer[index].first & mask) != hash) return buffer[index-1].second;
     ++pair.first;
     m_sequences.push_back(std::make_pair(hash, buffer[index].second));
   }
-  return buffer.back().second;
+  return buffer[index-1].second;
 }
-  
+
+void SequenceReplacer::nameRange(uint32 begin, uint32 end, uint32 name) {
+  for(uint32 j = begin; j < end; ++j) {
+    m_sequences[j].first = name;
+  }
+}
+
+uint32 SequenceReplacer::nameHashValues() {
+  uint32 name = 0;
+  uint32 prev = 0;
+  m_sequences[0].second &= 0x7fffffff;
+  for(uint32 i = 1; i < m_sequences.size(); ++i) {
+    if(m_sequences[i].second & 0x80000000) {
+      if(i > prev + 1) {
+        nameRange(prev, i, name);
+        ++name;
+      } else {
+        nameRange(prev, i, s_errorVal);
+      }
+      prev = i;
+      m_sequences[i].second &= 0x7fffffff;
+    }
+  }
+  if(m_sequences.size() > prev + 1) {
+    nameRange(prev, m_sequences.size(), name);
+  } else {
+    nameRange(prev, m_sequences.size(), s_errorVal);
+  }
+  return ++name;
+}
+
+bool SequenceReplacer::
+validateRange(uint32 begin, uint32 end, const byte* data) const {
+  if(m_sequences[begin].first == s_errorVal) {
+    for(uint32 i = begin; i < end; ++i) {
+      if(strCmp(m_sequences[i].second, m_sequences[i+1].second, data) == 0) {
+        std::cout << "Discarded two equal strings." << std::endl;
+        return false;
+      }
+    }
+    return true;
+  }
+  if(begin + 1 == end) {
+    if(m_sequences[begin].first != s_errorVal) {
+      std::cout << "Wrong name for bucket of size 1" << std::endl;
+      return false;
+    }
+    return true;
+  }
+  for(uint32 i = begin; i < end-1; ++i) {
+    if(strCmp(m_sequences[i].second, m_sequences[i+1].second, data) != 0) {
+      std::cout << "Same name with different strings" << std::endl;
+      return false;
+    }
+    if(m_sequences[i].second >= m_sequences[i+1].second) {
+      std::cout << "Positions " << m_sequences[i].second << " and "
+                << m_sequences[i+1].second << " with same strings" << std::endl;
+      return false;
+    }
+  }
+  return true;
+}
+
+bool SequenceReplacer::validatePhase2(const byte* data) const {
+  uint32 begin = 0;
+  for(uint32 i = 1; i < m_sequences.size(); ++i) {
+    if(m_sequences[i].first != m_sequences[begin].first) {
+      if(!validateRange(begin, i, data)) return false;
+      if(strCmp(m_sequences[i].second, m_sequences[begin].second, data) == 0) {
+        std::cout << "Different names with same strings" << std::endl;
+        return false;
+      }
+      begin = i;
+    }
+  }
+  return validateRange(begin, m_sequences.size(), data);
+}
+
 void SequenceReplacer::analyseData(const byte *data, size_t length, bool reset) {
   if(reset) resetAnalyseData();
   assert(m_phase <= 1);
   if(m_phase == 0) {
     resizeAndInitTable(length/m_windowSize);
   } 
+  std::cout << "Initted table" << std::endl;
   m_phase = 1;
   initHashConstant();
+  std::cout << "Initted h-c" << std::endl;
 
   assert(m_windowSize <= length);
   scanAndStore(data, length);
+  std::cout << "Scanned" << std::endl;
 
   m_phase = 2;
   sortIntoBuckets();
+  std::cout << "Sorted into buckets" << std::endl;
   sortAndMarkBuckets(data);
+  std::cout << "Sorted and marked buckets" << std::endl;
+  nameHashValues();
+  if(validatePhase2(data)) {
+    std::cout << "Everything ok" << std::endl;
+  } else {
+    std::cout << "Failure" << std::endl;
+  }
 }
 
 void SequenceReplacer::initHashConstant() {
@@ -267,7 +401,7 @@ void SequenceReplacer::initHashConstant() {
 void SequenceReplacer::resizeAndInitTable(size_t preference) {
   size_t s = (preference > 0)?utils::mostSignificantBit(preference):2;
   if(s >= (1UL << 31)) {
-    m_hashValues.resize(1 << 31);
+    m_hashValues.resize(1UL << 31);
   } else {
     m_hashValues.resize(s);
   }

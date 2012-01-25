@@ -37,6 +37,7 @@
 #include "PairReplacer.hpp"
 #include "RunReplacer.hpp"
 #include "PairAndRunReplacer.hpp"
+#include "SequenceReplacer.hpp"
 
 namespace bwtc {
 
@@ -152,6 +153,25 @@ size_t TestPreprocessor::compressPairsAndRuns() {
   byte *tmp = new byte[origSize + 3];
   size_t hSize = pr.writeHeader(tmp);
   size_t compr = pr.writeReplacedVersion(src, origSize, tmp+hSize);
+  size_t compressedSize = compr + hSize;
+  std::copy(tmp, tmp + compressedSize, src);
+  m_currentBlock->m_filled = compressedSize;
+  delete [] tmp;
+  return origSize - compressedSize;
+}
+
+size_t TestPreprocessor::compressSequences() {
+  SequenceReplacer sr(true, true);
+
+  size_t origSize = m_currentBlock->m_filled;
+  byte *src = &(*m_currentBlock->m_block)[0];
+  sr.analyseData(src, origSize);
+  sr.finishAnalysation();
+  sr.decideReplacements();
+
+  byte *tmp = new byte[origSize + 3];
+  size_t hSize = sr.writeHeader(tmp);
+  size_t compr = sr.writeReplacedVersion(src, origSize, tmp+hSize);
   size_t compressedSize = compr + hSize;
   std::copy(tmp, tmp + compressedSize, src);
   m_currentBlock->m_filled = compressedSize;

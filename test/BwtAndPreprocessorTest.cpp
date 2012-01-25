@@ -70,14 +70,10 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   #if 1
   do {
     switch (preprocs[str_index]) {
-      /*
-      case 'l': // Replace long sequences 
-        compressed_size = bwtc::compressSequences(pp.m_currentBlock->begin()
-                                                  ,pp.m_currentBlock->filled_
-                                                  ,mem_constr, 16 //Window size
-                                                  ,threshold);
-        pp.m_currentBlock->filled_ = compressed_size;
-        break;*/
+      
+      case 's': // Replace long sequences 
+        compressed_size -= pp.compressSequences();
+        break;
       case 'c': // Replace pairs and runs.
         compressed_size -= pp.compressPairsAndRuns();
         break;
@@ -144,14 +140,9 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   #if 1
   do {
     switch (preprocs[str_index]) {
-      /*
-      case 'l': // Replace long sequences 
-        compressed_size = bwtc::compressSequences(pp.m_currentBlock->begin()
-                                                  ,pp.m_currentBlock->filled_
-                                                  ,mem_constr, 16 //Window size
-                                                  ,threshold);
-        pp.m_currentBlock->filled_ = compressed_size;
-        break;*/
+      case 's': // Replace long sequences 
+        compressed_size -= pp.compressSequences();
+        break;
       case 'c': // Replace pairs and runs.
         compressed_size -= pp.compressPairsAndRuns();
         break;
@@ -176,12 +167,12 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   std::cout << "Postprocessing\n";
   do {
     switch(preprocs[str_index]) {
-      /*
-      case 'l':
-        uncompr_size = bwtc::uncompressSequences(pp.m_currentBlock->block_,
-                                                 pp.m_currentBlock->filled_);
-        pp.m_currentBlock->filled_ = uncompr_size;
-        break;*/
+      case 's':
+        uncompr_size = bwtc::PostProcessor::
+            uncompressSequences(pp.m_currentBlock->m_block,
+                                pp.m_currentBlock->m_filled);
+        pp.m_currentBlock->m_filled = uncompr_size;
+        break;
       case 'c': /* Replcae pairs and runs.*/
         uncompr_size = bwtc::PostProcessor::
             uncompressPairsAndRuns(pp.m_currentBlock->m_block,

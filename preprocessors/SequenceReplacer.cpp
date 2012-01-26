@@ -95,6 +95,8 @@ void SequenceReplacer::scanAndStore(const byte* data, size_t length) {
 
   uint32 pos = 0;
   const uint32 limit = 2 * m_windowSize - 2;
+  const uint32 halfWindow = (m_windowSize+1)/2;
+
   std::vector<std::pair<size_t, uint32> > buffer;
   buffer.resize(m_windowSize-1);
   //TODO: Is the use of buffer too slow?
@@ -116,15 +118,25 @@ void SequenceReplacer::scanAndStore(const byte* data, size_t length) {
     size_t prevHash = buffer[0].first & mask;
     size_t maxCount = m_hashValues[prevHash].first;
     size_t maxPos = 0;
-    bool duplicates = false;
+    // TODO: ensure that if !foundDuplicates -> maxPos is not duplicate
+    bool foundDuplicates = false;
+    bool detectDuplicates = true;
     for(size_t i = 1; i < bufferIndex; ++i) {
       size_t hash = buffer[i].first & mask;
-      if(hash == prevHash) {
-        size_t last = gatherDuplicates(i-1, buffer, bufferIndex, hash, buffer[i].first >> logMask, mask);
-        calculateFrequencies(data, pos, last + m_windowSize);
-        pos = last + m_windowSize;
-        duplicates = true;
-        break;
+      if(detectDuplicates && hash == prevHash) {
+        uint32 periodLength = buffer[i].second - buffer[i-1].second;
+        if(periodLength >= halfWindow) {
+          uint32 extraHash = buffer[i].first >> logMask;
+          m_sequences.push_back(std::make_pair(hash, buffer[i-1].second));
+          m_sequences.push_back(std::make_pair(hash, buffer[i].second));
+          m_hashValues[hash].first += 2;
+          calculateFrequencies(data, pos, buffer[i].second + periodLength);
+          pos = buffer[i].second + periodLength;
+          foundDuplicates = true;
+          break;
+        } else {
+          detectDuplicates = false;
+        }
       }
       prevHash = hash;
       size_t count = m_hashValues[prevHash].first;
@@ -133,7 +145,7 @@ void SequenceReplacer::scanAndStore(const byte* data, size_t length) {
         maxPos = i;
       }
     }
-    if(!duplicates) {
+    if(!foundDuplicates) {
       size_t hash = buffer[maxPos].first;
       std::pair<uint32, uint32>& pair = m_hashValues[hash & mask];
       m_sequences.push_back(std::make_pair(hash & mask, buffer[maxPos].second));
@@ -267,26 +279,6 @@ void SequenceReplacer::sortAndMarkBuckets(const byte* data) {
 
 void SequenceReplacer::finishAnalysation() {
   assert(m_phase == 1);
-}
-
-size_t SequenceReplacer::
-gatherDuplicates(size_t index,
-                 const std::vector<std::pair<size_t, uint32> >& buffer,
-                 size_t bufferSize, size_t hash, size_t extraHash, size_t mask)
-{
-  std::pair<uint32, uint32>& pair = m_hashValues[hash];
-  uint32 prevPos = buffer[index].second;
-  ++pair.first;
-  pair.second = extraHash;
-  m_sequences.push_back(std::make_pair(hash, buffer[index++].second));
-  for(; index < bufferSize; ++index) {
-    if((buffer[index].first & mask) != hash) break;
-    if(buffer[index].second < s_minPeriod + prevPos) continue;
-    prevPos = buffer[index].second;
-    ++pair.first;
-    m_sequences.push_back(std::make_pair(hash, buffer[index].second));
-  }
-  return m_sequences.back().second;
 }
 
 void SequenceReplacer::nameRange(uint32 begin, uint32 end, uint32 name) {

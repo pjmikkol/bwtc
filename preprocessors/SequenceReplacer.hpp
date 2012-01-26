@@ -58,9 +58,6 @@ class SequenceReplacer {
   uint64 initHash(const byte* data) const;
   void initHashConstant();
   void scanAndStore(const byte* data, size_t length);
-  size_t gatherDuplicates(size_t index,
-                          const std::vector<std::pair<size_t, uint32> >& buffer,
-                          size_t bufferSize, size_t hash, size_t extraHash, size_t mask);
   void calculateFrequencies(const byte* data, uint32 begin, uint32 end);
   void sortIntoBuckets();
   void sortSubBucket(int begin, int end, const byte* data);
@@ -78,7 +75,6 @@ class SequenceReplacer {
   static const uint64 s_hashConstant = 37;
   static const uint32 s_errorVal = 0xffffffff;
   static const uint32 s_defaultWindowSize = 32;
-  static const uint32 s_minPeriod = 4;
   static const uint32 s_maxExpandableBucket = 10;
   static const int s_insertionSortLimit = 10;
 
@@ -94,7 +90,7 @@ class SequenceReplacer {
   uint64 m_hashRemovalConstant;
 
   uint32 m_windowSize;
-
+  
   /** Stores the total number of replacements stored and to be executed. */
   uint16 m_numOfReplacements;
 

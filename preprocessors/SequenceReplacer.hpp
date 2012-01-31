@@ -31,8 +31,32 @@
 #include <cassert>
 #include <vector>
 #include <utility>
+#include <map>
 
 namespace bwtc {
+
+namespace long_sequences {
+
+template <typename K, typename V>
+class MaxHeap {
+ public:
+  MaxHeap() {}
+
+  void insert(K key, V value) {
+    if(m_positions.find(key) != m_positions.end()) {
+      // check the heap-condition:
+      m_positions[key] = value;
+    } else {
+      m_heap.push_back(std::make_pair(key, value));
+    }
+  }
+
+ private:
+  std::vector<std::pair<K, V> > m_heap;
+  std::map<K, size_t> m_positions;
+};
+
+} //namespace long_sequences
 
 class SequenceReplacer {
  public:
@@ -71,6 +95,7 @@ class SequenceReplacer {
   void nameRange(uint32 begin, uint32 end, uint32 name);
   bool validatePhase2(const byte* data) const;
   bool validateRange(uint32 begin, uint32 end, const byte* data) const;
+  void removeDeletedSequences();
 
   static const uint64 s_hashConstant = 37;
   static const uint32 s_errorVal = 0xffffffff;

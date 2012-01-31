@@ -76,7 +76,7 @@ class SequenceReplacer {
   static const uint32 s_errorVal = 0xffffffff;
   static const uint32 s_defaultWindowSize = 32;
   static const uint32 s_maxExpandableBucket = 10;
-  static const int s_insertionSortLimit = 10;
+  //static const int s_insertionSortLimit = 10;
 
   /**Stores the frequencies of bytes. */
   size_t m_frequencies[256];
@@ -86,6 +86,8 @@ class SequenceReplacer {
   std::vector<std::pair<uint32, uint32> > m_hashValues;
 
   std::vector<std::pair<uint32, uint32> > m_sequences;
+
+  std::vector<std::pair<uint32, uint32> > m_buckets;
 
   uint64 m_hashRemovalConstant;
 

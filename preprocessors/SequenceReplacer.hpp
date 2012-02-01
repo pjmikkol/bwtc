@@ -156,29 +156,29 @@ class SequenceReplacer {
   void resizeAndInitTable(size_t preference);
   uint64 initHash(const byte* data) const;
   void initHashConstant();
-  void scanAndStore(const byte* data, size_t length);
+  void scanAndStore();
   void calculateFrequencies(const byte* data, uint32 begin, uint32 end);
   void sortIntoBuckets();
-  void sortSubBucket(int begin, int end, const byte* data);
-  int strCmp(uint32 pos1, uint32 pos2, const byte* data) const;
+  void sortSubBucket(int begin, int end);
+  int strCmp(uint32 pos1, uint32 pos2) const;
   void sortPositions(int begin, int end);
   void insertionSort(int begin, int end, const byte* data);
-  void sortAndMarkBuckets(const byte* data);
+  void sortAndMarkBuckets();
   /**Names hash values and removes useless strings. Returns number of
    * separate string.*/
   uint32 nameHashValues();
   void nameRange(uint32 begin, uint32 end, uint32 name);
-  bool validatePhase2(const byte* data) const;
-  bool validateRange(uint32 begin, uint32 end, const byte* data) const;
+  bool validatePhase2() const;
+  bool validateRange(uint32 begin, uint32 end) const;
   void prepareForLengthAnalysation();
-  void decideLengths(const byte* data, size_t length);
-  void expandStringsInBucket(uint32 name, uint32 begin, uint32 end, const byte* data, size_t length,
+  void decideLengths();
+  void expandStringsInBucket(uint32 begin, uint32 end,
                              long_sequences::MaxHeap<uint32, uint32>& heap);
   std::pair<uint32, uint32> findLeftLimit(uint32 sequence, uint32 offset) const;
-  std::pair<uint32, uint32> findRightLimit(uint32 sequence, uint32 offset, size_t length) const;
-  uint32 expandToLeft(const byte* data, const std::vector<uint32>& elements,
+  std::pair<uint32, uint32> findRightLimit(uint32 sequence, uint32 offset) const;
+  uint32 expandToLeft(const std::vector<uint32>& elements,
                       std::vector<std::pair<uint32, uint32> >& leftLimit);
-  uint32 expandToRight(const byte* data, size_t length, const std::vector<uint32>& elements,
+  uint32 expandToRight(const std::vector<uint32>& elements,
                       std::vector<std::pair<uint32, uint32> >& rightLimit, uint32 leftExp);
   void removeOverlappingSequences(const std::vector<uint32>& elements, uint32 leftOffset,
                                   uint32 lengthOfSequence,
@@ -205,6 +205,8 @@ class SequenceReplacer {
 
   uint64 m_hashRemovalConstant;
 
+  uint32 m_dataLength;
+
   uint32 m_windowSize;
   
   /** Stores the total number of replacements stored and to be executed. */
@@ -216,14 +218,12 @@ class SequenceReplacer {
   /**Tells in what stage the algorithm is.
    * 0 - When initialized. Before hash table is resized.
    * 1 - During the analysation. After the hash table is resized.
-   * 2 - Bucket sorting phase.
-   * 3 - Bucket analysation phase.
-   * 4 - Deletion of the overlapping strings.
-   * 5 - Final analysation of replacements.
-   * 6 - Writing of replaced string.
+   * 2 - Ready to decide replacements.
    */
   byte m_phase;
 
+  const byte *m_data;
+  
   /**Tells if the results of analysis and replacements are printed. */
   bool m_verbose;
 

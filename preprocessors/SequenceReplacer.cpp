@@ -25,6 +25,7 @@
  * strings.
  */
 #include "SequenceReplacer.hpp"
+#include "FrequencyTable.hpp"
 #include "../Utils.hpp"
 #include "../globaldefs.hpp"
 
@@ -61,8 +62,154 @@ void SequenceReplacer::resetAnalyseData() {
   m_sequences.clear();
 }
 
-size_t SequenceReplacer::decideReplacements() {
-  std::cout << "Replacements"<< std::endl;
+void SequenceReplacer::
+deleteRemovedAndTakeSamples(std::vector<long_sequences::Sequence>& replaceables) {
+  using long_sequences::Sequence;
+  uint32 i = 0;
+  while(m_buckets[i].second & 0x80000000) ++i;
+
+  uint32 name = m_buckets[i].first;
+  std::pair<uint32, uint32>& p = m_hashValues[name];
+  uint32 posInSeq = m_buckets[i].second;
+  replaceables.push_back(
+      Sequence(p.first, p.second, name, m_sequences[posInSeq].second));
+  uint32 j = 0;
+  m_buckets[j] = m_buckets[i];
+  m_sequences[posInSeq].first = j++;
+
+  bool storedSample = true;
+  for(++i; i < m_buckets.size(); ++i) {
+    if(name != m_buckets[i].first) {
+      storedSample = false;
+      name = m_buckets[i].first;
+    }
+    if(!storedSample && (m_buckets[i].second & 0x80000000) == 0) {
+      p = m_hashValues[name];
+      posInSeq = m_buckets[i].second;
+      replaceables.push_back(
+          Sequence(p.first, p.second, name, m_sequences[posInSeq].second));
+      storedSample = true;
+    }
+    if((m_buckets[i].second & 0x80000000) == 0) {
+      m_buckets[j] = m_buckets[i];
+      m_sequences[m_buckets[i].second].first = j++;
+    }
+  }
+  m_buckets.resize(j);  
+  for(i = 0,j = 0; i < m_sequences.size(); ++i) {
+    if((m_sequences[i].second & 0x80000000) == 0) {
+      m_sequences[j] = m_sequences[i];
+      m_buckets[m_sequences[i].first].second = j++;
+    }
+  }
+  m_sequences.resize(j);
+  assert(m_sequences.size() == m_buckets.size());
+  if(m_verbose) {
+    std::clog << replaceables.size() << " different sequences to choose from."
+              << std::endl;
+  }
+}
+
+uint32 SequenceReplacer::
+findReplaceableSequences(const std::vector<long_sequences::Sequence>& replaceables,
+                         FrequencyTable& freqTable, uint32 maxReps) const
+{
+  size_t current = 0;
+  uint32 lim = std::min(maxReps, (uint32)replaceables.size());
+  while(current < lim) {
+    uint32 freqs[256] = {0};
+    uint32 pos = replaceables[current].samplePosition;
+    calculateFrequencies(pos, pos + replaceables[current].length, freqs);
+    for(uint32 i = 0; i < 256; ++i) {
+      if(freqs[i]) freqTable.decrease((byte)i, freqs[i]);
+    }
+
+    if(freqTable.getFrequency(current) + 1003 >=
+       replaceables[current].count*(replaceables[current].length - 1)) {
+      for(uint32 i = 0; i < 256; ++i) {
+        if(freqs[i]) freqTable.increase((byte)i, freqs[i]);
+      }
+      break;
+    }
+    ++current;
+  }
+  return current;
+}
+
+uint32 SequenceReplacer::
+findEscapeIndex(FrequencyTable& freqTable, uint32 freeSymbols,
+                std::vector<long_sequences::Sequence>& replaceables,
+                uint32 candidates) const
+{
+  if(candidates <= freeSymbols) return freeSymbols;
+  int64 utility = 0;
+  uint32 i = freeSymbols;
+  for(;i < candidates; ++i) {
+    utility += (replaceables[i].count*(replaceables[i].length-1) -
+                freqTable.getFrequency(i) - replaceables[i].length - 5);
+  }
+  while(utility <= static_cast<int64>(freqTable.getFrequency(i)) && i > freeSymbols)
+  {
+    --i;
+    uint32 freqs[256] = {0};
+    uint32 pos = replaceables[i].samplePosition;
+    calculateFrequencies(pos, pos + replaceables[i].length, freqs);
+    for(uint32 j = 0; j < 256; ++j) {
+      if(freqs[j]) freqTable.increase((byte)j, freqs[j]);
+    }
+    utility -= (replaceables[i].count*(replaceables[i].length-1) -
+                freqTable.getFrequency(i) - replaceables[i].length - 5);
+  }
+  return i;
+}
+
+uint32 SequenceReplacer::decideReplacements() {
+  assert(m_phase == 2);
+  std::vector<long_sequences::Sequence> replaceables;
+  deleteRemovedAndTakeSamples(replaceables);
+  //TODO: try partial_sort
+  std::sort(replaceables.rbegin(), replaceables.rend());
+
+  FrequencyTable freqTable(m_frequencies);
+
+  uint32 freeSymbols = 0;
+  while(freqTable.getFrequency(freeSymbols) == 0) ++freeSymbols;
+
+  uint32 escapeIndex;
+
+  uint32 candidates;
+  if(m_useEscaping) {
+    candidates = findReplaceableSequences(replaceables, freqTable, 254);
+    escapeIndex = (candidates > freeSymbols)?
+        findEscapeIndex(freqTable, freeSymbols, replaceables, candidates):freeSymbols;
+  } else {
+    if(freeSymbols > 0)
+      candidates = findReplaceableSequences(replaceables, freqTable, freeSymbols);
+    escapeIndex = freeSymbols;
+  }
+
+  m_numOfReplacements = (escapeIndex > freeSymbols)?
+      escapeIndex: std::min(freeSymbols, candidates);
+  if(m_verbose) {
+    std::clog << "Replacing " << m_numOfReplacements << " sequences. ";
+    if(m_numOfReplacements > freeSymbols)
+      std::clog << "Made " << (escapeIndex - freeSymbols + 1)
+                << " symbols free." << std::endl;
+    else
+      std::clog << "No symbols made free." << std::endl;
+  }
+
+  std::fill(m_hashValues.begin(), m_hashValues.end(), std::make_pair(0,0));
+
+  for(uint i = 0; i < m_numOfReplacements; ++i) {
+    uint32 name = replaceables[i].name;
+    m_hashValues[name].first = freqTable.getKey(i);
+    m_hashValues[name].second = replaceables[i].length;
+    //TODO: where to store the sample position?
+  }
+ 
+  return m_numOfReplacements;
+  
 }
 
 size_t SequenceReplacer::writeHeader(byte *to) const {
@@ -83,8 +230,8 @@ uint64 SequenceReplacer::initHash(const byte* data) const {
 }
 
 void SequenceReplacer::
-calculateFrequencies(const byte* data, uint32 begin, uint32 end)  {
-  while(begin < end) ++m_frequencies[data[begin++]];
+calculateFrequencies(uint32 begin, uint32 end, uint32 *f) const {
+  while(begin < end) ++f[m_data[begin++]];
 }
 
 void SequenceReplacer::scanAndStore() {
@@ -132,7 +279,7 @@ void SequenceReplacer::scanAndStore() {
           m_sequences.push_back(std::make_pair(hash, buffer[i-1].second));
           m_sequences.push_back(std::make_pair(hash, buffer[i].second));
           m_hashValues[hash].first += 2;
-          calculateFrequencies(m_data, pos, buffer[i].second + periodLength);
+          calculateFrequencies(pos, buffer[i].second + periodLength, m_frequencies);
           pos = buffer[i].second + periodLength;
           foundDuplicates = true;
           acceptedDuplicates = true;
@@ -161,10 +308,10 @@ void SequenceReplacer::scanAndStore() {
       m_sequences.push_back(std::make_pair(hash & mask, buffer[maxPos].second));
       ++pair.first;
       pair.second = hash >> logMask;
-      calculateFrequencies(m_data, pos, buffer[maxPos].second + m_windowSize);
+      calculateFrequencies(pos, buffer[maxPos].second + m_windowSize, m_frequencies);
       pos = buffer[maxPos].second + m_windowSize;
     } else if (!acceptedDuplicates && !foundProper) {
-      calculateFrequencies(m_data, pos, pos + limit + 1);
+      calculateFrequencies(pos, pos + limit + 1, m_frequencies);
       pos += limit + 1;
     }
   }

@@ -27,6 +27,7 @@
 #define SEQUENCE_REPLACER_HPP_
 
 #include "../globaldefs.hpp"
+#include "FrequencyTable.hpp"
 
 #include <cassert>
 #include <vector>
@@ -35,6 +36,22 @@
 namespace bwtc {
 
 namespace long_sequences {
+
+struct Sequence {
+  Sequence(uint32 c, uint32 l, uint32 n, uint32 p)
+      : count(c), length(l), name(n), samplePosition(p) {}
+
+  bool operator<(const Sequence& s) const {
+    int diff = count*(length-1) - s.count*(s.length-1);
+    if(diff != 0) return diff < 0;
+    else return name < s.name;
+  }
+
+  uint32 count;
+  uint32 length;
+  uint32 name;
+  uint32 samplePosition;
+};
 
 template <typename K, typename V>
 class MaxHeap {
@@ -146,7 +163,7 @@ class SequenceReplacer {
 
   void finishAnalysation();
 
-  size_t decideReplacements();
+  uint32 decideReplacements();
 
   size_t writeHeader(byte *to) const;
 
@@ -157,7 +174,7 @@ class SequenceReplacer {
   uint64 initHash(const byte* data) const;
   void initHashConstant();
   void scanAndStore();
-  void calculateFrequencies(const byte* data, uint32 begin, uint32 end);
+  void calculateFrequencies(uint32 begin, uint32 end, uint32 *f) const;
   void sortIntoBuckets();
   void sortSubBucket(int begin, int end);
   int strCmp(uint32 pos1, uint32 pos2) const;
@@ -184,7 +201,13 @@ class SequenceReplacer {
                                   uint32 lengthOfSequence,
                                   long_sequences::MaxHeap<uint32, uint32>& heap);
   void validateCorrectOrder(uint32 begin, uint32 end);
-  
+  void deleteRemovedAndTakeSamples(std::vector<long_sequences::Sequence>& replaceables);
+  uint32 findReplaceableSequences(const std::vector<long_sequences::Sequence>& replaceables,
+                                  FrequencyTable& freqTable, uint32 maxReps) const;
+  uint32 findEscapeIndex(FrequencyTable& freqTable, uint32 freeSymbols,
+                         std::vector<long_sequences::Sequence>& replaceables,
+                         uint32 candidates) const;
+
   
   static const uint64 s_hashConstant = 37;
   static const uint32 s_errorVal = 0xffffffff;
@@ -193,7 +216,7 @@ class SequenceReplacer {
   //static const int s_insertionSortLimit = 10;
 
   /**Stores the frequencies of bytes. */
-  size_t m_frequencies[256];
+  uint32 m_frequencies[256];
 
   /**Stores the hash values, counters and lengths of replaceable sequences.
    * When scanning, the first one is counter and second is h* */

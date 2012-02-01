@@ -152,7 +152,7 @@ class PairReplacer {
       const FrequencyTable& freqTable, size_t freeSymbols);
 
   /**Stores the frequencies of bytes. */
-  size_t m_frequencies[256];
+  uint32 m_frequencies[256];
 
   /**Used for storing the counters when analyzing data. */
   size_t m_pairFrequencies[1 << 16];

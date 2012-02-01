@@ -40,27 +40,27 @@ class FrequencyTable {
   FrequencyTable();
 
   /** Constructs FrequencyTable from given freqs */
-  FrequencyTable(size_t* frequencies); 
+  FrequencyTable(uint32* frequencies); 
 
   /**Does basically the same as the above ctor. */
-  void initialize(size_t* frequencies);
+  void initialize(uint32* frequencies);
 
   /** Returns the i:th lowest freq*/
-  size_t getFrequency(int i) const; 
+  uint32 getFrequency(int i) const; 
 
   /** Returns the key which has i:th lowest freq*/
   byte getKey(int i) const; 
   
   /**Decrease value of given key.*/
-  bool decrease(byte key, size_t decrement);
+  bool decrease(byte key, uint32 decrement);
 
   /**Increase value of given key.*/
-  void increase(byte key, size_t increment);
+  void increase(byte key, uint32 increment);
 
  private:
   void initLocations();
   bool test();
-  std::pair<byte, size_t> m_frequencies[256];
+  std::pair<byte, uint32> m_frequencies[256];
   byte m_location[256];
 };
 

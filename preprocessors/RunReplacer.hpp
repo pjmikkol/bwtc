@@ -191,7 +191,7 @@ class RunReplacer {
   RunReplacementTable m_replacements;
 
   /**Stores the frequencies of bytes. */
-  size_t m_frequencies[256];
+  uint32 m_frequencies[256];
 
   /**Stores the frequencies of runs. The value stored in m_runFreqs[c][l],
    * is the amount of how many times the run of c of the length (1 << (l+1))

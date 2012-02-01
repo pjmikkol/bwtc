@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <map>
 
 namespace bwtc {
 
@@ -162,6 +163,7 @@ void SequenceReplacer::scanAndStore(const byte* data, size_t length) {
       calculateFrequencies(data, pos, buffer[maxPos].second + m_windowSize);
       pos = buffer[maxPos].second + m_windowSize;
     } else if (!acceptedDuplicates && !foundProper) {
+      calculateFrequencies(data, pos, pos + limit + 1);
       pos += limit + 1;
     }
   }
@@ -302,6 +304,258 @@ void SequenceReplacer::nameRange(uint32 begin, uint32 end, uint32 name) {
   }
 }
 
+std::pair<uint32, uint32> SequenceReplacer::
+findLeftLimit(uint32 sequence, uint32 offset) const {
+  if(sequence == offset)
+    return std::make_pair(m_sequences[sequence].second, offset);
+  uint32 prev = sequence - 1 - offset;
+  uint32 prevName = m_buckets[m_sequences[prev].first].first;
+  uint32 prevLen = m_hashValues[prevName].second;
+  if(prevLen > m_windowSize && (m_sequences[prev].second & 0x80000000) == 0) {
+    return std::make_pair(m_sequences[sequence].second - m_sequences[prev].second - prevLen, offset);
+  } else {
+    return std::make_pair(m_sequences[sequence].second - m_sequences[prev].second, offset+1);
+  }
+}
+
+std::pair<uint32, uint32> SequenceReplacer::
+findRightLimit(uint32 sequence, uint32 offset, size_t length) const {
+  if(sequence + offset + 1 == m_sequences.size())
+    return std::make_pair(length - m_sequences[sequence].second - m_windowSize, offset);
+  uint32 next = sequence + 1 + offset;
+  uint32 nextName = m_buckets[m_sequences[next].first].first;
+  uint32 nextLen = m_hashValues[nextName].second;
+  if(nextLen > m_windowSize && (m_sequences[next].second & 0x80000000) == 0) {
+    return std::make_pair(m_sequences[next].second - m_sequences[sequence].second - m_windowSize, offset);
+  } else {
+    return std::make_pair(m_sequences[next].second + m_windowSize - m_sequences[sequence].second, offset+1);
+  }
+}
+
+uint32 SequenceReplacer::
+expandToLeft(const byte* data, const std::vector<uint32>& elements,
+             std::vector<std::pair<uint32, uint32> >& leftLimit) {
+  uint32 expandToLeft = 0;
+  bool expanding = true;
+  while(expanding) {
+    uint32 oPos = m_sequences[m_buckets[elements.back()].second].second;
+    byte b = data[oPos - expandToLeft - 1];
+    for(uint32 i = elements.size() - 1; i > 0; --i) {
+      std::pair<uint32, uint32> leftL = leftLimit[i];
+      if(leftL.first <= expandToLeft) {
+        std::pair<uint32, uint32> nl = findLeftLimit(m_buckets[elements[i]].second, leftL.second);
+        if(nl == leftL) {
+          expanding = false;
+          break;
+        }
+        leftLimit[i] = nl;
+      }
+
+      uint32 nPos = m_sequences[m_buckets[elements[i-1]].second].second;
+      if(nPos < expandToLeft + 1 || nPos + m_windowSize + expandToLeft >= oPos) {
+        expanding = false;
+        break;
+      }
+      byte nb = data[nPos - expandToLeft - 1];
+      if(nb != b) {
+        expanding = false;
+        break;
+      }
+      oPos = nPos;
+    }
+    std::pair<uint32, uint32> leftL = leftLimit[0];
+    if(leftL.first <= expandToLeft) {
+      std::pair<uint32, uint32> nl = findLeftLimit(m_buckets[elements[0]].second, leftL.second);
+      if(nl == leftL) break;
+      leftLimit[0] = nl;
+    }
+    if(expanding) ++expandToLeft;
+  }
+  return expandToLeft;
+}
+
+uint32 SequenceReplacer::
+expandToRight(const byte* data, size_t length, const std::vector<uint32>& elements,
+              std::vector<std::pair<uint32, uint32> >& rightLimit, uint32 leftExp) {
+  uint32 expandToRight = 0;
+  bool expanding = true;
+  while(expanding) {
+    uint32 oPos = m_sequences[m_buckets[elements[0]].second].second;
+    byte b = data[oPos + m_windowSize + expandToRight];
+    for(uint32 i = 0; i < elements.size() - 1; ++i) {
+      std::pair<uint32, uint32> rightL = rightLimit[i];
+      if(rightL.first <= expandToRight) {
+        std::pair<uint32, uint32> rl = findRightLimit(m_buckets[elements[i]].second, rightL.second, length);
+        if(rl == rightL) {
+          expanding = false;
+          break;
+        }
+        rightLimit[i] = rl;
+      }
+
+      uint32 nPos = m_sequences[m_buckets[elements[i+1]].second].second;
+      if(nPos + m_windowSize + expandToRight >= length || oPos + m_windowSize + expandToRight + leftExp >= nPos) {
+        expanding = false;
+        break;
+      }
+      byte nb = data[nPos + m_windowSize + expandToRight];
+      if(nb != b) {
+        expanding = false;
+        break;
+      }
+      oPos = nPos;
+    }
+    std::pair<uint32, uint32> rightL = rightLimit.back();
+    if(rightL.first <= expandToRight) {
+      std::pair<uint32, uint32> rl = findRightLimit(m_buckets[elements.back()].second, rightL.second, length);
+      if(rl == rightL) break;
+      rightLimit.back() = rl;
+    }
+    if(expanding) ++expandToRight;
+  }
+  return expandToRight;
+}
+
+void SequenceReplacer::
+removeOverlappingSequences(const std::vector<uint32>& elements, uint32 leftOffset,
+                           uint32 lengthOfSequence,
+                           long_sequences::MaxHeap<uint32, uint32>& heap)
+{
+  std::map<uint32, uint32> updates;
+  for(size_t i = 0; i < elements.size(); ++i) {
+    int seq = m_buckets[elements[i]].second;
+    m_sequences[seq].second -= leftOffset;
+    uint32 pos = m_sequences[seq].second;
+    for(int lseq = seq-1; lseq >= 0; --lseq) {
+      if(m_sequences[lseq].second & 0x80000000) continue;
+      std::pair<uint32, uint32>& p = m_sequences[lseq];
+      uint32 llen = m_hashValues[m_buckets[p.first].first].second;
+      if(p.second + llen > pos) {
+        uint32 name = m_buckets[p.first].first;
+        --m_hashValues[name].first;
+        ++updates[name];
+        m_buckets[p.first].second |= 0x80000000;
+        p.second |= 0x80000000;
+      } else {
+        break;
+      }
+    }
+    for(int rseq = seq+1; rseq < m_sequences.size(); ++rseq) {
+      if(m_sequences[rseq].second & 0x80000000) continue;
+      std::pair<uint32, uint32>& p = m_sequences[rseq];
+      if(pos + lengthOfSequence > p.second) {
+        uint32 name = m_buckets[p.first].first;
+        --m_hashValues[name].first;
+        ++updates[name];
+        m_buckets[p.first].second |= 0x80000000;
+        p.second |= 0x80000000;
+      } else {
+        break;
+      }
+    }
+  }
+  for(std::map<uint32, uint32>::const_iterator it = updates.begin();
+      it != updates.end(); ++it) {
+    heap.decrease(it->first, it->second);
+  }
+}
+
+void SequenceReplacer::
+expandStringsInBucket(uint32 name, uint32 begin, uint32 end,
+                      const byte *data, size_t length,
+                      long_sequences::MaxHeap<uint32, uint32>& heap) {
+  std::vector<uint32> notDeleted;
+  // First member of pair tells how many chars we can at least expand.
+  // Second member tells offset to the previously considered sequence
+  std::vector<std::pair<uint32, uint32> >leftLimit, rightLimit;
+  for(uint32 i = begin; i < end; ++i) {
+    if((m_buckets[i].second & 0x80000000) == 0) {
+      notDeleted.push_back(i);
+      std::pair<uint32,uint32> leftL = findLeftLimit(m_buckets[i].second, 0);
+      if(leftL.first == 0) return;
+      std::pair<uint32,uint32> rightL = findRightLimit(m_buckets[i].second, 0, length);
+      if(rightL.first == 0) return;
+      leftLimit.push_back(leftL);
+      rightLimit.push_back(rightL);
+    }
+  }
+  if(notDeleted.size() == 0) return;
+  else if(notDeleted.size() == 1) {
+    m_sequences[m_buckets[notDeleted[0]].second].second |= 0x80000000;
+    m_buckets[notDeleted[0]].second |= 0x80000000;
+    return;
+  }
+
+  uint32 expandedToLeft = expandToLeft(data, notDeleted, leftLimit);
+  uint32 expandedToRight = expandToRight(data, length, notDeleted, rightLimit, expandedToLeft);
+  uint32 len = expandedToLeft + expandedToRight + m_windowSize;
+
+  if(len > m_windowSize) {
+    removeOverlappingSequences(notDeleted, expandedToLeft, len, heap);
+    m_hashValues[m_buckets[begin].first].second = len;
+  }
+
+  std::cout << "expanded " << expandedToLeft + expandedToRight << std::endl;
+}
+
+void SequenceReplacer::
+validateCorrectOrder(uint32 begin, uint32 end) {
+  for(uint32 i = begin; i < end-1; ++i) {
+    bool fail = false;
+    if((m_buckets[i].second & 0x7fffffff) >= (m_buckets[i+1].second & 0x7fffffff)) {
+      std::cout << "Wrong order in buckets ";
+      fail = true;
+    }
+    uint32 p1 = m_sequences[m_buckets[i].second & 0x7fffffff].second & 0x7fffffff;
+    uint32 p2 = m_sequences[m_buckets[i+1].second & 0x7fffffff].second & 0x7fffffff;
+    if(p1 >= p2) {
+      std::cout << "Wrong order in sequences ";
+      fail = true;
+    }
+    if(fail) {
+      std::cout << std::endl;
+      return;
+    }
+  }
+}
+
+void SequenceReplacer::decideLengths(const byte *data, size_t length) {
+  long_sequences::MaxHeap<uint32, uint32> heap(m_hashValues.size());
+  std::map<uint32, uint32> bucketLengths;
+  for(uint32 i = 0; i < m_buckets.size(); ) {
+    uint32 name = m_buckets[i].first;
+    uint32 j = i+1;
+    uint32 minLength = m_windowSize;
+    while(j < m_buckets.size() && name == m_buckets[j].first) {
+      uint32 len = m_sequences[m_buckets[j-1].second].second -
+          m_sequences[m_buckets[j].second].second;
+      if(len < minLength) minLength = len;
+      ++j;
+    }
+    if(minLength < m_windowSize) m_hashValues[name].second = minLength;
+    else {
+      assert(j- i == m_hashValues[name].first);
+      heap.insert(name, j - i, i);
+      bucketLengths[name] = j - i;
+    }
+    i = j;
+  }
+  heap.prepare();
+
+  while(!heap.empty()) {
+    long_sequences::MaxHeap<uint32, uint32>::HeapElement el = heap.removeMax();
+    std::map<uint32, uint32>::iterator it = bucketLengths.find(el.id);
+    assert(it != bucketLengths.end());
+    uint32 bucketLength = it->second;
+    bucketLengths.erase(it);
+
+    validateCorrectOrder(el.value, el.value + bucketLength);
+
+    expandStringsInBucket(el.id, el.value, el.value + bucketLength, data, length, heap);
+      
+  }
+}
+
 uint32 SequenceReplacer::nameHashValues() {
   uint32 name = 0;
   uint32 prev = 0;
@@ -367,7 +621,7 @@ validateRange(uint32 begin, uint32 end, const byte* data) const {
       return false;
     }
     if(m_sequences[m_buckets[i].second].first != i) {
-      std::cout << "Incorrect pointer form sequences to buckets." << std::endl;
+      std::cout << "Incorrect pointer from sequences to buckets." << std::endl;
     }
   }
   return true;
@@ -388,12 +642,18 @@ bool SequenceReplacer::validatePhase2(const byte* data) const {
   return validateRange(begin, m_buckets.size(), data);
 }
 
-void SequenceReplacer::removeDeletedSequences() {
+// Removes deleted sequences from m_sequences and counts separate sequences
+void SequenceReplacer::prepareForLengthAnalysation() {
+  std::fill(m_hashValues.begin(), m_hashValues.end(),
+            std::make_pair(0, m_windowSize));
+  
   size_t j = 0;
   for(size_t i = 0; i < m_sequences.size(); ++i) {
     if((m_sequences[i].second & 0x80000000) == 0) {
       m_sequences[j] = m_sequences[i];
-      m_buckets[m_sequences[j].first].second = j;
+      uint32 posInBuckets = m_sequences[j].first;
+      m_buckets[posInBuckets].second = j;
+      ++m_hashValues[m_buckets[posInBuckets].first].first;
       ++j;
     }
   }
@@ -433,8 +693,10 @@ void SequenceReplacer::analyseData(const byte *data, size_t length, bool reset) 
     std::cout << "Failure" << std::endl;
   }
 
-  removeDeletedSequences();
-  std::cout << m_sequences.size() << " " << m_buckets.size() << std::endl;
+  prepareForLengthAnalysation();
+  assert(m_sequences.size() ==  m_buckets.size());
+  decideLengths(data, length);
+  std::cout << "Decided lengths" << std::endl;
 }
 
 void SequenceReplacer::initHashConstant() {

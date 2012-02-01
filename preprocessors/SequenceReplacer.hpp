@@ -31,7 +31,6 @@
 #include <cassert>
 #include <vector>
 #include <utility>
-#include <map>
 
 namespace bwtc {
 
@@ -40,20 +39,96 @@ namespace long_sequences {
 template <typename K, typename V>
 class MaxHeap {
  public:
-  MaxHeap() {}
+  struct HeapElement {
+    HeapElement(uint32 i, K k, V v) : id(i), key(k), value(v) {}
+    uint32 id;
+    K key;
+    V value;
+  };
 
-  void insert(K key, V value) {
-    if(m_positions.find(key) != m_positions.end()) {
-      // check the heap-condition:
-      m_positions[key] = value;
+  MaxHeap(uint32 maxIds) {
+    m_positions.resize(maxIds);
+    std::fill(m_positions.begin(),m_positions.end(), -1);
+  }
+
+  // Doesn't move elements. Need to call prepare after inserts
+  void insert(size_t id, K key, V value) {
+    int pos = m_positions[id];
+    if(m_positions[id] >= 0) {
+      m_heap[pos].key = key;
+      m_heap[pos].value = value;
     } else {
-      m_heap.push_back(std::make_pair(key, value));
+      m_positions[id] = m_heap.size();
+      m_heap.push_back(HeapElement(id, key, value));
     }
   }
 
+  bool empty() {
+    return m_heap.size() == 0;
+  }
+  
+  HeapElement removeMax() {
+    HeapElement el = m_heap[0];
+    uint32 last = m_heap.size();
+    if(last > 1) {
+      --last;
+      std::swap(m_heap[0], m_heap[last]);
+      std::swap(m_positions[m_heap[0].id], m_positions[m_heap[last].id]);
+    } 
+    m_heap.pop_back();
+    return el;
+  }
+  
+  void decrease(uint32 id, K newKey) {
+    m_heap[m_positions[id]].key = newKey;
+    heapify(m_positions[id]);
+  }
+  
+  void prepare() {
+    initLocations();
+    buildMaxHeap();
+  }
+  
  private:
-  std::vector<std::pair<K, V> > m_heap;
-  std::map<K, size_t> m_positions;
+  void initLocations() {
+    for(uint32 i = 0; i < m_heap.size(); ++i) {
+      m_positions[m_heap[i].id] = i;
+    }
+  }
+
+#define parent(x) (((x)-1) >> 1)
+#define left(x) (2*(x) + 1)
+#define right(x) (2*(x) + 2)
+  
+  void heapify(int i) {
+    int l = left(i), r = right(i);
+    while(r < (int)m_heap.size()) {
+      int largest = (m_heap[l].key < m_heap[r].key)? r : l;
+      if(m_heap[i].key < m_heap[largest].key) {
+        std::swap(m_positions[m_heap[largest].id], m_positions[m_heap[i].id]);
+        std::swap(m_heap[largest], m_heap[i]);
+        i = largest;
+        l = left(i), r = right(i);
+      } else {
+        return;
+      }
+    }
+    if(l+1 == (int)m_heap.size() && m_heap[i].key < m_heap[l].key) {
+      std::swap(m_positions[m_heap[l].id], m_positions[m_heap[i].id]);
+      std::swap(m_heap[l], m_heap[i]);
+    }
+  }
+
+  void buildMaxHeap() {
+    for(int i = parent(m_heap.size() - 1); i >= 0; --i) heapify(i);
+  }
+
+#undef parent
+#undef left
+#undef right
+  std::vector<HeapElement> m_heap;
+  // Mapping from id's to positions in heap
+  std::vector<int> m_positions;  
 };
 
 } //namespace long_sequences
@@ -95,8 +170,22 @@ class SequenceReplacer {
   void nameRange(uint32 begin, uint32 end, uint32 name);
   bool validatePhase2(const byte* data) const;
   bool validateRange(uint32 begin, uint32 end, const byte* data) const;
-  void removeDeletedSequences();
-
+  void prepareForLengthAnalysation();
+  void decideLengths(const byte* data, size_t length);
+  void expandStringsInBucket(uint32 name, uint32 begin, uint32 end, const byte* data, size_t length,
+                             long_sequences::MaxHeap<uint32, uint32>& heap);
+  std::pair<uint32, uint32> findLeftLimit(uint32 sequence, uint32 offset) const;
+  std::pair<uint32, uint32> findRightLimit(uint32 sequence, uint32 offset, size_t length) const;
+  uint32 expandToLeft(const byte* data, const std::vector<uint32>& elements,
+                      std::vector<std::pair<uint32, uint32> >& leftLimit);
+  uint32 expandToRight(const byte* data, size_t length, const std::vector<uint32>& elements,
+                      std::vector<std::pair<uint32, uint32> >& rightLimit, uint32 leftExp);
+  void removeOverlappingSequences(const std::vector<uint32>& elements, uint32 leftOffset,
+                                  uint32 lengthOfSequence,
+                                  long_sequences::MaxHeap<uint32, uint32>& heap);
+  void validateCorrectOrder(uint32 begin, uint32 end);
+  
+  
   static const uint64 s_hashConstant = 37;
   static const uint32 s_errorVal = 0xffffffff;
   static const uint32 s_defaultWindowSize = 32;

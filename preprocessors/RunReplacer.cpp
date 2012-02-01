@@ -117,7 +117,6 @@ void SequenceHeap::initLocations() {
 #define left(x) (2*(x) + 1)
 #define right(x) (2*(x) + 2)
 
-
 void SequenceHeap::heapify(int i) {
   int l = left(i), r = right(i);
   while(r <= m_last) {

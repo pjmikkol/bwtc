@@ -32,6 +32,7 @@
 #include <cassert>
 #include <vector>
 #include <utility>
+#include <map>
 
 namespace bwtc {
 
@@ -226,6 +227,8 @@ class SequenceReplacer {
 
   std::vector<std::pair<uint32, uint32> > m_buckets;
 
+  std::map<uint32, const byte*> m_samples;
+
   uint64 m_hashRemovalConstant;
 
   uint32 m_dataLength;
@@ -251,7 +254,7 @@ class SequenceReplacer {
   bool m_verbose;
 
   /**Tells if some rare symbols will be stolen. */
-  const bool m_useEscaping;
+  bool m_useEscaping;
 };
 
 } //namespace bwtc

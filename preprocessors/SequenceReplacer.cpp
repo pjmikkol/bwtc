@@ -46,11 +46,14 @@ SequenceReplacer::SequenceReplacer(bool useEscaping, bool verbose)
 {}
 
 SequenceReplacer::SequenceReplacer(const SequenceReplacer& sr)
-    : m_windowSize(sr.m_windowSize), m_numOfReplacements(sr.m_numOfReplacements),
-      m_escapeByte(sr.m_escapeByte), m_phase(sr.m_phase), m_verbose(sr.m_verbose),
-      m_useEscaping(sr.m_useEscaping),m_hashValues(sr.m_hashValues),
-      m_sequences(sr.m_sequences), m_buckets(sr.m_buckets),
-      m_dataLength(sr.m_dataLength), m_data(sr.m_data)
+    : m_hashValues(sr.m_hashValues), m_sequences(sr.m_sequences),
+      m_buckets(sr.m_buckets), m_samples(sr.m_samples),
+      m_hashRemovalConstant(sr.m_hashRemovalConstant), 
+      m_dataLength(sr.m_dataLength), m_windowSize(sr.m_windowSize),
+      m_numOfReplacements(sr.m_numOfReplacements),
+      m_escapeByte(sr.m_escapeByte), m_phase(sr.m_phase),
+      m_data(sr.m_data), m_verbose(sr.m_verbose),
+      m_useEscaping(sr.m_useEscaping)
 {
   std::copy(sr.m_frequencies, sr.m_frequencies + 256, m_frequencies);
 }
@@ -199,21 +202,37 @@ uint32 SequenceReplacer::decideReplacements() {
       std::clog << "No symbols made free." << std::endl;
   }
 
+  if(m_numOfReplacements > freeSymbols) {
+    m_useEscaping = true;
+    m_escapeByte = freqTable.getKey(escapeIndex);
+  } else {
+    m_useEscaping = false;
+  }
+  
   std::fill(m_hashValues.begin(), m_hashValues.end(), std::make_pair(0,0));
 
   for(uint i = 0; i < m_numOfReplacements; ++i) {
     uint32 name = replaceables[i].name;
     m_hashValues[name].first = freqTable.getKey(i);
     m_hashValues[name].second = replaceables[i].length;
-    //TODO: where to store the sample position?
+    m_samples[name] = m_data + replaceables[i].samplePosition;
   }
  
   return m_numOfReplacements;
-  
 }
 
 size_t SequenceReplacer::writeHeader(byte *to) const {
-
+  if(m_numOfReplacements == 0) {
+    to[0] = to[1] = 0;
+  }
+  uint32 j = 0; byte prev = 0;
+  for(std::map<uint32, const byte*>::const_iterator it = m_samples.begin();
+      it != m_samples.end(); ++it) {
+    uint32 name = it->first;
+    byte replacement = m_hashValues[name].first;
+    prev = replacement;
+    uint32 length = m_hashValues[name].second;
+  }
 }
 
 size_t SequenceReplacer::

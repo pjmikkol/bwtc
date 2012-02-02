@@ -202,9 +202,14 @@ uint32 SequenceReplacer::decideReplacements() {
       std::clog << "No symbols made free." << std::endl;
   }
 
+  std::fill(m_isEscaped, m_isEscaped + 256, false);
+
   if(m_numOfReplacements > freeSymbols) {
     m_useEscaping = true;
     m_escapeByte = freqTable.getKey(escapeIndex);
+    for(uint32 i = freeSymbols; i <= escapeIndex; ++i) {
+      m_isEscaped[freqTable.getKey(i)] = true;
+    }
   } else {
     m_useEscaping = false;
   }
@@ -217,8 +222,22 @@ uint32 SequenceReplacer::decideReplacements() {
     m_hashValues[name].second = replaceables[i].length;
     m_samples[name] = m_data + replaceables[i].samplePosition;
   }
- 
+
+  // To make writing phase a bit easier
+  m_sequences.push_back(std::make_pair(0, m_dataLength));
+
   return m_numOfReplacements;
+}
+
+uint32 SequenceReplacer::writeAndPackInteger(byte* to, uint32 length) const {
+  int packedLength;
+  size_t packedInteger = utils::packInteger(length, &packedLength);
+  for(int i = 0; i < packedLength; ++i) {
+    byte toWritten = static_cast<byte>(packedInteger & 0xFF);
+    to[i] = toWritten;
+    packedInteger >>= 8;
+  }
+  return packedLength;
 }
 
 size_t SequenceReplacer::writeHeader(byte *to) const {
@@ -230,14 +249,49 @@ size_t SequenceReplacer::writeHeader(byte *to) const {
       it != m_samples.end(); ++it) {
     uint32 name = it->first;
     byte replacement = m_hashValues[name].first;
+    to[j++] = replacement;
     prev = replacement;
     uint32 length = m_hashValues[name].second;
+    j += writeAndPackInteger(to + j, length);
+    std::copy(it->second, it->second + length, to + j);
+    j += length;
   }
+  to[j++] = prev;
+  to[j++] = m_useEscaping?m_escapeByte:prev;
+  return j;
+}
+
+uint32 SequenceReplacer::writeWithEscaping(const byte* begin, const byte* end,
+                                           byte* dst) const {
+  uint32 j = 0;
+  for(; begin < end; ++begin) {
+    if(m_isEscaped[*begin]) dst[j++] = m_escapeByte;
+    dst[j++] = *begin;
+  }
+  return j;
 }
 
 size_t SequenceReplacer::
 writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
+  //Moved to decideReplacements
+  //m_sequences.push_back(std::make_pair(0, length));
 
+  uint32 currentSeq = 0;
+  uint32 j = writeWithEscaping(src, src + m_sequences[currentSeq].second, dst);
+  uint32 i = m_sequences[currentSeq].second;
+  
+  while(i < length) {
+    uint32 name = m_buckets[m_sequences[currentSeq].first].first;
+    if(m_hashValues[name].second > 0) {
+      dst[j++] = m_hashValues[name].first;
+      i += m_hashValues[name].second;
+    }
+    ++currentSeq;
+    uint32 pos = m_sequences[currentSeq].second;
+    j += writeWithEscaping(src + i, src + pos, dst + j);
+    i = m_sequences[currentSeq].second;
+  }
+  return j;
 }
 
 uint64 SequenceReplacer::initHash(const byte* data) const {
@@ -462,7 +516,7 @@ void SequenceReplacer::sortAndMarkBuckets() {
 }
 
 void SequenceReplacer::finishAnalysation() {
-  assert(m_phase == 1);
+  assert(m_phase == 2);
 }
 
 void SequenceReplacer::nameRange(uint32 begin, uint32 end, uint32 name) {

@@ -197,6 +197,10 @@ void ValidatePreproc(char *preprocs, int threshold, const std::string& input,
   std::vector<byte>& uncompressed = *pp.m_currentBlock->m_block;
   std::cout << uncompr_size << " " <<  original.size() << std::endl;
   for(uint64 j = 0; j < original.size(); ++j) {
+    if(uncompressed[j] != original[j]) {
+      std::cout << "Failed in index " << j << ": " << uncompressed[j]
+                << " " << original[j] << std::endl;
+    }
     assert(uncompressed[j] == original[j]);
   }
   std::cout << "############################\n";

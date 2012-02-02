@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <utility>
 #include <vector>
@@ -68,6 +69,8 @@ void PostProcessor::postProcess(std::vector<byte> *data) {
       length = uncompressCommonPairs(data, length);
     } else if (m_options[i] == 'c') {
       length = uncompressPairsAndRuns(data, length);
+    } else if (m_options[i] == 's') {
+      length = uncompressSequences(data, length);
     }
   }
 }
@@ -163,7 +166,7 @@ uncompressLongRuns(std::vector<byte> *compressed, size_t length) {
       }
     }
   }
-  if (verbosity > 2) {
+  if (verbosity) {
     unsigned repls;
     /* Compute the number of replacements from j */
     if ( (2*j-3) % 5 == 0 ) repls = (2*j-3) / 5;
@@ -282,52 +285,49 @@ size_t PostProcessor::
 uncompressSequences(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   std::vector<byte> result;
-  result.reserve(length/2);
+  result.reserve(length-2);
   /* We use pair <position, length> for representing the sequences */
-  std::pair<uint64, unsigned> repls[256];
-  for(int i = 0; i < 256; ++i) {
-    repls[i] = std::pair<uint64, unsigned>(0,1);
-  }
+  std::pair<uint32, uint32> repls[256];
+  std::fill(repls, repls + 256, std::make_pair(0,0));
+
   bool escaping = false;
-  byte escape_byte = 0;
-  uint64 source_pos = 0;
+  byte escapeByte = 0;
+  uint64 sourcePos = 0;
+  uint32 reps = 0;
   if(data[1] == 0) {
-    source_pos = 2;
+    sourcePos = 2;
   } else {
     byte prev = ~data[0];
-    while(1) {
-      if(prev == data[source_pos]) break;
-      prev = data[source_pos++];
+    while(true) {
+      if(prev == data[sourcePos]) break;
+      prev = data[sourcePos++];
       uint64 len;
-      source_pos += utils::readAndUnpackInteger(&data[source_pos], &len);
+      sourcePos += utils::readAndUnpackInteger(&data[sourcePos], &len);
       repls[prev].second = len;
-      repls[prev].first = source_pos;
-      source_pos += len;
+      repls[prev].first = sourcePos;
+      sourcePos += len;
+      ++reps;
     }
-    escape_byte = data[++source_pos];
-    if(escape_byte != prev) escaping = true;
-    ++source_pos;
+    escapeByte = data[++sourcePos];
+    if(escapeByte != prev) escaping = true;
+    ++sourcePos;
+  }
+  
+  if(verbosity) {
+    std::clog << reps << " sequences replaced. ";
+    std::clog << (escaping?"U":"Not u") << "sing escape byte." << std::endl;
   }
 
-  if(verbosity > 2) {
-    int rep = 0;
-    for(int i = 0; i < 256; ++i) {
-      if(repls[i].second > 1) ++rep;
-    }
-    std::clog << rep << " sequences replaced. ";
-    if(escaping) std::clog << "U";
-    else std::clog << "Not u";
-    std::clog << "sing escape byte.\n";
-  }
-
-  for(; source_pos < length; ++source_pos) {
-    if(repls[data[source_pos]].second > 1) {
-      for(unsigned i = 0; i < repls[data[source_pos]].second; ++i)
-        result.push_back(data[repls[data[source_pos]].first + i]);
-    } else if (escaping && data[source_pos] == escape_byte) {
-      result.push_back(data[++source_pos]);
+  for(; sourcePos < length; ++sourcePos) {
+    byte cur = data[sourcePos];
+    uint32 len = repls[cur].second;
+    if(len > 0) {
+      const byte *adr = &data[repls[cur].first];
+      std::copy(adr, adr + len, std::back_inserter(result));
+    } else if (escaping && cur == escapeByte) {
+      result.push_back(data[++sourcePos]);
     } else {
-      result.push_back(data[source_pos]);
+      result.push_back(data[sourcePos]);
     }
   }
   data.resize(result.size());

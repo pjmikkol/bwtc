@@ -208,6 +208,8 @@ class SequenceReplacer {
   uint32 findEscapeIndex(FrequencyTable& freqTable, uint32 freeSymbols,
                          std::vector<long_sequences::Sequence>& replaceables,
                          uint32 candidates) const;
+  uint32 writeAndPackInteger(byte *to, uint32 length) const;
+  uint32 writeWithEscaping(const byte* begin, const byte* end, byte* dst) const;
 
   
   static const uint64 s_hashConstant = 37;
@@ -218,6 +220,8 @@ class SequenceReplacer {
 
   /**Stores the frequencies of bytes. */
   uint32 m_frequencies[256];
+
+  bool m_isEscaped[256];
 
   /**Stores the hash values, counters and lengths of replaceable sequences.
    * When scanning, the first one is counter and second is h* */

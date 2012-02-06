@@ -180,7 +180,7 @@ uint32 SequenceReplacer::decideReplacements() {
 
   uint32 escapeIndex;
 
-  uint32 candidates;
+  uint32 candidates = 0;
   if(m_useEscaping) {
     candidates = findReplaceableSequences(replaceables, freqTable, 254);
     escapeIndex = (candidates > freeSymbols)?
@@ -275,7 +275,7 @@ size_t SequenceReplacer::
 writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
   //Moved to decideReplacements
   //m_sequences.push_back(std::make_pair(0, length));
-
+  
   uint32 currentSeq = 0;
   uint32 j = writeWithEscaping(src, src + m_sequences[currentSeq].second, dst);
   uint32 i = m_sequences[currentSeq].second;
@@ -283,8 +283,10 @@ writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
   while(i < length) {
     uint32 name = m_buckets[m_sequences[currentSeq].first].first;
     if(m_hashValues[name].second > 0) {
+
       dst[j++] = m_hashValues[name].first;
       i += m_hashValues[name].second;
+
     }
     ++currentSeq;
     uint32 pos = m_sequences[currentSeq].second;
@@ -439,7 +441,7 @@ void SequenceReplacer::sortPositions(int begin, int end) {
             long_sequences::comparePosition);
 }
 
-// TODO: Recognize and mark subbuckets
+/* TODO: Recognize and mark subbuckets
 void SequenceReplacer::insertionSort(int begin, int end, const byte* data) {
   assert(end - begin > 0);
   for(int i = begin + 1; i < end; ++i) {
@@ -456,7 +458,7 @@ void SequenceReplacer::insertionSort(int begin, int end, const byte* data) {
     m_sequences[j] = val;
   }
 }
-
+*/
 
 void SequenceReplacer::
 sortSubBucket(int begin, int end) {
@@ -745,12 +747,14 @@ void SequenceReplacer::decideLengths() {
     uint32 j = i+1;
     uint32 minLength = m_windowSize;
     while(j < m_buckets.size() && name == m_buckets[j].first) {
-      uint32 len = m_sequences[m_buckets[j-1].second].second -
-          m_sequences[m_buckets[j].second].second;
+      uint32 len = m_sequences[m_buckets[j].second].second -
+          m_sequences[m_buckets[j-1].second].second;
       if(len < minLength) minLength = len;
       ++j;
     }
-    if(minLength < m_windowSize) m_hashValues[name].second = minLength;
+    if(minLength < m_windowSize) {
+      m_hashValues[name].second = minLength;
+    }
     else {
       assert(j- i == m_hashValues[name].first);
       heap.insert(name, j - i, i);

@@ -98,6 +98,7 @@ class MaxHeap {
   }
   
   void decrease(uint32 id, K newKey) {
+    if(m_positions[id] >= m_heap.size()) return;
     m_heap[m_positions[id]].key = newKey;
     heapify(m_positions[id]);
   }

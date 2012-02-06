@@ -54,41 +54,67 @@ WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
 
 void WaveletEncoder::writeGlobalHeader(const std::string& preproc, char encoding) {
   // bitpatterns in encoding of preprocessing:
-  // 00 -- pair, 01 -- run, 10 -- pairAndrun. 11 -- end 
-  byte b = 0;
-  size_t i = 0;
-  for(; i < preproc.size(); ++i) {
-    if(i % 4  == 0 && i != 0) { m_out->writeByte(b); b = 0; }
-    if(preproc[i] == 'p') b = (b << 2) | 3;
-    else if (preproc[i] == 'r') b = (b << 2) | 1;
-    else if (preproc[i] == 'c') b = (b << 2) | 2;
+  // 001 -- run, 010 -- pairAndrun, 011 -- pair,  100 -- sequence, 000 -- end 
+  uint16 b = 0;
+  size_t bits = 0;
+  for(size_t i = 0; i < preproc.size(); ++i) {
+    if(bits >= 8) {
+      m_out->writeByte(b >> (bits - 8));
+      b &= ((1 << (bits - 8)) - 1);
+      bits -= 8;
+    }
+    if(preproc[i] == 'p') b = (b << 3) | 3;
+    else if (preproc[i] == 'r') b = (b << 3) | 1;
+    else if (preproc[i] == 'c') b = (b << 3) | 2;
+    else if (preproc[i] == 's') b = (b << 3) | 4;
+    bits += 3;
   }
   if(preproc.size() == 0) {
     m_out->writeByte(static_cast<byte>(0));
-  } else if(i % 4 == 0){
-    m_out->writeByte(b);
-    m_out->writeByte(static_cast<byte>(0));
-  } else {
-    while(i % 4 != 0) { b <<= 2; ++i; }
+    std::cout << "wrote" << std::endl;
+  } else if(bits == 8) {
     m_out->writeByte(static_cast<byte>(b));
+    m_out->writeByte(static_cast<byte>(0));
+    std::cout << "wrote" << std::endl;
+    std::cout << "wrote" << std::endl;
+  } else if (bits <= 5){
+    m_out->writeByte(static_cast<byte>(b << (8 - bits)));
+    std::cout << "wrote" << std::endl;
+  } else {
+    m_out->writeByte(static_cast<byte>(b << (8 - bits)));
+    m_out->writeByte(static_cast<byte>(0));
+    std::cout << "wrote" << std::endl;
+    std::cout << "wrote" << std::endl;
   }
-
 
   m_out->writeByte(static_cast<byte>(encoding));
 }
 
 std::string WaveletDecoder::readGlobalHeader() {
   std::string preproc;
-  bool loop = true;
-  while(loop) {
-    char b = static_cast<char>(m_in->readByte());
-    for(int i = 6; i >= 0; i -= 2) {
-      int bits = (b >> i) & 0x3;
-      if(bits == 0) { loop = false; break; }
-      else if (bits == 2) preproc += 'c';
-      else if (bits == 1) preproc += 'r';
-      else if (bits == 3) preproc += 'p';
+  size_t bitsLeft = 0;
+  size_t bitsInCode = 0;
+  size_t code = 0;
+  byte b = 0;
+
+  while(true) {
+    if(bitsInCode == 3) {
+      if(code == 0) break;
+      else if (code == 2) preproc += 'c';
+      else if (code == 1) preproc += 'r';
+      else if (code == 3) preproc += 'p';
+      else if (code == 4) preproc += 's';
+      code = 0;
+      bitsInCode = 0;
     }
+    if(bitsLeft == 0) {
+      b = m_in->readByte();
+      std::cout << "read " << (int)b << std::endl;
+      bitsLeft = 8;
+    }
+    code = (code << 1) | ((b >> (bitsLeft - 1)) & 1);
+    --bitsLeft;
+    ++bitsInCode;
   }
   char probmodel = static_cast<char>(m_in->readByte());
   delete m_probModel;

@@ -35,6 +35,7 @@
 #include "PairReplacer.hpp"
 #include "PairAndRunReplacer.hpp"
 #include "RunReplacer.hpp"
+#include "SequenceReplacer.hpp"
 #include "../Profiling.hpp"
 
 #include <cassert>
@@ -139,6 +140,8 @@ size_t Preprocessor::preprocess(byte *src, size_t length) {
       PREPROCESS(RunReplacer, verbosity > 1, src, dst);
     } else if(c == 'c') {
       PREPROCESS(pairs_and_runs::PairAndRunReplacer, verbosity > 1, src, dst);
+    } else if(c == 's') {
+      PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
     }
     if(length + 5 > tmp.size()) tmp.resize(length + 5);
     std::swap(src, dst);

@@ -138,7 +138,7 @@ uncompressLongRuns(std::vector<byte> *compressed, size_t length) {
     replacements[i] = std::make_pair(1, static_cast<byte>(i));
   bool escaping = false;
   byte escape_byte = 0;
-  uint64 j; /* Init j to the start of compressed data and read replacements */
+  uint32 j; /* Init j to the start of compressed data and read replacements */
   if( data[1] == 0 ) j = 2;
   else {
     j = 0;

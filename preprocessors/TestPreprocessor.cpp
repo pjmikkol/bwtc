@@ -169,8 +169,7 @@ size_t TestPreprocessor::compressSequences() {
   sr.finishAnalysation();
   sr.decideReplacements();
 
-  //byte *tmp = new byte[origSize + 2];
-  byte *tmp = new byte[2*origSize];
+  byte *tmp = new byte[origSize + 2];
   size_t hSize = sr.writeHeader(tmp);
   size_t compr = sr.writeReplacedVersion(src, origSize, tmp+hSize);
   size_t compressedSize = compr + hSize;

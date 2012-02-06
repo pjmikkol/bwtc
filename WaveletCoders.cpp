@@ -58,33 +58,28 @@ void WaveletEncoder::writeGlobalHeader(const std::string& preproc, char encoding
   uint16 b = 0;
   size_t bits = 0;
   for(size_t i = 0; i < preproc.size(); ++i) {
-    if(bits >= 8) {
-      m_out->writeByte(b >> (bits - 8));
-      b &= ((1 << (bits - 8)) - 1);
-      bits -= 8;
-    }
     if(preproc[i] == 'p') b = (b << 3) | 3;
     else if (preproc[i] == 'r') b = (b << 3) | 1;
     else if (preproc[i] == 'c') b = (b << 3) | 2;
     else if (preproc[i] == 's') b = (b << 3) | 4;
     bits += 3;
+
+    if(bits >= 8) {
+      m_out->writeByte(b >> (bits - 8));
+      b &= ((1 << (bits - 8)) - 1);
+      bits -= 8;
+    }
   }
   if(preproc.size() == 0) {
     m_out->writeByte(static_cast<byte>(0));
-    std::cout << "wrote" << std::endl;
   } else if(bits == 8) {
-    m_out->writeByte(static_cast<byte>(b));
+    m_out->writeByte(static_cast<byte>(b & 0xff));
     m_out->writeByte(static_cast<byte>(0));
-    std::cout << "wrote" << std::endl;
-    std::cout << "wrote" << std::endl;
   } else if (bits <= 5){
-    m_out->writeByte(static_cast<byte>(b << (8 - bits)));
-    std::cout << "wrote" << std::endl;
+    m_out->writeByte(static_cast<byte>((b << (8 - bits)) & 0xff));
   } else {
-    m_out->writeByte(static_cast<byte>(b << (8 - bits)));
+    m_out->writeByte(static_cast<byte>((b >> (8 - bits)) & 0xff));
     m_out->writeByte(static_cast<byte>(0));
-    std::cout << "wrote" << std::endl;
-    std::cout << "wrote" << std::endl;
   }
 
   m_out->writeByte(static_cast<byte>(encoding));
@@ -109,7 +104,6 @@ std::string WaveletDecoder::readGlobalHeader() {
     }
     if(bitsLeft == 0) {
       b = m_in->readByte();
-      std::cout << "read " << (int)b << std::endl;
       bitsLeft = 8;
     }
     code = (code << 1) | ((b >> (bitsLeft - 1)) & 1);

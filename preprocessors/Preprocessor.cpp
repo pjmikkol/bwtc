@@ -130,7 +130,7 @@ MainBlock* Preprocessor::readBlock() {
 size_t Preprocessor::preprocess(byte *src, size_t length) {
   PROFILE("Preprocessor::preprocess");
   std::vector<byte> tmp;
-  tmp.resize(length + 5);
+  tmp.resize(length + m_preprocessingOptions.size()*5);
   byte *dst = &tmp[0];
   for(size_t i = 0; i < m_preprocessingOptions.size(); ++i) {
     char c = m_preprocessingOptions[i];
@@ -143,7 +143,6 @@ size_t Preprocessor::preprocess(byte *src, size_t length) {
     } else if(c == 's') {
       PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
     }
-    if(length + 5 > tmp.size()) tmp.resize(length + 5);
     std::swap(src, dst);
   }
   if(m_preprocessingOptions.size() & 1) {

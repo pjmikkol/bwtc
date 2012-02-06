@@ -63,7 +63,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::Preprocessor preprocessor(block_size, preproc, escaping);
   preprocessor.connect(input_name);
 
-  bwtc::BlockManager block_manager(block_size, 1);
+  bwtc::BlockManager block_manager(block_size + 5*preproc.size(), 1);
   preprocessor.addBlockManager(&block_manager);
 
   bwtc::BWTransform* transformer = bwtc::giveTransformer('s');

@@ -99,14 +99,17 @@ deleteRemovedAndTakeSamples(std::vector<long_sequences::Sequence>& replaceables)
     }
   }
   m_buckets.resize(j);  
+
   for(i = 0,j = 0; i < m_sequences.size(); ++i) {
     if((m_sequences[i].second & 0x80000000) == 0) {
       m_sequences[j] = m_sequences[i];
-      m_buckets[m_sequences[i].first].second = j++;
+      m_sequences[j].first = m_buckets[m_sequences[i].first].first;
+      ++j;
     }
   }
   m_sequences.resize(j);
   assert(m_sequences.size() == m_buckets.size());
+  m_buckets.clear();
   if(m_verbose) {
     std::clog << replaceables.size() << " different sequences to choose from."
               << std::endl;
@@ -275,13 +278,13 @@ size_t SequenceReplacer::
 writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
   //Moved to decideReplacements
   //m_sequences.push_back(std::make_pair(0, length));
-  
+    
   uint32 currentSeq = 0;
   uint32 j = writeWithEscaping(src, src + m_sequences[currentSeq].second, dst);
   uint32 i = m_sequences[currentSeq].second;
-  
+
   while(i < length) {
-    uint32 name = m_buckets[m_sequences[currentSeq].first].first;
+    uint32 name = m_sequences[currentSeq].first;
     if(m_hashValues[name].second > 0) {
 
       dst[j++] = m_hashValues[name].first;

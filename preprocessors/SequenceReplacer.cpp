@@ -28,6 +28,7 @@
 #include "FrequencyTable.hpp"
 #include "../Utils.hpp"
 #include "../globaldefs.hpp"
+#include "../Profiling.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -67,6 +68,7 @@ void SequenceReplacer::resetAnalyseData() {
 
 void SequenceReplacer::
 deleteRemovedAndTakeSamples(std::vector<long_sequences::Sequence>& replaceables) {
+  PROFILE("SequenceReplacer::deleteRemovedAndTakeSamples");
   using long_sequences::Sequence;
   uint32 i = 0;
   while(m_buckets[i].second & 0x80000000) ++i;
@@ -120,6 +122,7 @@ uint32 SequenceReplacer::
 findReplaceableSequences(const std::vector<long_sequences::Sequence>& replaceables,
                          FrequencyTable& freqTable, uint32 maxReps) const
 {
+  PROFILE("SequenceReplacer::findReplaceableSequences");
   size_t current = 0;
   uint32 lim = std::min(maxReps, (uint32)replaceables.size());
   while(current < lim) {
@@ -276,6 +279,7 @@ uint32 SequenceReplacer::writeWithEscaping(const byte* begin, const byte* end,
 
 size_t SequenceReplacer::
 writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
+  PROFILE("SequenceReplacer::writeReplacedVersion");
   //Moved to decideReplacements
   //m_sequences.push_back(std::make_pair(0, length));
     
@@ -313,6 +317,7 @@ calculateFrequencies(uint32 begin, uint32 end, uint32 *f) const {
 }
 
 void SequenceReplacer::scanAndStore() {
+  PROFILE("SequenceReplacer::scanAndStore");
   size_t mask = m_hashValues.size()-1;
   size_t logMask = utils::logFloor(mask+1);
   // mask == 2^k - 1 for some k
@@ -396,6 +401,7 @@ void SequenceReplacer::scanAndStore() {
 }
 
 void SequenceReplacer::sortIntoBuckets() {
+  PROFILE("SequenceReplacer::sortIntoBuckets");
   uint32 total = 0;
   for(size_t i = 0; i < m_hashValues.size(); ++i) {
     uint32 t = m_hashValues[i].first;
@@ -503,6 +509,7 @@ sortSubBucket(int begin, int end) {
 }
 
 void SequenceReplacer::sortAndMarkBuckets() {
+  PROFILE("SequenceReplacer::sortAndMarkBuckets");
   //TODO: fix if size == 0
   int prevPos = 0;
   size_t prevHash = m_buckets[0].first;
@@ -743,6 +750,7 @@ validateCorrectOrder(uint32 begin, uint32 end) {
 }
 
 void SequenceReplacer::decideLengths() {
+  PROFILE("SequenceReplacer::decideLengths");
   long_sequences::MaxHeap<uint32, uint32> heap(m_hashValues.size());
   std::map<uint32, uint32> bucketLengths;
   for(uint32 i = 0; i < m_buckets.size(); ) {
@@ -866,6 +874,7 @@ bool SequenceReplacer::validatePhase2() const {
 
 // Removes deleted sequences from m_sequences and counts separate sequences
 void SequenceReplacer::prepareForLengthAnalysation() {
+  PROFILE("SequenceReplacer::prepareForLengthAnalysation");
   std::fill(m_hashValues.begin(), m_hashValues.end(),
             std::make_pair(0, m_windowSize));
   

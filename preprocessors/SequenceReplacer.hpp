@@ -171,6 +171,16 @@ class SequenceReplacer {
 
   size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
 
+  struct bucket_struct {
+    bucket_struct()
+        : name(0), position(0xffffffff), positionInPos(0xffffffff) {}
+    bucket_struct(uint32 n, uint32 p, uint32 pp)
+        : name(n), position(p), positionInPos(pp) {}
+    uint32 name;
+    uint32 position;
+    uint32 positionInPos;
+  };
+
  private:
   void resizeAndInitTable(size_t preference);
   uint64 initHash(const byte* data) const;
@@ -230,7 +240,7 @@ class SequenceReplacer {
 
   std::vector<std::pair<uint32, uint32> > m_sequences;
 
-  std::vector<std::pair<uint32, uint32> > m_buckets;
+  std::vector<bucket_struct> m_buckets;
 
   std::map<uint32, const byte*> m_samples;
 

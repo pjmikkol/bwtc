@@ -188,7 +188,7 @@ class SequenceReplacer {
   void scanAndStore();
   void calculateFrequencies(uint32 begin, uint32 end, uint32 *f) const;
   void sortIntoBuckets();
-  void sortSubBucket(int begin, int end);
+  void sortSubBucket(int begin, int end, bool positionsUnordered);
   int strCmp(uint32 pos1, uint32 pos2) const;
   void sortPositions(int begin, int end);
   void insertionSort(int begin, int end, const byte* data);

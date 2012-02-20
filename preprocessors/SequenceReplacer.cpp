@@ -341,22 +341,21 @@ void SequenceReplacer::scanAndStore() {
   std::vector<buf_struct> buffer;
   buffer.resize(m_windowSize);
   while(pos + limit < m_dataLength) {
-    uint32 bufferIndex = 0;
     uint64 h = initHash(m_data + pos);
 
     //Store the pairs <hash, count> into the buffer
-    buffer[bufferIndex++] = buf_struct(h, m_hashValues[h & mask].second, m_hashValues[h & mask].first);
-    for(size_t i = 1; i < m_windowSize; ++i) {
+    buffer[0] = buf_struct(h, m_hashValues[h & mask].second, m_hashValues[h & mask].first);
+    for(uint32 i = 1; i < m_windowSize; ++i) {
       h = (h - m_data[pos + i - 1]*m_hashRemovalConstant)*s_hashConstant + m_data[pos + i - 1 + m_windowSize];
-      buffer[bufferIndex++] = buf_struct(h, m_hashValues[h & mask].second, m_hashValues[h & mask].first);
+      buffer[i] = buf_struct(h, m_hashValues[h & mask].second, m_hashValues[h & mask].first);
     }
 
     uint32 maxCount = buffer[0].count;
     uint32 maxPos = 0;
     bool foundSuitable = ((buffer[0].hash >> logMask) & 0xffffffff) == buffer[0].extraHash;
-    for(size_t i = 1; i < m_windowSize; ++i) {
+    for(uint32 i = 1; i < m_windowSize; ++i) {
       if(buffer[i].count != 0 && ((buffer[i].hash >> logMask) & 0xffffffff) != buffer[i].extraHash) continue;
-      if(buffer[i].count >= maxCount) {
+      if(!foundSuitable || buffer[i].count >= maxCount) {
         maxCount = buffer[i].count;
         maxPos = i;
         foundSuitable = true;
@@ -447,7 +446,7 @@ void SequenceReplacer::insertionSort(int begin, int end, const byte* data) {
 */
 
 void SequenceReplacer::
-sortSubBucket(int begin, int end) {
+sortSubBucket(int begin, int end, bool positionsUnordered) {
   int len = end - begin;
   if(len <= 1) {
     if(len == 1) m_buckets[begin].positionInPos |= 0x80000000;
@@ -466,7 +465,7 @@ sortSubBucket(int begin, int end) {
       std::swap(m_buckets[i], m_buckets[j]);
     }
   }
-  sortSubBucket(begin, i+1);
+  sortSubBucket(begin, i+1, false);
   int equalBucket = j = i + 1;
   for(; j < end - 1; ++j) {
     if(strCmp(m_buckets[pivot].position, m_buckets[j].position) == 0) {
@@ -475,9 +474,9 @@ sortSubBucket(int begin, int end) {
     }
   }
   ++i; std::swap(m_buckets[i], m_buckets[j]); ++i;
-  sortPositions(equalBucket, i);
+  if(positionsUnordered && j != i - 1) sortPositions(equalBucket, i);
   m_buckets[equalBucket].positionInPos |= 0x80000000;
-  sortSubBucket(i, end);
+  sortSubBucket(i, end, true);
   m_buckets[begin].positionInPos |= 0x80000000;
 }
 
@@ -489,13 +488,13 @@ void SequenceReplacer::sortAndMarkBuckets() {
   int s = m_buckets.size();
   for(int i = 1; i < s; ++i) {
     if(prevHash != m_buckets[i].name) {
-      sortSubBucket(prevPos, i);
+      sortSubBucket(prevPos, i, false);
       prevPos = i;
       prevHash = m_buckets[i].name;
     }
   }
   if(prevPos + 1 < s) {
-    sortSubBucket(prevPos, s);
+    sortSubBucket(prevPos, s, false);
   }
   m_buckets[prevPos].positionInPos |= 0x80000000;
 }

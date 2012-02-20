@@ -335,21 +335,44 @@ void SequenceReplacer::scanAndStore() {
   assert((mask & (mask + 1)) == 0);
 
   uint32 pos = 0;
-  const uint32 limit = 2 * m_windowSize - 2;
+  const uint32 limit = 2 * m_windowSize - 1;
   const uint32 halfWindow = (m_windowSize+1)/2;
 
   std::vector<buf_struct> buffer;
   buffer.resize(m_windowSize);
+
   while(pos + limit < m_dataLength) {
     uint64 h = initHash(m_data + pos);
 
     //Store the pairs <hash, count> into the buffer
+    //Two separate versions. The second one seems to work better on
+    //non-monotonous inputs
+#if 0
     buffer[0] = buf_struct(h, m_hashValues[h & mask].second, m_hashValues[h & mask].first);
     for(uint32 i = 1; i < m_windowSize; ++i) {
-      h = (h - m_data[pos + i - 1]*m_hashRemovalConstant)*s_hashConstant + m_data[pos + i - 1 + m_windowSize];
+      byte next = m_data[pos + i - 1 + m_windowSize];
+      h -= m_data[pos + i - 1]*m_hashRemovalConstant;
+      h *= s_hashConstant;
+      h += next;
       buffer[i] = buf_struct(h, m_hashValues[h & mask].second, m_hashValues[h & mask].first);
     }
+#else    
+    buffer[0] = buf_struct(h, 0, 0);
+    for(uint32 i = 1; i < m_windowSize; ++i) {
+      byte next = m_data[pos + i - 1 + m_windowSize];
+      h -= m_data[pos + i - 1]*m_hashRemovalConstant;
+      h *= s_hashConstant;
+      h += next;
+      buffer[i] = buf_struct(h, 0, 0);
+    }
+    for(uint32 i = 0; i < m_windowSize; ++i) {
+      std::pair<uint32, uint32> p = m_hashValues[buffer[i].hash & mask];
+      buffer[i].extraHash = p.second;
+      buffer[i].count = p.first;
+    }
+#endif
 
+    
     uint32 maxCount = buffer[0].count;
     uint32 maxPos = 0;
     bool foundSuitable = ((buffer[0].hash >> logMask) & 0xffffffff) == buffer[0].extraHash;
@@ -365,14 +388,14 @@ void SequenceReplacer::scanAndStore() {
     if(foundSuitable) {
       size_t hash = buffer[maxPos].hash;
       std::pair<uint32, uint32>& pair = m_hashValues[hash & mask];
-      m_sequences.push_back(std::make_pair(hash & mask, pos + maxPos));
       ++pair.first;
       pair.second = hash >> logMask;
+      m_sequences.push_back(std::make_pair(hash & mask, pos + maxPos));
       calculateFrequencies(pos, pos + maxPos + m_windowSize, m_frequencies);
       pos += maxPos + m_windowSize;
     } else {
-      calculateFrequencies(pos, pos + limit + 1, m_frequencies);
-      pos += limit + 1;
+      calculateFrequencies(pos, pos + limit, m_frequencies);
+      pos += limit;
     }
   }
 }

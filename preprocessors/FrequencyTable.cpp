@@ -75,7 +75,7 @@ byte FrequencyTable::getKey(int i) const {
 bool FrequencyTable::decrease(byte key, uint32 value) {
   int freqIndex = m_location[key];
   if(m_frequencies[freqIndex].second < value) return false;
-  value -= m_frequencies[freqIndex].second;
+  value = m_frequencies[freqIndex].second - value;
   std::pair<byte, uint32> pair =
       std::make_pair(m_frequencies[freqIndex].first, value);
   

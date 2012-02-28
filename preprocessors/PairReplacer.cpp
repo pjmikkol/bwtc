@@ -63,9 +63,15 @@ void PairReplacer::analyseData(const byte *data, size_t length, bool reset) {
   size_t i = 0;
   if(!m_analysationStarted) beginAnalysing(data[i++], reset);
 
+  /*
   for(; i < length; ++i) {
     analyseData(data[i]);
+    }*/
+  for(; i < (length & 0xfffffffe); ++i) {
+    analyseData0(data[i]);
+    analyseData(data[++i]);
   }
+  if(length & 0xfffffffe) analyseData0(data[i]);
 }
 
 void PairReplacer::finishAnalysation() {}
@@ -93,7 +99,7 @@ makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
              const size_t *pairFrequencies) {
   assert(pairs.empty());
   for(size_t i = 0; i < (1 << 16); ++i) {
-    if((i & 0xff) == ((i >> 8) & 0xff)) continue;
+    //if((i & 0xff) == ((i >> 8) & 0xff)) continue;
     pairs.push_back(std::make_pair(pairFrequencies[i], i));
   }
 }
@@ -114,7 +120,7 @@ void PairReplacer::findReplaceablePairs(
     byte fst = static_cast<byte>((pairs[currentPair].second >> 8) & 0xFF);
     byte snd = static_cast<byte>(pairs[currentPair].second & 0xFF);
 
-    assert(fst != snd);
+    //assert(fst != snd);
     if(usedFst[snd] || usedSnd[fst]) {
       ++currentPair;
       continue;

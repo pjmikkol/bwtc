@@ -45,13 +45,25 @@ class PairReplacer {
   void analyseData(const byte *data, size_t length, bool reset=true);
 
   inline void analyseData(byte next) {
-      assert(m_analysationStarted);
-      m_prev = (m_prev << 8) | next;
-      
-      ++m_pairFrequencies[m_prev];
-      ++m_frequencies[next];
+    assert(m_analysationStarted);
+    m_prev = (m_prev << 8) | next;
+    
+    ++m_pairFrequencies[m_prev];
+    ++m_frequencies[next];
   }
-  
+
+  inline void analyseData0(byte next) {
+    ++m_frequencies[next];
+    uint16 prev = m_prev;
+    m_prev = (m_prev << 8) | next;
+
+    int pXc = prev ^ m_prev;
+    // compute min(pXc,1)
+    int min = 1 + ((pXc - 1) & ((pXc - 1) >> (sizeof(int) * 7))); // 7 == CHAR_BIT - 1
+    
+    m_pairFrequencies[m_prev] += min;
+  }
+
   void beginAnalysing(bool reset);
 
   void beginAnalysing(byte first, bool reset);

@@ -192,8 +192,8 @@ void PairReplacer::constructReplacementTable(
 
 size_t PairReplacer::writeHeader(byte *to) const {
   if(m_numOfReplacements == 0)  {
-    to[0] = to[1] = to[2] = 0;
-    return 3;
+    to[0] = m_numOfReplacements;
+    return 1;
   }
   size_t pos = 0;
   byte prevValue = m_escapeByte;

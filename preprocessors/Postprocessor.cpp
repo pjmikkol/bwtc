@@ -82,7 +82,7 @@ uncompressCommonPairs(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   assert(length > 2);
   std::vector<byte> result;
-  result.reserve(length - 3); /* Minimum size of result */
+  result.reserve(length - 1); /* Minimum size of result */
   /* Prepare the replacement table */
   unsigned replacements[256];
   std::fill(replacements, replacements + 256, no_repl);
@@ -91,7 +91,8 @@ uncompressCommonPairs(std::vector<byte> *compressed, size_t length) {
   uint64 j = 0;
   bool escaping = false;
   byte escape_symbol = 0;
-  if (data[0] == data[1] && data[1] == data[2]) j = 3;
+  int repl = (int)data[0];
+  if (repl == 0) j = 1;
   else {
     unsigned i = 0;
     do {
@@ -105,7 +106,7 @@ uncompressCommonPairs(std::vector<byte> *compressed, size_t length) {
     j = i + 2;
   }
   if (verbosity) {
-    std::clog << ((j - 2)/3) << " pair replacements.";
+    std::clog << (!repl?0:((j - 2)/3)) << " pair replacements.";
     if(escaping) std::clog << " Escaping in use.";
     std::clog << std::endl;
   }

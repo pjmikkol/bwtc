@@ -175,6 +175,7 @@ findEscapeIndex(FrequencyTable& freqTable, uint32 freeSymbols,
 }
 
 uint32 SequenceReplacer::decideReplacements() {
+  if(m_buckets.size() == 0) return 0;
   assert(m_phase == 2);
   std::vector<long_sequences::Sequence> replaceables;
   deleteRemovedAndTakeSamples(replaceables);
@@ -282,6 +283,10 @@ uint32 SequenceReplacer::writeWithEscaping(const byte* begin, const byte* end,
 size_t SequenceReplacer::
 writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
   PROFILE("SequenceReplacer::writeReplacedVersion");
+  if(m_numOfReplacements == 0) {
+    std::copy(src, src + length, dst);
+    return length;
+  }
   //Moved to decideReplacements
   //m_sequences.push_back(std::make_pair(0, length));
     
@@ -505,7 +510,7 @@ sortSubBucket(int begin, int end, bool positionsUnordered) {
 
 void SequenceReplacer::sortAndMarkBuckets() {
   PROFILE("SequenceReplacer::sortAndMarkBuckets");
-  //TODO: fix if size == 0
+  if(m_buckets.size() == 0) return;
   int prevPos = 0;
   size_t prevHash = m_buckets[0].name;
   int s = m_buckets.size();
@@ -781,6 +786,7 @@ void SequenceReplacer::decideLengths() {
 }
 
 uint32 SequenceReplacer::nameHashValues() {
+  if(m_buckets.size() == 0) return 0;
   uint32 name = 0;
   uint32 prev = 0;
   m_buckets[0].positionInPos &= 0x7fffffff;

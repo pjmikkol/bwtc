@@ -47,6 +47,18 @@ FrequencyTable::FrequencyTable() {
   assert(test());
 }
 
+FrequencyTable::FrequencyTable(const FrequencyTable& freqTable) {
+  std::copy(freqTable.m_frequencies, freqTable.m_frequencies+256, m_frequencies);
+  std::copy(freqTable.m_location, freqTable.m_location+256, m_location);
+}
+
+FrequencyTable& FrequencyTable::operator=(const FrequencyTable& freqTable) {
+  std::copy(freqTable.m_frequencies, freqTable.m_frequencies+256, m_frequencies);
+  std::copy(freqTable.m_location, freqTable.m_location+256, m_location);
+  return *this;
+}
+
+
 FrequencyTable::FrequencyTable(uint32* frequencies) {
   initialize(frequencies);
 }

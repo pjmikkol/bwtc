@@ -148,7 +148,7 @@ void PairAndRunReplacer::beginAnalysing(byte first, bool reset) {
 }
 
 void PairAndRunReplacer::findReplaceablePairsAndRuns(
-    std::vector<std::pair<size_t, uint16> >& pairs,
+    std::vector<std::pair<uint32, uint16> >& pairs,
     std::vector<Replacement>& replaceables, FrequencyTable& freqs,
     size_t maxReplaceables) const {
   bool usedFst[256] = {false}, usedSnd[256] = {false}, usedRun[256] = {false};
@@ -401,7 +401,7 @@ size_t PairAndRunReplacer::decideReplacements() {
   std::vector<Replacement> replaceables;
   size_t escapeIndex;
   {
-    std::vector<std::pair<size_t, uint16> > pairs;
+    std::vector<std::pair<uint32, uint16> > pairs;
     PairReplacer::makePairList(pairs, m_pairFrequencies);
     if(m_useEscaping) {
       findReplaceablePairsAndRuns(pairs, replaceables, freqTable, 254);

@@ -74,16 +74,21 @@ class PairReplacer {
 
   size_t decideReplacements();
   
-  static void makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
+  static void makePairList(std::vector<std::pair<uint32, uint16> >& pairs,
                            const size_t *pairFrequencies);
 
-  void findReplaceablePairs(std::vector<std::pair<size_t, uint16> >& pairs,
-                            std::vector<std::pair<size_t, uint16> >& replaceablePairs,
+  void findReplaceablePairs(std::vector<std::pair<uint32, uint16> >& pairs,
+                            std::vector<std::pair<uint32, uint16> >& replaceablePairs,
                             FrequencyTable& freqs, size_t maxReplacements) const;
 
+  int64 findReplaceablePairs(size_t startingPair,
+                             const std::vector<std::pair<uint32, uint16> >& pairs,
+                             std::vector<std::pair<uint32, uint16> >& replaceablePairs,
+                             FrequencyTable& freqs, size_t maxReplacements) const;
+  
 
   size_t findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
-                     std::vector<std::pair<size_t, uint16> >& suitablePairs);
+                     std::vector<std::pair<uint32, uint16> >& suitablePairs);
 
   size_t writeHeader(byte *to) const;
 
@@ -160,7 +165,7 @@ class PairReplacer {
  private:
   PairReplacer& operator=(const PairReplacer&);
   void constructReplacementTable(
-      const std::vector<std::pair<size_t, uint16> >& pairs,
+      const std::vector<std::pair<uint32, uint16> >& pairs,
       const FrequencyTable& freqTable, size_t freeSymbols);
 
   /**Stores the frequencies of bytes. */
@@ -195,6 +200,10 @@ class PairReplacer {
 
   /**Tells if some rare symbols will be stolen. */
   const bool m_useEscaping;
+
+  /**Number of different greedy searchs to be made when deciding
+   * replaceable pairs.*/
+  static const size_t s_greedyStarts = 5;
 };
 
 } //namespace bwtc

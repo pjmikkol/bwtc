@@ -66,7 +66,7 @@ class PairAndRunReplacer {
   void finishAnalysation();
 
   void findReplaceablePairsAndRuns(
-      std::vector<std::pair<size_t, uint16> >& pairs,
+      std::vector<std::pair<uint32, uint16> >& pairs,
       std::vector<Replacement>& replaceables, FrequencyTable& freqs,
       size_t maxReplaceables) const;
 

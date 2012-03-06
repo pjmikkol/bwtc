@@ -95,7 +95,7 @@ void PairReplacer::beginAnalysing(bool reset) {
 }
 
 void PairReplacer::
-makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
+makePairList(std::vector<std::pair<uint32, uint16> >& pairs,
              const size_t *pairFrequencies) {
   assert(pairs.empty());
   for(size_t i = 0; i < (1 << 16); ++i) {
@@ -105,14 +105,39 @@ makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
 }
 
 void PairReplacer::findReplaceablePairs(
-    std::vector<std::pair<size_t, uint16> >& pairs,
-    std::vector<std::pair<size_t, uint16> >& replaceablePairs,
+    std::vector<std::pair<uint32, uint16> >& pairs,
+    std::vector<std::pair<uint32, uint16> >& replaceablePairs,
+    FrequencyTable& freqs, size_t maxReplacements) const
+{
+  std::sort(pairs.rbegin(), pairs.rend());
+
+  int64 bestUtility = 0;
+  FrequencyTable bestFreqs(freqs);
+  std::vector<std::pair<uint32, uint16> > bestReplacements;
+  for(size_t i = 0; i < s_greedyStarts; ++i) {
+    FrequencyTable tmpFreqs(freqs);
+    std::vector<std::pair<uint32, uint16> > tmpReplacements;
+    int64 utility = findReplaceablePairs(i, pairs, tmpReplacements, tmpFreqs, maxReplacements);
+    if(utility > bestUtility) {
+      bestFreqs = tmpFreqs;
+      bestReplacements = tmpReplacements;
+      bestUtility = utility;
+    }
+  }
+  freqs = bestFreqs;
+  replaceablePairs = bestReplacements;
+}
+
+int64 PairReplacer::findReplaceablePairs(
+    size_t startingPair,
+    const std::vector<std::pair<uint32, uint16> >& pairs,
+    std::vector<std::pair<uint32, uint16> >& replaceablePairs,
     FrequencyTable& freqs, size_t maxReplacements) const
 {
   bool usedFst[256] = {false}, usedSnd[256] = {true};
-  size_t currentPair = 0, currentSymbol = 0;
+  size_t currentPair = startingPair, currentSymbol = 0;
 
-  std::sort(pairs.rbegin(), pairs.rend());
+  int64 utility = 0;
 
   while(replaceablePairs.size() < maxReplacements && currentPair < pairs.size()
         && currentSymbol < maxReplacements)
@@ -120,7 +145,6 @@ void PairReplacer::findReplaceablePairs(
     byte fst = static_cast<byte>((pairs[currentPair].second >> 8) & 0xFF);
     byte snd = static_cast<byte>(pairs[currentPair].second & 0xFF);
 
-    //assert(fst != snd);
     if(usedFst[snd] || usedSnd[fst]) {
       ++currentPair;
       continue;
@@ -135,12 +159,15 @@ void PairReplacer::findReplaceablePairs(
       continue;
     }
 
-    if(freqs.getFrequency(currentSymbol) + 1003 >= pairs[currentPair].first) {
+    uint32 fr = freqs.getFrequency(currentSymbol);
+    if(fr + 1003 >= pairs[currentPair].first) {
       freqs.increase(fst, pairs[currentPair].first);
       freqs.increase(snd, pairs[currentPair].first);
       ++currentPair;
       break;
     }
+    utility += pairs[currentPair].first;
+    utility -= fr;
 
     replaceablePairs.push_back(pairs[currentPair]);
     usedFst[fst] = true; usedSnd[snd] = true;
@@ -148,10 +175,11 @@ void PairReplacer::findReplaceablePairs(
     ++currentSymbol;
   }
   assert(currentSymbol == replaceablePairs.size());
+  return utility;
 }
 
 size_t PairReplacer::findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
-                                     std::vector<std::pair<size_t, uint16> >&
+                                     std::vector<std::pair<uint32, uint16> >&
                                      suitablePairs)
 {
   if(suitablePairs.size() <= freeSymbols) return freeSymbols;
@@ -173,7 +201,7 @@ size_t PairReplacer::findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
 }
 
 void PairReplacer::constructReplacementTable(
-    const std::vector<std::pair<size_t, uint16> >& pairs,
+    const std::vector<std::pair<uint32, uint16> >& pairs,
     const FrequencyTable& freqTable, size_t freeSymbols)
 {
   assert(m_numOfReplacements > 0);
@@ -244,13 +272,13 @@ writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
 size_t PairReplacer::decideReplacements() {
   assert(m_analysationStarted);
   FrequencyTable freqTable(m_frequencies);
-  std::vector<std::pair<size_t, uint16> > pairs;
+  std::vector<std::pair<uint32, uint16> > pairs;
 
   size_t freeSymbols = 0;
   while(freqTable.getFrequency(freeSymbols) == 0) ++freeSymbols;
 
   makePairList(pairs, m_pairFrequencies);
-  std::vector<std::pair<size_t, uint16> > replaceablePairs;
+  std::vector<std::pair<uint32, uint16> > replaceablePairs;
 
   size_t escapeIndex;
   

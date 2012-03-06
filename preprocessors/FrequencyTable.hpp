@@ -38,6 +38,9 @@ namespace bwtc {
 class FrequencyTable {
  public:
   FrequencyTable();
+  FrequencyTable(const FrequencyTable& freqTable);
+
+  FrequencyTable& operator=(const FrequencyTable& freqTable);
 
   /** Constructs FrequencyTable from given freqs */
   FrequencyTable(uint32* frequencies); 

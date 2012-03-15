@@ -129,21 +129,24 @@ MainBlock* Preprocessor::readBlock() {
 
 size_t Preprocessor::preprocess(byte *src, size_t length) {
   PROFILE("Preprocessor::preprocess");
+  byte *dst;
   std::vector<byte> tmp;
-  tmp.resize(length + m_preprocessingOptions.size()*5);
-  byte *dst = &tmp[0];
-  for(size_t i = 0; i < m_preprocessingOptions.size(); ++i) {
-    char c = m_preprocessingOptions[i];
-    if(c == 'p') {
-      PREPROCESS(PairReplacer, verbosity > 1, src, dst);
-    } else if(c == 'r') {
-      PREPROCESS(RunReplacer, verbosity > 1, src, dst);
-    } else if(c == 'c') {
-      PREPROCESS(pairs_and_runs::PairAndRunReplacer, verbosity > 1, src, dst);
-    } else if(c == 's') {
-      PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
+  if(m_preprocessingOptions.size() > 0) {
+    tmp.resize(length + m_preprocessingOptions.size()*5);
+    dst = &tmp[0];
+    for(size_t i = 0; i < m_preprocessingOptions.size(); ++i) {
+      char c = m_preprocessingOptions[i];
+      if(c == 'p') {
+        PREPROCESS(PairReplacer, verbosity > 1, src, dst);
+      } else if(c == 'r') {
+        PREPROCESS(RunReplacer, verbosity > 1, src, dst);
+      } else if(c == 'c') {
+        PREPROCESS(pairs_and_runs::PairAndRunReplacer, verbosity > 1, src, dst);
+      } else if(c == 's') {
+        PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
+      }
+      std::swap(src, dst);
     }
-    std::swap(src, dst);
   }
   if(m_preprocessingOptions.size() & 1) {
     std::copy(src, src + length, dst);

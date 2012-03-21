@@ -78,7 +78,7 @@ void WaveletEncoder::writeGlobalHeader(const std::string& preproc, char encoding
   } else if (bits <= 5){
     m_out->writeByte(static_cast<byte>((b << (8 - bits)) & 0xff));
   } else {
-    m_out->writeByte(static_cast<byte>((b >> (8 - bits)) & 0xff));
+    m_out->writeByte(static_cast<byte>((b << (8 - bits)) & 0xff));
     m_out->writeByte(static_cast<byte>(0));
   }
 

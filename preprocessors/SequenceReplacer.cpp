@@ -656,8 +656,7 @@ expandToRight(const std::vector<uint32>& elements,
 
 void SequenceReplacer::
 removeOverlappingSequences(const std::vector<uint32>& elements, uint32 leftOffset,
-                           uint32 lengthOfSequence,
-                           long_sequences::MaxHeap<uint32, uint32>& heap)
+                           uint32 lengthOfSequence)
 {
   std::map<uint32, uint32> updates;
   for(size_t i = 0; i < elements.size(); ++i) {
@@ -669,11 +668,8 @@ removeOverlappingSequences(const std::vector<uint32>& elements, uint32 leftOffse
       if((m_sequences[lseq].second & 0x80000000) != 0) continue;
       std::pair<uint32, uint32>& p = m_sequences[lseq];
 
-      //uint32 llen = m_hashValues[m_buckets[p.first].name].second;
-      //if(p.second + llen > pos) {
       if(p.second + m_windowSize > pos) {
         uint32 name = m_buckets[p.first].name;
-        //--m_hashValues[name].first;
         ++updates[name];
         m_buckets[p.first].positionInPos |= 0x80000000;
         p.second |= 0x80000000;
@@ -686,7 +682,6 @@ removeOverlappingSequences(const std::vector<uint32>& elements, uint32 leftOffse
       std::pair<uint32, uint32>& p = m_sequences[rseq];
       if(pos + lengthOfSequence > p.second) {
         uint32 name = m_buckets[p.first].name;
-        //--m_hashValues[name].first;
         ++updates[name];
         m_buckets[p.first].positionInPos |= 0x80000000;
         p.second |= 0x80000000;
@@ -697,14 +692,12 @@ removeOverlappingSequences(const std::vector<uint32>& elements, uint32 leftOffse
   }
   for(std::map<uint32, uint32>::const_iterator it = updates.begin();
       it != updates.end(); ++it) {
-    heap.decrease(it->first, it->second);
     m_hashValues[it->first].first -= it->second;
   }
 }
 
 void SequenceReplacer::
-expandStringsInBucket(uint32 begin, uint32 end,
-                      long_sequences::MaxHeap<uint32, uint32>& heap) {
+expandStringsInBucket(uint32 begin, uint32 end) {
   std::vector<uint32> notDeleted;
   // First member of pair tells how many chars we can at least expand.
   // Second member tells offset to the previously considered sequence
@@ -732,7 +725,7 @@ expandStringsInBucket(uint32 begin, uint32 end,
   uint32 len = expandedToLeft + expandedToRight + m_windowSize;
 
   if(len > m_windowSize) {
-    removeOverlappingSequences(notDeleted, expandedToLeft, len, heap);
+    removeOverlappingSequences(notDeleted, expandedToLeft, len);
     m_hashValues[m_buckets[begin].name].second = len;
   }
 }
@@ -760,28 +753,23 @@ validateCorrectOrder(uint32 begin, uint32 end) {
 
 void SequenceReplacer::decideLengths() {
   PROFILE("SequenceReplacer::decideLengths");
-  long_sequences::MaxHeap<uint32, uint32> heap(m_hashValues.size());
-  std::map<uint32, uint32> bucketLengths;
+  //first element is length of bucket, second is starting position
+  std::vector<std::pair<uint32, uint32> > buckets; 
+
   for(uint32 i = 0; i < m_buckets.size(); ) {
     uint32 name = m_buckets[i].name;
     uint32 j = i+1;
     while(j < m_buckets.size() && name == m_buckets[j].name) {
       ++j;
     }
-    assert(j- i == m_hashValues[name].first);
-    heap.insert(name, j - i, i);
-    bucketLengths[name] = j - i;
+    buckets.push_back(std::make_pair(j-i, i));
     i = j;
   }
-  heap.prepare();
+  std::sort(buckets.begin(), buckets.end());
 
-  while(!heap.empty()) {
-    long_sequences::MaxHeap<uint32, uint32>::HeapElement el = heap.removeMax();
-    std::map<uint32, uint32>::iterator it = bucketLengths.find(el.id);
-    assert(it != bucketLengths.end());
-    uint32 bucketLength = it->second;
-    bucketLengths.erase(it);
-    expandStringsInBucket(el.value, el.value + bucketLength, heap);
+  for(size_t i = 0; i < buckets.size(); ++i) {
+    if(buckets[i].first <= 1) continue;
+    expandStringsInBucket(buckets[i].second, buckets[i].second+ buckets[i].first);
   }
 }
 

@@ -33,11 +33,13 @@
 
 #include "../globaldefs.hpp"
 #include "InverseBWT.hpp"
+#include "MTL-SA-ibwt.hpp"
 
 namespace bwtc {
 
 InverseBWTransform* giveInverseTransformer() {
-  return new FastInverseBWTransform();
+//  return new FastInverseBWTransform();
+  return new MTL_SA_InverseBWTransform();
 }
 
 std::vector<byte>* InverseBWTransform::allocateMemory(uint64 block_size) {

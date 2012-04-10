@@ -93,10 +93,11 @@ void PreprocBWTSpeed(char *preprocs, int threshold, const std::string& input,
   clock_t prepr_end = clock();
 
   /* Burrows-Wheeler Transform */
-  uint64 eob;
+  std::vector<bwtc::uint32> LFpoints;
+  LFpoints.resize(1);
   transformer->connect(pp.m_currentBlock);
   clock_t bwt_start = clock();
-  std::vector<byte> *result = transformer->doTransform(&eob);
+  std::vector<byte> *result = transformer->doTransform(LFpoints);
   clock_t bwt_end = clock();
   delete result;
   delete transformer;

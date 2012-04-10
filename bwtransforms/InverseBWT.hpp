@@ -48,7 +48,7 @@ class InverseBWTransform {
   virtual uint64 maxBlockSize(uint64 memory_budget) const = 0;
   virtual std::vector<byte>* doTransform(const byte* source_bwt,
                                          uint64 bwt_size,
-                                         uint64 eob_position) = 0;
+                                         const std::vector<uint32>& LFpowers) = 0;
 
  protected:
   /* This is here for the sake of memory management */
@@ -68,7 +68,8 @@ class FastInverseBWTransform : public InverseBWTransform {
   virtual ~FastInverseBWTransform() {}
   virtual uint64 maxBlockSize(uint64 memory_budget) const;
   virtual std::vector<byte>* doTransform(const byte* source_bwt,
-                                         uint64 bwt_size, uint64 eob_position);
+                                         uint64 bwt_size,
+                                         const std::vector<uint32>& LFpowers);
  private:
   static const int64 kMemoryOverhead = 1 << 20;
 };

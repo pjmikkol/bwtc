@@ -69,12 +69,13 @@ void decompress(const std::string& input_name, const std::string& output_name,
   bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
 
   unsigned blocks = 0;
-  uint64 eob_byte; // eob_byte position in BWT
-  while (std::vector<byte>* bwt_block = decoder.decodeBlock(&eob_byte)) {
+
+  std::vector<uint32> LFpowers;
+  while (std::vector<byte>* bwt_block = decoder.decodeBlock(LFpowers)) {
     ++blocks;
     std::vector<byte>* unbwt_block = transformer->doTransform(&(*bwt_block)[0],
                                                               bwt_block->size(),
-                                                              eob_byte);
+                                                              LFpowers);
     delete bwt_block;
 
     postProcessor.postProcess(unbwt_block);

@@ -555,12 +555,14 @@ findLeftLimit(uint32 sequence, uint32 offset) const {
 
 std::pair<uint32, uint32> SequenceReplacer::
 findRightLimit(uint32 sequence, uint32 offset) const {
-  if(sequence + offset + 1 == m_sequences.size())
+  if(sequence + offset + 1 >= m_sequences.size())
     return std::make_pair(m_dataLength - m_sequences[sequence].second - m_windowSize, offset);
   uint32 next = sequence + offset + 1;
   while(next < m_sequences.size() && (m_sequences[next].second & 0x80000000)) {
     ++offset; ++next;
   }
+  if(next == m_sequences.size())
+    return std::make_pair(m_dataLength - m_sequences[sequence].second - m_windowSize, offset);
   uint32 nextName = m_buckets[m_sequences[next].first].name;
   uint32 nextLen = m_hashValues[nextName].second;
   if(nextLen > m_windowSize) {
@@ -703,11 +705,12 @@ expandStringsInBucket(uint32 begin, uint32 end) {
   // Second member tells offset to the previously considered sequence
   std::vector<std::pair<uint32, uint32> >leftLimit, rightLimit;
   for(uint32 i = begin; i < end; ++i) {
-    if((m_buckets[i].positionInPos & 0x80000000) == 0) {
+    uint32 sequence = m_buckets[i].positionInPos;
+    if((sequence & 0x80000000) == 0) {
       notDeleted.push_back(i);
-      std::pair<uint32,uint32> leftL = findLeftLimit(m_buckets[i].positionInPos, 0);
+      std::pair<uint32,uint32> leftL = findLeftLimit(sequence, 0);
       if(leftL.first == 0) return;
-      std::pair<uint32,uint32> rightL = findRightLimit(m_buckets[i].positionInPos, 0);
+      std::pair<uint32,uint32> rightL = findRightLimit(sequence, 0);
       if(rightL.first == 0) return;
       leftLimit.push_back(leftL);
       rightLimit.push_back(rightL);

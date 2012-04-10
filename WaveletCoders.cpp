@@ -138,10 +138,28 @@ void WaveletDecoder::endContextBlock() {
   m_gapProbModel->resetModel();
 }
 
-int WaveletEncoder::writeTrailer(uint64 trailer) {
-  int bytes;
-  uint64 packed_integer = utils::packInteger(trailer, &bytes);
-  writePackedInteger(packed_integer);
+
+
+int WaveletEncoder::writeTrailer(const std::vector<uint32>& LFpowers) {
+  int bytes = 1;
+  byte s = (byte)(LFpowers.size()-1);
+  m_out->writeByte(s);
+  int bitsLeft = 8;
+  for(size_t i = 0; i < LFpowers.size(); ++i) {
+    for(int j = 30; j >= 0; --j) {
+      s = (s << 1) | ((LFpowers[i] >> j) & 0x1);
+      --bitsLeft;
+      if(bitsLeft == 0) {
+        m_out->writeByte(s);
+        bitsLeft = 8;
+        ++bytes;
+      }
+    }
+  }
+  if(bitsLeft < 8) {
+    m_out->writeByte(s << bitsLeft);
+    ++bytes;
+  }
   return bytes;
 }
 
@@ -212,9 +230,9 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
   }
 }
 
-void WaveletEncoder::finishBlock(uint64 eob_byte) {
+void WaveletEncoder::finishBlock(const std::vector<uint32>& LFpowers) {
   m_compressedBlockLength += m_destination.counter();
-  m_compressedBlockLength +=  writeTrailer(eob_byte);
+  m_compressedBlockLength +=  writeTrailer(LFpowers);
   m_out->write48bits(m_compressedBlockLength, m_headerPosition);
 }
 
@@ -288,7 +306,7 @@ uint64 WaveletDecoder::readBlockHeader(std::vector<uint64>* stats) {
   return compressed_length;
 }
 
-std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
+std::vector<byte>* WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
   if(m_in->compressedDataEnding()) return 0;
 
   std::vector<uint64> context_lengths;
@@ -328,7 +346,15 @@ std::vector<byte>* WaveletDecoder::decodeBlock(uint64* eof_byte) {
     endContextBlock();
   }
   
-  *eof_byte = utils::unpackInteger(readPackedInteger());
+  uint32 LFpows = m_in->readByte()+1;
+  LFpowers.resize(LFpows);
+  for(uint32 i = 0; i < LFpows; ++i) {
+    uint32 pos = 0;
+    for(uint32 j = 0; j < 31; ++j)
+      pos = (pos << 1) | (m_in->readBit() ? 1 : 0);
+    LFpowers[i] = pos;
+  }
+  m_in->flushBuffer();
   return data;
 }
 

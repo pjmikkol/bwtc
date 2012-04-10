@@ -52,8 +52,9 @@ uint64 FastInverseBWTransform::maxBlockSize(uint64 memory_budget) const {
 }
 
 std::vector<byte>* FastInverseBWTransform::doTransform(
-    const byte* bwt, uint64 bwt_size, uint64 eob_position)
+    const byte* bwt, uint64 bwt_size, const std::vector<uint32>& LFpowers)
 {
+  uint32 eob_position = LFpowers[0];
   // rank[i] will be the number of occurrences of bwt[i] in bwt[0..i-1]
   std::vector<uint32> bwt_rank_low24(bwt_size);
   std::vector<uint32> rank_milestone_buffer[256];

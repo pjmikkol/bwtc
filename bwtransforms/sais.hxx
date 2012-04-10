@@ -1,6 +1,7 @@
 /*
  * sais.hxx for sais-lite
  * Copyright (c) 2008-2010 Yuta Mori All Rights Reserved.
+ * Modified by Pekka Mikkola 2012
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,6 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+
 
 #ifndef _SAIS_HXX
 #define _SAIS_HXX 1
@@ -289,6 +291,59 @@ template<typename string_type, typename sarray_type,
          typename bucketC_type, typename bucketB_type, typename index_type>
 int
 computeBWT(string_type T, sarray_type SA, bucketC_type C, bucketB_type B,
+           index_type n, index_type k, bool recount,
+           std::vector<uint32>& LFpowers) {
+typedef typename std::iterator_traits<string_type>::value_type char_type;
+  index_type i, j, pidx = -1;
+  char_type c0, c1;
+  index_type x = n/LFpowers.size();
+  index_type y = n-x*LFpowers.size();
+
+  /* compute SAl */
+  if(recount != false) { getCounts(T, C, n, k); }
+  getBuckets(C, B, k, false); /* find starts of buckets */
+  index_type indB = B[c1 = T[j = n - 1]];
+  SA[indB++] = ((0 < j) && (T[j - 1] < c1)) ? ~j : j;
+  for(i = 0; i < n; ++i) {
+    if(0 < (j = SA[i])) {
+      if((n - j) % x == 0 && j >= y+1) LFpowers[(n-j)/x] = i;
+      SA[i] = ~((index_type)(c0 = T[--j]));
+      if(c0 != c1) { B[c1] = indB; indB = B[c1 = c0]; }
+      SA[indB++] = ((0 < j) && (T[j - 1] < c1)) ? ~j : j;
+    } else if(j != 0) {
+      SA[i] = ~j;
+    }
+  }
+  /* compute SAs */
+  if(recount != false) { getCounts(T, C, n, k); }
+  getBuckets(C, B, k, true); /* find ends of buckets */
+  indB = B[c1 = 0];
+  //  b = SA + B[c1 = 0]
+  for(i = n - 1; 0 <= i; --i) {
+    if(0 < (j = SA[i])) {
+      if((n - j) % x == 0 && j >= y+1) LFpowers[(n-j)/x] = i;
+      SA[i] = (c0 = T[--j]);
+      if(c0 != c1) { B[c1] = indB; indB = B[c1 = c0]; }
+      --indB;
+      if((0 < j) && (T[j - 1] > c1)) {
+        if((n - j) % x == 0 && j >= y+1) LFpowers[(n-j)/x] = indB;
+        SA[indB] = ~((index_type)T[j - 1]);
+      } else {
+        SA[indB] = j; 
+      }
+    } else if(j != 0) {
+      SA[i] = ~j;
+    } else {
+      LFpowers[0] = pidx = i;
+    }
+  }
+  return pidx;
+}
+
+template<typename string_type, typename sarray_type,
+         typename bucketC_type, typename bucketB_type, typename index_type>
+int
+computeBWT(string_type T, sarray_type SA, bucketC_type C, bucketB_type B,
            index_type n, index_type k, bool recount) {
 typedef typename std::iterator_traits<string_type>::value_type char_type;
   sarray_type b;
@@ -386,6 +441,36 @@ typedef typename std::iterator_traits<string_type>::value_type char_type;
   }
   return std::make_pair(m, name);
 }
+template<typename string_type, typename sarray_type,
+         typename bucketC_type, typename bucketB_type, typename index_type>
+index_type
+stage3sort(string_type T, sarray_type SA, bucketC_type C, bucketB_type B,
+           index_type n, index_type m, index_type k,
+           unsigned flags, bool isbwt, std::vector<uint32>& LFpowers) {
+typedef typename std::iterator_traits<string_type>::value_type char_type;
+  index_type i, j, p, q, pidx = 0;
+  char_type c0, c1;
+  if((flags & 8) != 0) { getCounts(T, C, n, k); }
+  /* put all left-most S characters into their buckets */
+  if(1 < m) {
+    getBuckets(C, B, k, 1); /* find ends of buckets */
+    i = m - 1, j = n, p = SA[m - 1], c1 = T[p];
+    do {
+      q = B[c0 = c1];
+      while(q < j) { SA[--j] = 0; }
+      do {
+        SA[--j] = p;
+        if(--i < 0) { break; }
+        p = SA[i];
+      } while((c1 = T[p]) == c0);
+    } while(0 <= i);
+    while(0 < j) { SA[--j] = 0; }
+  }
+  if(isbwt == false) { induceSA(T, SA, C, B, n, k, (flags & (4 | 64)) != 0); }
+  else { pidx = computeBWT(T, SA, C, B, n, k, (flags & (4 | 64)) != 0, LFpowers); }
+  return pidx;
+}
+
 template<typename string_type, typename sarray_type,
          typename bucketC_type, typename bucketB_type, typename index_type>
 index_type
@@ -536,6 +621,126 @@ typedef typename std::iterator_traits<string_type>::value_type char_type;
   return pidx;
 }
 
+/* find the suffix array SA of T[0..n-1] in {0..k}^n
+   use a working space (excluding s and SA) of at most 2n+O(1) for a constant alphabet */
+template<typename string_type, typename sarray_type, typename index_type>
+int
+suffixsort(string_type T, sarray_type SA,
+           index_type fs, index_type n, index_type k,
+           bool isbwt, std::vector<uint32>& LFpowers) {
+typedef typename std::iterator_traits<string_type>::value_type char_type;
+  sarray_type RA, C, B;
+  index_type *Cp, *Bp;
+  index_type i, j, m, name, pidx, newfs;
+  unsigned flags = 0;
+  char_type c0, c1;
+
+  /* stage 1: reduce the problem by at least 1/2
+     sort all the S-substrings */
+  C = B = SA; /* for warnings */
+  Cp = 0, Bp = 0;
+  if(k <= 256) {
+    try { Cp = new index_type[k]; } catch(...) { Cp = 0; }
+    if(Cp == 0) { return -2; }
+    if(k <= fs) {
+      B = SA + (n + fs - k);
+      flags = 1;
+    } else {
+      try { Bp = new index_type[k]; } catch(...) { Bp = 0; }
+      if(Bp == 0) { return -2; }
+      flags = 3;
+    }
+  } else if(k <= fs) {
+    C = SA + (n + fs - k);
+    if(k <= (fs - k)) {
+      B = C - k;
+      flags = 0;
+    } else if(k <= 1024) {
+      try { Bp = new index_type[k]; } catch(...) { Bp = 0; }
+      if(Bp == 0) { return -2; }
+      flags = 2;
+    } else {
+      B = C;
+      flags = 64 | 8;
+    }
+  } else {
+    try { Cp = new index_type[k]; } catch(...) { Cp = 0; }
+    if(Cp == 0) { return -2; }
+    Bp = Cp;
+    flags = 4 | 8;
+  }
+  if((n <= ((std::numeric_limits<index_type>::max)() / 2)) && (2 <= (n / k))) {
+    if(flags & 1) { flags |= ((k * 2) <= (fs - k)) ? 32 : 16; }
+    else if((flags == 0) && ((k * 2) <= (fs - k * 2))) { flags |= 32; }
+  }
+  {
+    std::pair<index_type, index_type> r;
+    if(Cp != 0) {
+      if(Bp != 0) { r = stage1sort(T, SA, Cp, Bp, n, k, flags); }
+      else { r = stage1sort(T, SA, Cp, B, n, k, flags); }
+    } else {
+      if(Bp != 0) { r = stage1sort(T, SA, C, Bp, n, k, flags); }
+      else { r = stage1sort(T, SA, C, B, n, k, flags); }
+    }
+    m = r.first, name = r.second;
+  }
+  if(m < 0) {
+    if(flags & (1 | 4)) { delete[] Cp; }
+    if(flags & 2) { delete[] Bp; }
+    return -2;
+  }
+
+  /* stage 2: solve the reduced problem
+     recurse if names are not yet unique */
+  if(name < m) {
+    if(flags & 4) { delete[] Cp; }
+    if(flags & 2) { delete[] Bp; }
+    newfs = (n + fs) - (m * 2);
+    if((flags & (1 | 4 | 64)) == 0) {
+      if((k + name) <= newfs) { newfs -= k; }
+      else { flags |= 8; }
+    }
+    assert((n >> 1) <= (newfs + m));
+    RA = SA + m + newfs;
+    for(i = m + (n >> 1) - 1, j = m - 1; m <= i; --i) {
+      if(SA[i] != 0) { RA[j--] = SA[i] - 1; }
+    }
+    if(suffixsort(RA, SA, newfs, m, name, false) != 0) { if(flags & 1) { delete[] Cp; } return -2; }
+    i = n - 1; j = m - 1; c0 = T[n - 1];
+    do { c1 = c0; } while((0 <= --i) && ((c0 = T[i]) >= c1));
+    for(; 0 <= i;) {
+      do { c1 = c0; } while((0 <= --i) && ((c0 = T[i]) <= c1));
+      if(0 <= i) {
+        RA[j--] = i + 1;
+        do { c1 = c0; } while((0 <= --i) && ((c0 = T[i]) >= c1));
+      }
+    }
+    for(i = 0; i < m; ++i) { SA[i] = RA[SA[i]]; }
+    if(flags & 4) {
+      try { Cp = new index_type[k]; } catch(...) { Cp = 0; }
+      if(Cp == 0) { return -2; }
+      Bp = Cp;
+    }
+    if(flags & 2) {
+      try { Bp = new index_type[k]; } catch(...) { Bp = 0; }
+      if(Bp == 0) { if(flags & 1) { delete[] Cp; } return -2; }
+    }
+  }
+
+  /* stage 3: induce the result for the original problem */
+  if(Cp != 0) {
+    if(Bp != 0) { pidx = stage3sort(T, SA, Cp, Bp, n, m, k, flags, isbwt, LFpowers); }
+    else { pidx = stage3sort(T, SA, Cp, B, n, m, k, flags, isbwt, LFpowers); }
+  } else {
+    if(Bp != 0) { pidx = stage3sort(T, SA, C, Bp, n, m, k, flags, isbwt, LFpowers); }
+    else { pidx = stage3sort(T, SA, C, B, n, m, k, flags, isbwt, LFpowers); }
+  }
+  if(flags & (1 | 4)) { delete[] Cp; }
+  if(flags & 2) { delete[] Bp; }
+
+  return pidx;
+}
+
 } /* namespace saisxx_private */
 
 
@@ -570,18 +775,24 @@ typedef typename std::iterator_traits<sarray_type>::value_type savalue_type;
  * @return The primary index if no error occurred, -1 or -2 otherwise.
  */
 template<typename string_type, typename sarray_type, typename index_type>
-index_type
-saisxx_bwt(string_type T, string_type U, sarray_type A, index_type n, index_type k = 256) {
+void
+saisxx_bwt(string_type T, string_type U, sarray_type A, index_type n,
+           std::vector<uint32>& LFpowers, index_type k = 256) {
 typedef typename std::iterator_traits<sarray_type>::value_type savalue_type;
 typedef typename std::iterator_traits<string_type>::value_type char_type;
-  index_type i, pidx;
+index_type i, pidx;
   assert((std::numeric_limits<index_type>::min)() < 0);
   assert((std::numeric_limits<savalue_type>::min)() < 0);
   assert((std::numeric_limits<savalue_type>::max)() == (std::numeric_limits<index_type>::max)());
   assert((std::numeric_limits<savalue_type>::min)() == (std::numeric_limits<index_type>::min)());
-  if((n < 0) || (k <= 0)) { return -1; }
-  if(n <= 1) { if(n == 1) { U[0] = T[0]; } return n; }
-  pidx = saisxx_private::suffixsort(T, A, 0, n, k, true);
+  if((n < 0) || (k <= 0)) { LFpowers[0] = -1; }
+  if(n <= 1) { if(n == 1) { U[0] = T[0]; } LFpowers[0] = 0; }
+  if(LFpowers.size() == 1) {
+    LFpowers[0] = pidx = saisxx_private::suffixsort(T, A, 0, n, k, true);
+  } else {
+    pidx = saisxx_private::suffixsort(T, A, 0, n, k, true, LFpowers);
+  }
+
   if(0 <= pidx) {
     /*    U[0] = T[n - 1];
     for(i = 0; i < pidx; ++i) { U[i + 1] = (char_type)A[i]; }
@@ -591,7 +802,7 @@ typedef typename std::iterator_traits<string_type>::value_type char_type;
       if(i != pidx) U[i] = (char_type)A[i];
     }
   }
-  return pidx;
+  //return pidx;
 }
 
 

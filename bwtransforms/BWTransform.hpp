@@ -63,7 +63,7 @@ class BWTransform {
     m_currentBlock = block;
     std::reverse(m_currentBlock->begin(), m_currentBlock->end());
   }
-  virtual std::vector<byte>* doTransform(uint64* eob_byte) = 0;
+  virtual std::vector<byte>* doTransform(std::vector<uint32>&) = 0;
   virtual void buildStats();
 
   virtual uint64 maxSizeInBytes(uint64 block_size) const = 0;

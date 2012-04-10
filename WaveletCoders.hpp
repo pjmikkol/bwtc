@@ -49,8 +49,8 @@ class WaveletEncoder {
 
   void writePackedInteger(uint64 packed_integer);
   void endContextBlock();
-  int writeTrailer(uint64 trailer_value);
-  void finishBlock(uint64 eob_byte); //TODO: this calls write trailer
+  int writeTrailer(const std::vector<uint32>& LFpowers);
+  void finishBlock(const std::vector<uint32>& LFpowers);
 
  private:
   OutStream* m_out;
@@ -79,7 +79,7 @@ class WaveletDecoder {
   /* If end symbol is encountered, then the most significant bit is activated */
   uint64 readPackedInteger();
   /* Allocates memory for block, reads and decodes it. */
-  std::vector<byte>* decodeBlock(uint64* eof_byte_in_bwt);
+  std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers);
   /* Returns length of the compressed sequence and stores lengths of the context
    * blocks into stats-array.*/
   uint64 readBlockHeader(std::vector<uint64>* stats);

@@ -111,7 +111,10 @@ void BwtSaisTest(char *arg) {
   strcpy((char*)str, arg);
   int *SA = new int[len+1];
   byte *res = new byte[len+1];
-  int val = saisxx_bwt(str, res, SA, len + 1, 256);
+  std::vector<uint32> LFpowers;
+  LFpowers.resize(1);
+  saisxx_bwt(str, res, SA, len + 1, LFpowers, 256);
+  int val = LFpowers[0];
   for(int i = 0; i < len + 1; ++i) {
     if(i != val) std::cout << res[i];
     else std::cout << '$';

@@ -39,7 +39,7 @@ namespace bwtc {
 
 SAISBWTransform::SAISBWTransform() {}
 
-std::vector<byte>* SAISBWTransform::doTransform(uint64 *eob_byte) {
+std::vector<byte>* SAISBWTransform::doTransform(std::vector<uint32>& LFpowers) {
   PROFILE("SAISBWTransform::doTransform");
   if(!m_currentBlock) return 0;
 
@@ -50,7 +50,7 @@ std::vector<byte>* SAISBWTransform::doTransform(uint64 *eob_byte) {
   m_currentBlock = 0;
   std::vector<byte> *result = allocateMemory(block_size + 1);
   std::vector<int> suffix_array(block_size + 1);
-  *eob_byte = saisxx_bwt(block, &(*result)[0], &suffix_array[0], block_size + 1);
+  saisxx_bwt(block, &(*result)[0], &suffix_array[0], block_size + 1, LFpowers);
   /* Slower implementation of the same algorithm (unsigned are supported)
   sa_is::SA_IS_ZeroInclude(block, &suffix_array[0], block_size + 1, 256);
     *eob_byte = BwtFromSuffixArray(block, block_size, &suffix_array[0],

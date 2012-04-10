@@ -50,7 +50,7 @@ using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
               uint64 block_size, const std::string& preproc, char encoding,
-              bool escaping)
+              bool escaping, uint32 startingPoints)
 {
   PROFILE("TOTAL_compression_time");
 
@@ -75,7 +75,6 @@ void compress(const std::string& input_name, const std::string& output_name,
   unsigned blocks = 0;
   uint64 last_s = 0;
   while( bwtc::MainBlock* block = preprocessor.readBlock() ) {
-    uint64 eob_byte;
     ++blocks;
     //Transformer could have some memory manager..
     transformer->connect(block);
@@ -84,12 +83,14 @@ void compress(const std::string& input_name, const std::string& output_name,
 
     /* The following way enables the calculation of transformation in 
      * several phases */
-    while(std::vector<byte>* b =  transformer->doTransform(&eob_byte)) {
+    std::vector<uint32> LFpowers;
+    LFpowers.resize(startingPoints);
+    while(std::vector<byte>* b = transformer->doTransform(LFpowers)) {
       encoder.encodeData(b, block->m_stats, b->size());
       delete b;
     }
 
-    encoder.finishBlock(eob_byte);
+    encoder.finishBlock(LFpowers);
     last_s = block->m_filled;
     delete block;
   }
@@ -115,6 +116,18 @@ void validatePreprocOption(const std::string& p) {
   }
 }
 
+/* Notifier function for starting points option choice */
+void validateStartingPoints(uint32 sp) {
+  if (sp > 0 && sp <= 256) return;
+
+  class StartPExc : public std::exception {
+    virtual const char* what() const throw() {
+      return "Invalid choice for starting points of decompression.";
+    }
+  } exc;
+
+  throw exc;
+}
 
 /* Notifier function for encoding option choice */
 void validateEncodingOption(char c) {
@@ -136,6 +149,7 @@ int main(int argc, char** argv) {
   char encoding;
   std::string input_name, output_name, preprocessing;
   bool stdout, stdin, escaping;
+  uint32 startingPoints;
 
   try {
     po::options_description description(
@@ -146,6 +160,9 @@ int main(int argc, char** argv) {
         ("stdout,c", "output to standard out")
         ("block,b", po::value<uint64>(&block_size)->default_value(100000),
          "Block size for compression (in kB)")
+        ("starts,s", po::value<uint32>(&startingPoints)->default_value(8)->
+         notifier(&validateStartingPoints),
+         "Starting points for decompression (more means faster decompression).")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
         ("escape", po::value<bool>(&escaping)->default_value(true),
@@ -209,7 +226,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preprocessing, encoding, escaping);
+  compress(input_name, output_name, block_size*1024, preprocessing, encoding, escaping, startingPoints);
 
   PRINT_PROFILE_DATA
   return 0;

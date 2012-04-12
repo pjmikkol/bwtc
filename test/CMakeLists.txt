@@ -50,7 +50,14 @@ target_link_libraries(BwtAndPreprocessorTest common preprocessors bwtransforms)
 add_executable(LongSequencesTest LongSequencesTest.cpp)
 target_link_libraries(LongSequencesTest common preprocessors)
 
+add_executable(TestInverseBwt TestInverseBwt.cpp)
+target_link_libraries(TestInverseBwt common bwtransforms)
 
+add_executable(TestInverseBwtOnFile TestInverseBwtOnFile.cpp)
+target_link_libraries(TestInverseBwtOnFile common bwtransforms)
+
+add_executable(TestLFpowers TestLFpowers.cpp)
+target_link_libraries(TestLFpowers common bwtransforms)
 
 #add_test(long_sequences_test ${EXECUTABLE_OUTPUT_PATH}/long_sequences_test)
 #set_tests_properties(long_sequences_test PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")

@@ -1,5 +1,5 @@
 /**
- * @file MtlSaInverseBWT.hpp
+ * @file MtlSaInverseBWT.cpp
  * @author Juha Karkkainen <juha.karkkainen@cs.helsinki.fi>
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
  *

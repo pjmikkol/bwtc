@@ -307,6 +307,7 @@ uint64 WaveletDecoder::readBlockHeader(std::vector<uint64>* stats) {
 }
 
 std::vector<byte>* WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
+  PROFILE("WaveletDecoder::decodeBlock");
   if(m_in->compressedDataEnding()) return 0;
 
   std::vector<uint64> context_lengths;

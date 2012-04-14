@@ -36,6 +36,7 @@
 #include "../globaldefs.hpp"
 #include "Postprocessor.hpp"
 #include "../Utils.hpp"
+#include "../Profiling.hpp"
 
 namespace bwtc {
 
@@ -60,6 +61,7 @@ PostProcessor::PostProcessor(const std::string& postProcOptions)
     : m_options(postProcOptions) {}
 
 void PostProcessor::postProcess(std::vector<byte> *data) {
+  PROFILE("PostProcessor::postProcess");
   // TODO: optimize unnecessary copying away
   size_t length = data->size();
   for(size_t i = 0; i < m_options.size(); ++i) {

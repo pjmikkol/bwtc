@@ -85,6 +85,11 @@ void compress(const std::string& input_name, const std::string& output_name,
      * several phases */
     std::vector<uint32> LFpowers;
     LFpowers.resize(startingPoints);
+    if(verbosity > 1) {
+      std::clog << "Writing " << startingPoints
+                << " starting points for inverse transform." << std::endl;
+    }
+    
     while(std::vector<byte>* b = transformer->doTransform(LFpowers)) {
       encoder.encodeData(b, block->m_stats, b->size());
       delete b;

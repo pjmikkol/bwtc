@@ -41,11 +41,13 @@ namespace po = boost::program_options;
 #include "Streams.hpp"
 #include "globaldefs.hpp"
 #include "bwtransforms/InverseBWT.hpp"
+#include "Profiling.hpp"
 
 using bwtc::verbosity;
 
 void decompress(const std::string& input_name, const std::string& output_name,
                 int verbosity) {
+  PROFILE("TOTAL_decompression_time");
   if (verbosity > 0) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
     else std::clog << "Input: stdin" << std::endl;
@@ -72,6 +74,10 @@ void decompress(const std::string& input_name, const std::string& output_name,
 
   std::vector<uint32> LFpowers;
   while (std::vector<byte>* bwt_block = decoder.decodeBlock(LFpowers)) {
+    if(verbosity > 1) {
+      std::clog << "Read " << LFpowers.size() << " starting points for "
+                << "inverse transform." << std::endl;
+    }
     ++blocks;
     std::vector<byte>* unbwt_block = transformer->doTransform(&(*bwt_block)[0],
                                                               bwt_block->size(),
@@ -142,5 +148,6 @@ int main(int argc, char** argv) {
 
   decompress(input_name, output_name, verbosity);
   
+  PRINT_PROFILE_DATA
   return 0;
 }

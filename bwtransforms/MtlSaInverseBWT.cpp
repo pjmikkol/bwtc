@@ -30,6 +30,7 @@
 
 #include "../globaldefs.hpp"
 #include "MtlSaInverseBWT.hpp"
+#include "../Profiling.hpp"
 
 namespace bwtc {
 
@@ -243,6 +244,7 @@ void computeData(const byte *bwt, uint64 bwt_size, uint32 *data,
 
 std::vector<byte>* MtlSaInverseBWTransform::doTransform(const byte* bwt,
     uint64 bwt_size, const std::vector<uint32> &LFpowers) {
+  PROFILE("MtlSaInverseBWTransform::doTransform");
   assert(bwt_size >= 2);
   assert(LFpowers.size() > 0);
   uint32 eob_position = LFpowers[0];

@@ -34,11 +34,12 @@
 #include "../globaldefs.hpp"
 #include "InverseBWT.hpp"
 #include "MtlSaInverseBWT.hpp"
+#include "../Profiling.hpp"
 
 namespace bwtc {
 
 InverseBWTransform* giveInverseTransformer() {
-//  return new FastInverseBWTransform();
+  //return new FastInverseBWTransform();
   return new MtlSaInverseBWTransform();
 }
 
@@ -54,6 +55,7 @@ uint64 FastInverseBWTransform::maxBlockSize(uint64 memory_budget) const {
 std::vector<byte>* FastInverseBWTransform::doTransform(
     const byte* bwt, uint64 bwt_size, const std::vector<uint32>& LFpowers)
 {
+  PROFILE("FastInverseBWTransform::doTransform");
   uint32 eob_position = LFpowers[0];
   // rank[i] will be the number of occurrences of bwt[i] in bwt[0..i-1]
   std::vector<uint32> bwt_rank_low24(bwt_size);

@@ -104,13 +104,12 @@ MainBlock* Preprocessor::readBlock() {
 }
 
 #define PREPROCESS(Type, verb, src, dst) \
-  Type r(m_useEscaping, (verb));          \
+  Type r(m_grammar, m_useEscaping, (verb));      \
   r.analyseData((src), length); \
   r.finishAnalysation(); \
   r.decideReplacements(); \
-  size_t hSize = r.writeHeader((dst)); \
-  size_t comprSize = r.writeReplacedVersion((src), length, (dst)+hSize); \
-  length = comprSize + hSize
+  size_t comprSize = r.writeReplacedVersion((src), length, (dst)); \
+  length = comprSize
 
 size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
   PROFILE("Preprocessor::preprocess");
@@ -124,9 +123,9 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
       char c = m_preprocessingOptions[i];
       if(c == 'p') {
         PREPROCESS(PairReplacer, verbosity > 1, src, dst);
-      } else if(c == 's') {
+      } /*else if(c == 's') {
         PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
-      }
+        }*/
       std::swap(src, dst);
     }
   }

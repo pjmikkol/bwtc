@@ -57,9 +57,16 @@ class Grammar {
 
   inline uint32 specialSymbolPairsLeft() const {
     uint32 s = m_specialSymbols.size();
-    return s*s - m_usedSpecialSymbolPairs;
+    return s*s - m_specialPairReplacements.size();
   }
-  
+
+  void writeGrammar(byte* dst) const;
+  uint32 writeRightSides(byte* dst) const;
+  uint32 writeLengthsOfRules(byte* dst) const;
+  uint32 writeVariables(byte* dst) const;
+  uint32 writeLargeVariableFlags(byte* dst) const;
+  uint32 writeNumberOfRules(byte* dst) const;
+
  private:
   /**Rule stores single replacement. They are chosen by preprocessing
    * algoritms.*/
@@ -69,6 +76,8 @@ class Grammar {
         : m_begin(begin), m_end(end), m_variable(variable),
           m_largeVariable(largeVariable) { }
 
+    inline uint32 begin() const {return m_begin;}
+    inline uint16 end() const {return m_end;}
     inline uint16 variable() const {return m_variable;}
     inline bool isLarge() const { return m_largeVariable; }
     inline void changeVariable(uint16 nVariable) { m_variable = nVariable; }
@@ -89,13 +98,18 @@ class Grammar {
   /**Frequencies of bytes in the right-side of rules.*/
   uint32 m_frequencies[256];
   bool m_isSpecialSymbol[256];
+  bool m_isVariable[256];
   std::vector<byte> m_specialSymbols;
-  
+  /**Special symbols are numbered in order they are created.
+   * If pair.first==true then pair of this index is used as a grammar
+   * variable. */
+  std::vector<std::pair<bool,byte> > m_specialPairReplacements;
+
   std::vector<Rule> m_rules;
   /**Right-hand sides of the rules.*/
   std::vector<byte> m_rightHandSides;
 
-  uint32 m_usedSpecialSymbolPairs;
+  uint32 m_specialSymbolsAsVariables;
 
 };
 

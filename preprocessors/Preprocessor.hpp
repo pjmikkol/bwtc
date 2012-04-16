@@ -79,6 +79,8 @@ class Preprocessor {
   InStream* m_source;
   uint64 m_blockSize;
   BlockManager* m_blockManager;
+  /**Stores the replacement rules. */
+  Grammar m_grammar;
   
  private:
   /* This should be done during preprocessing*/
@@ -89,8 +91,6 @@ class Preprocessor {
 
   std::string m_preprocessingOptions;
   const bool m_useEscaping;
-  /**Stores the replacement rules. */
-  Grammar m_grammar;
 };
 
 uint64 compressCommonPairs(byte *from, uint64 length);

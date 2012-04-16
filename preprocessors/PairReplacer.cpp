@@ -34,27 +34,17 @@
 
 namespace bwtc {
 
-PairReplacer::PairReplacer(bool useEscaping)
-    : m_prev(0), m_numOfReplacements(0), m_escapeByte(0), m_commonByte(0),
-      m_analysationStarted(false), m_verbose(false), m_useEscaping(useEscaping)
+PairReplacer::PairReplacer(Grammar& grammar, bool useEscaping)
+    : m_grammar(grammar), m_prev(0), m_numOfReplacements(0), m_escapeByte(0),
+      m_commonByte(0), m_analysationStarted(false), m_verbose(false),
+      m_useEscaping(useEscaping)
 {}
 
-PairReplacer::PairReplacer(bool useEscaping, bool verbose)
-    : m_prev(0), m_numOfReplacements(0), m_escapeByte(0), m_commonByte(0),
-      m_analysationStarted(false), m_verbose(verbose), m_useEscaping(useEscaping)
+PairReplacer::PairReplacer(Grammar& grammar, bool useEscaping, bool verbose)
+    : m_grammar(grammar), m_prev(0), m_numOfReplacements(0), m_escapeByte(0),
+      m_commonByte(0), m_analysationStarted(false), m_verbose(verbose),
+      m_useEscaping(useEscaping)
 {}
-
-PairReplacer::PairReplacer(const PairReplacer& pr)
-    : m_prev(pr.m_prev), m_numOfReplacements(pr.m_numOfReplacements),
-      m_escapeByte(pr.m_escapeByte),
-      m_analysationStarted(pr.m_analysationStarted),
-      m_verbose(pr.m_verbose), m_useEscaping(pr.m_useEscaping)
-{
-  std::copy(pr.m_frequencies, pr.m_frequencies + 256, m_frequencies);
-  std::copy(pr.m_replacements, pr.m_replacements + (1 << 16), m_replacements);
-  std::copy(pr.m_pairFrequencies, pr.m_pairFrequencies + (1 << 16),
-            m_pairFrequencies);
-}
 
 PairReplacer::~PairReplacer() {}
 
@@ -216,27 +206,6 @@ void PairReplacer::constructReplacementTable(
   for(size_t i = 0; i < m_numOfReplacements; ++i) {
     m_replacements[pairs[i].second] = freqTable.getKey(i);
   }
-}
-
-size_t PairReplacer::writeHeader(byte *to) const {
-  if(m_numOfReplacements == 0)  {
-    to[0] = m_numOfReplacements;
-    return 1;
-  }
-  size_t pos = 0;
-  byte prevValue = m_escapeByte;
-  for(size_t i = 0; i < (1 << 16); ++i) {
-    byte val = m_replacements[i];
-    if(val != m_commonByte && val != m_escapeByte) {
-      prevValue = val;
-      to[pos++] = prevValue;
-      to[pos++] = (i >> 8) & 0xff;
-      to[pos++] = i & 0xff;
-    }
-  }
-  to[pos++] = prevValue;
-  to[pos++] = (m_escapeByte != m_commonByte)?m_escapeByte:prevValue;
-  return pos;    
 }
 
 size_t PairReplacer::

@@ -26,6 +26,7 @@
 
 
 #include "../preprocessors/PairReplacer.hpp"
+#include "../preprocessors/Grammar.hpp"
 
 #define BOOST_TEST_MODULE 
 #define BOOST_TEST_DYN_LINK
@@ -44,6 +45,7 @@ namespace tests {
 BOOST_AUTO_TEST_SUITE(analyseTests)
 
 BOOST_AUTO_TEST_CASE(analyseAtOnce) {
+  Grammar grammar;
   std::string abab = "ab";
   std::vector<byte> data;
   for(size_t j = 0; j < 10000; ++j) {
@@ -55,17 +57,16 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
     if (i == 'a' || i == 'b') continue;
     data.push_back((byte) i);
   }
-  PairReplacer pr(true);
+  PairReplacer pr(grammar, true);
   pr.analyseData(&data[0], data.size());
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 1);
-  // headerSize == 5, totalSize == 10000+254+5
+  // size of replaced string == 10000+254
   std::vector<byte> result;
-  result.resize(10259);
-  size_t hSize = pr.writeHeader(&result[0]);
-  BOOST_CHECK_EQUAL(hSize,5);
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[5]);
+  result.resize(10254+7);
+  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10254);
+  grammar.writeGrammar(&result[10254]);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

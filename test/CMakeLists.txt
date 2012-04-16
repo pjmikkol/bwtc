@@ -41,12 +41,6 @@ target_link_libraries(PreprocessorTest common preprocessors)
 add_test(PreprocessorTest ${EXECUTABLE_OUTPUT_PATH}/PreprocessorTest "test_file")
 set_tests_properties(PreprocessorTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
-add_executable(PreprocessorAlgoTest PreprocessorAlgoTest.cpp)
-target_link_libraries(PreprocessorAlgoTest common preprocessors)
-
-add_executable(BwtAndPreprocessorTest BwtAndPreprocessorTest.cpp)
-target_link_libraries(BwtAndPreprocessorTest common preprocessors bwtransforms)
-
 add_executable(LongSequencesTest LongSequencesTest.cpp)
 target_link_libraries(LongSequencesTest common preprocessors)
 

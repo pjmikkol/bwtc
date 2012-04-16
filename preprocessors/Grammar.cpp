@@ -27,11 +27,12 @@
 #include <algorithm>
 
 #include "../globaldefs.hpp"
+#include "../Utils.hpp"
 #include "Grammar.hpp"
 
 namespace bwtc {
 
-Grammar::Grammar() : m_usedSpecialSymbolPairs(0) {
+Grammar::Grammar() : m_specialSymbolsAsVariables(0) {
   std::fill(m_isSpecialSymbol, m_isSpecialSymbol + 256, false);
   std::fill(m_frequencies, m_frequencies + 256, 0);
 }
@@ -47,6 +48,90 @@ void Grammar::addRule(byte variable, byte* begin, size_t length) {
   uint32 s = m_rightHandSides.size();
   m_rules.push_back(Rule(variable, s, s+length));
   std::copy(begin, begin+length, std::back_inserter(m_rightHandSides));
+}
+
+void Grammar::writeGrammar(byte* dst) const {
+  uint32 s = 0;
+  if(m_rules.size() > 0) {
+    s += writeRightSides(dst);
+    s += writeLengthsOfRules(dst + s);
+    s += writeVariables(dst + s);
+    s += writeLargeVariableFlags(dst + s);
+  }
+  s += writeNumberOfRules(dst + s);
+}
+
+uint32 Grammar::writeNumberOfRules(byte* dst) const {
+  int bytesNeeded;
+  uint64 packedLength = utils::packInteger(m_rules.size(), &bytesNeeded);
+  for(int i = 0; i < bytesNeeded; ++i) {
+    dst[i] = packedLength & 0xff;
+    packedLength >>= 8;
+  }
+  return bytesNeeded;
+}
+
+uint32 Grammar::writeLargeVariableFlags(byte* dst) const {
+  uint32 bytesNeeded = m_rules.size()/8;
+  bool divisible = (m_rules.size() % 8) != 0;
+  if(!divisible) ++bytesNeeded;
+  uint32 currByte = bytesNeeded-1;
+  byte buffer = 0;
+  byte bitsInBuffer = 0;
+
+  for(std::vector<Rule>::const_iterator it = m_rules.begin();
+      it != m_rules.end(); ++it) {
+    buffer |= ((it->isLarge()?1:0) << bitsInBuffer);
+    ++bitsInBuffer;
+    if(bitsInBuffer == 8) {
+      dst[currByte--] = buffer;
+    }
+  }
+  if(!divisible) {
+    dst[0] = buffer;
+  }
+  return bytesNeeded;
+}
+
+uint32 Grammar::writeVariables(byte* dst) const {
+  uint32 s = 0;
+  for(std::vector<Rule>::const_reverse_iterator it = m_rules.rbegin();
+      it != m_rules.rend(); ++it) {
+    uint16 var = it->variable();
+    if(it->isLarge()) {
+      dst[s++] = (var >> 8) & 0xff;
+    }
+    dst[s++] = var & 0xff;
+  }
+  return s;
+}
+
+uint32 Grammar::writeLengthsOfRules(byte* dst) const {
+  uint32 s = 0;
+  for(std::vector<Rule>::const_reverse_iterator it = m_rules.rbegin();
+      it != m_rules.rend(); ++it) {
+    int bytesNeeded;
+    uint64 packedLength = utils::packInteger((uint64)it->length(), &bytesNeeded);
+    for(int i = 0; i < bytesNeeded; ++i) {
+      dst[s+i] = packedLength & 0xff;
+      packedLength >>= 8;
+    }
+    s += bytesNeeded;
+  }
+  return s;
+  
+}
+
+uint32 Grammar::writeRightSides(byte* dst) const {
+  uint32 s = 0;
+  for(std::vector<Rule>::const_reverse_iterator it = m_rules.rbegin();
+      it != m_rules.rend(); ++it) {
+    std::copy(m_rightHandSides.begin() + it->begin(),
+              m_rightHandSides.begin() + it->end(), dst+s);
+    s += it->length();
+  }
+  assert(m_rightHandSides.size() == s);
+  return s;
 }
 
 } //namespace bwtc

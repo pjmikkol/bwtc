@@ -26,20 +26,20 @@
 #ifndef PAIR_REPLACER_HPP_
 #define PAIR_REPLACER_HPP_
 
-#include "../globaldefs.hpp"
-#include "FrequencyTable.hpp"
-
 #include <cassert>
 #include <vector>
 #include <utility>
+
+#include "../globaldefs.hpp"
+#include "FrequencyTable.hpp"
+#include "Grammar.hpp"
 
 namespace bwtc {
 
 class PairReplacer {
  public:
-  PairReplacer(bool useEscaping);
-  PairReplacer(bool useEscaping, bool verbose);
-  PairReplacer(const PairReplacer& pr);
+  PairReplacer(Grammar& grammar, bool useEscaping);
+  PairReplacer(Grammar& grammar, bool useEscaping, bool verbose);
   ~PairReplacer();
 
   void analyseData(const byte *data, size_t length, bool reset=true);
@@ -89,8 +89,6 @@ class PairReplacer {
 
   size_t findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
                      std::vector<std::pair<uint32, uint16> >& suitablePairs);
-
-  size_t writeHeader(byte *to) const;
 
   size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
 
@@ -164,9 +162,12 @@ class PairReplacer {
 
  private:
   PairReplacer& operator=(const PairReplacer&);
+  PairReplacer(const PairReplacer& pr);
   void constructReplacementTable(
       const std::vector<std::pair<uint32, uint16> >& pairs,
       const FrequencyTable& freqTable, size_t freeSymbols);
+
+  Grammar& m_grammar;
 
   /**Stores the frequencies of bytes. */
   uint32 m_frequencies[256];

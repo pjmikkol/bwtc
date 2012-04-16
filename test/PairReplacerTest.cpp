@@ -44,10 +44,12 @@ namespace tests {
 BOOST_AUTO_TEST_SUITE(analyseTests)
 
 BOOST_AUTO_TEST_CASE(analyseAtOnce) {
-  std::string abab = "abababababab"; // 6 x ab
+  std::string abab = "ab";
   std::vector<byte> data;
-  for(size_t i = 0; i < abab.size(); ++i) {
-    data.push_back(abab[i]);
+  for(size_t j = 0; j < 10000; ++j) {
+    for(size_t i = 0; i < abab.size(); ++i) {
+      data.push_back(abab[i]);
+    }
   }
   for(size_t i = 0; i < 256; ++i) {
     if (i == 'a' || i == 'b') continue;
@@ -57,13 +59,13 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   pr.analyseData(&data[0], data.size());
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 1);
-  // headerSize == 5, totalSize == 6+254+5
+  // headerSize == 5, totalSize == 10000+254+5
   std::vector<byte> result;
-  result.resize(265);
+  result.resize(10259);
   size_t hSize = pr.writeHeader(&result[0]);
   BOOST_CHECK_EQUAL(hSize,5);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[5]);
-  BOOST_CHECK_EQUAL(cSize,260);
+  BOOST_CHECK_EQUAL(cSize,10254);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -33,8 +33,6 @@
 #include "Preprocessor.hpp"
 #include "FrequencyTable.hpp"
 #include "PairReplacer.hpp"
-#include "PairAndRunReplacer.hpp"
-#include "RunReplacer.hpp"
 #include "SequenceReplacer.hpp"
 #include "../Profiling.hpp"
 
@@ -50,19 +48,6 @@
 
 namespace bwtc {
 
-Preprocessor* givePreprocessor(char choice, uint64 block_size,
-                               const std::string& input)
-{
-  Preprocessor* pp;
-  /* Expand this to conform for different PreProcessing algorithms */
-  switch (choice) {
-    case 'n':
-    default:
-      pp = new Preprocessor(block_size);
-  }
-  pp->connect(input);
-  return pp;
-}
 
 Preprocessor::Preprocessor(uint64 block_size, const std::string& prepr,
                            bool useEscaping)
@@ -113,7 +98,7 @@ MainBlock* Preprocessor::readBlock() {
           m_blockSize - 1 - m_preprocessingOptions.size()*5));
   if (!read) return 0;
   
-  size_t preprocessedSize = preprocess(&(*to)[0], read);
+  size_t preprocessedSize = preprocess(*to, read);
   
   return m_blockManager->makeBlock(to, stats, preprocessedSize);
 }
@@ -127,21 +112,18 @@ MainBlock* Preprocessor::readBlock() {
   size_t comprSize = r.writeReplacedVersion((src), length, (dst)+hSize); \
   length = comprSize + hSize
 
-size_t Preprocessor::preprocess(byte *src, size_t length) {
+size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
   PROFILE("Preprocessor::preprocess");
-  byte *dst;
+  byte *dst, *src = &original[0];
   std::vector<byte> tmp;
   if(m_preprocessingOptions.size() > 0) {
+    //TODO: correct limits
     tmp.resize(length + m_preprocessingOptions.size()*5);
     dst = &tmp[0];
     for(size_t i = 0; i < m_preprocessingOptions.size(); ++i) {
       char c = m_preprocessingOptions[i];
       if(c == 'p') {
         PREPROCESS(PairReplacer, verbosity > 1, src, dst);
-      } else if(c == 'r') {
-        PREPROCESS(RunReplacer, verbosity > 1, src, dst);
-      } else if(c == 'c') {
-        PREPROCESS(pairs_and_runs::PairAndRunReplacer, verbosity > 1, src, dst);
       } else if(c == 's') {
         PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
       }

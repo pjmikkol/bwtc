@@ -117,7 +117,7 @@ void validatePreprocOption(const std::string& p) {
 
   for(size_t i = 0; i < p.size(); ++i) {
     char c = p[i];
-    if(c != 'c' && c != 'p' && c != 'r' && c != 's') throw exc;
+    if(c != 'p' && c != 's') throw exc;
   }
 }
 
@@ -179,10 +179,8 @@ int main(int argc, char** argv) {
          notifier(&validatePreprocOption),
          "preprocessor options:\n"
          "  p -- pair replacer\n"
-         "  r -- run replacer\n"
-         "  c -- pair and run replacer\n"
          "  s -- long recurring sequences replacer\n"
-         "For example \"ppr\" would run pair replacer twice and run replacer once")
+         "For example \"pps\" would run pair replacer twice and sequence replacer once")
         ("enc,e", po::value<char>(&encoding)->default_value('B')->
          notifier(&validateEncodingOption),
          "entropy encoding scheme, options:\n"

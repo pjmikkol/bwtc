@@ -50,7 +50,7 @@ using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
               uint64 block_size, const std::string& preproc, char encoding,
-              bool escaping, uint32 startingPoints)
+              uint32 startingPoints)
 {
   PROFILE("TOTAL_compression_time");
 
@@ -60,7 +60,7 @@ void compress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::Preprocessor preprocessor(block_size, preproc, escaping);
+  bwtc::Preprocessor preprocessor(block_size, preproc);
   preprocessor.connect(input_name);
 
   bwtc::BlockManager block_manager(block_size + 5*preproc.size(), 1);
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
   uint64 block_size;
   char encoding;
   std::string input_name, output_name, preprocessing;
-  bool stdout, stdin, escaping;
+  bool stdout, stdin;
   uint32 startingPoints;
 
   try {
@@ -170,8 +170,6 @@ int main(int argc, char** argv) {
          "Starting points for decompression (more means faster decompression).")
         ("verb,v", po::value<int>(&verbosity)->default_value(0),
          "verbosity level")
-        ("escape", po::value<bool>(&escaping)->default_value(true),
-         "are preprocessing algorithms using escaping (0 to disable)")
         ("input-file", po::value<std::string>(&input_name),
          "file to compress, defaults to stdin")
         ("output-file", po::value<std::string>(&output_name),"target file")
@@ -229,7 +227,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preprocessing, encoding, escaping, startingPoints);
+  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints);
 
   PRINT_PROFILE_DATA
   return 0;

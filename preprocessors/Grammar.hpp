@@ -49,7 +49,7 @@ class Grammar {
 
   inline size_t numOfRules() const { return m_rules.size(); }
   
-  /**Adding replacement for pair.*/
+  /**Adding replacement for pair where symbols on the right side aren't freed.*/
   void addRule(byte variable, byte first, byte second);
 
   /**Adding replacement for longer string.*/
@@ -60,8 +60,38 @@ class Grammar {
     return s*s - m_specialPairReplacements.size();
   }
 
-  void writeGrammar(byte* dst) const;
+  void addSpecialSymbol(byte special);
+
+  inline uint32 numberOfRules() const {
+    return m_rules.size();
+  }
+
+  inline uint32 numberOfSpecialSymbols() const {
+    return m_specialSymbols.size();
+  }
+  
+  inline const uint32* frequencies() const {
+    return m_frequencies;
+  }
+
+  inline void beginUpdatingRules() {
+    m_updatingRules = true;
+    m_newRules = 0;
+  }
+
+  inline void endUpdatingRules() {
+    m_updatingRules = false;
+  }
+
+  void increaseAlphabet(const std::vector<byte>& freedSymbols,
+                        const std::vector<byte>& newSpecials,
+                        std::vector<uint16>& nextSpecialPairs);
+  
+  uint32 writeGrammar(byte* dst) const;
   uint32 writeRightSides(byte* dst) const;
+  uint32 writeFreedSymbols(byte* dst) const;
+  uint32 writeSpecialSymbols(byte* dst) const;
+  uint32 writeNumberOfSpecialSymbols(byte* dst) const;
   uint32 writeLengthsOfRules(byte* dst) const;
   uint32 writeVariables(byte* dst) const;
   uint32 writeLargeVariableFlags(byte* dst) const;
@@ -105,12 +135,20 @@ class Grammar {
    * variable. */
   std::vector<std::pair<bool,byte> > m_specialPairReplacements;
 
+  uint16 m_newSpecials[256];
+
   std::vector<Rule> m_rules;
   /**Right-hand sides of the rules.*/
   std::vector<byte> m_rightHandSides;
 
+  /**Sould be equal to the numer of pairs in m_specialPairReplacements, where
+   * first member is equal to true.*/
   uint32 m_specialSymbolsAsVariables;
 
+  uint16 m_newRules;
+
+  bool m_updatingRules;
+  
 };
 
 } //namespace bwtc

@@ -36,14 +36,14 @@
 
 namespace bwtc {
 
-SequenceReplacer::SequenceReplacer(bool useEscaping)
+SequenceReplacer::SequenceReplacer()
     : m_windowSize(s_defaultWindowSize), m_numOfReplacements(0),
-      m_escapeByte(0), m_phase(0), m_verbose(false), m_useEscaping(useEscaping)
+      m_escapeByte(0), m_phase(0), m_verbose(false)
 {}
 
-SequenceReplacer::SequenceReplacer(bool useEscaping, bool verbose)
+SequenceReplacer::SequenceReplacer(bool verbose)
     : m_windowSize(s_defaultWindowSize), m_numOfReplacements(0),
-      m_escapeByte(0), m_phase(0), m_verbose(verbose), m_useEscaping(useEscaping)
+      m_escapeByte(0), m_phase(0), m_verbose(verbose)
 {}
 
 SequenceReplacer::SequenceReplacer(const SequenceReplacer& sr)
@@ -53,8 +53,7 @@ SequenceReplacer::SequenceReplacer(const SequenceReplacer& sr)
       m_dataLength(sr.m_dataLength), m_windowSize(sr.m_windowSize),
       m_numOfReplacements(sr.m_numOfReplacements),
       m_escapeByte(sr.m_escapeByte), m_phase(sr.m_phase),
-      m_data(sr.m_data), m_verbose(sr.m_verbose),
-      m_useEscaping(sr.m_useEscaping)
+      m_data(sr.m_data), m_verbose(sr.m_verbose)
 {
   std::copy(sr.m_frequencies, sr.m_frequencies + 256, m_frequencies);
 }
@@ -190,15 +189,9 @@ uint32 SequenceReplacer::decideReplacements() {
   uint32 escapeIndex;
 
   uint32 candidates = 0;
-  if(m_useEscaping) {
-    candidates = findReplaceableSequences(replaceables, freqTable, 254);
-    escapeIndex = (candidates > freeSymbols)?
-        findEscapeIndex(freqTable, freeSymbols, replaceables, candidates):freeSymbols;
-  } else {
-    if(freeSymbols > 0)
-      candidates = findReplaceableSequences(replaceables, freqTable, freeSymbols);
-    escapeIndex = freeSymbols;
-  }
+  candidates = findReplaceableSequences(replaceables, freqTable, 254);
+  escapeIndex = (candidates > freeSymbols)?
+      findEscapeIndex(freqTable, freeSymbols, replaceables, candidates):freeSymbols;
 
   m_numOfReplacements = (escapeIndex > freeSymbols)?
       escapeIndex: std::min(freeSymbols, candidates);
@@ -214,13 +207,10 @@ uint32 SequenceReplacer::decideReplacements() {
   std::fill(m_isEscaped, m_isEscaped + 256, false);
 
   if(m_numOfReplacements > freeSymbols) {
-    m_useEscaping = true;
     m_escapeByte = freqTable.getKey(escapeIndex);
     for(uint32 i = freeSymbols; i <= escapeIndex; ++i) {
       m_isEscaped[freqTable.getKey(i)] = true;
     }
-  } else {
-    m_useEscaping = false;
   }
   
   std::fill(m_hashValues.begin(), m_hashValues.end(), std::make_pair(0,0));
@@ -266,7 +256,7 @@ size_t SequenceReplacer::writeHeader(byte *to) const {
     j += length;
   }
   to[j++] = prev;
-  to[j++] = m_useEscaping?m_escapeByte:prev;
+  to[j++] = m_escapeByte;
   return j;
 }
 

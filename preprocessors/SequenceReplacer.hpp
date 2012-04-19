@@ -58,8 +58,8 @@ struct Sequence {
 
 class SequenceReplacer {
  public:
-  SequenceReplacer(bool useEscaping);
-  SequenceReplacer(bool useEscaping, bool verbose);
+  SequenceReplacer();
+  SequenceReplacer(bool verbose);
   SequenceReplacer(const SequenceReplacer& sr);
   ~SequenceReplacer();
 
@@ -170,8 +170,6 @@ class SequenceReplacer {
   /**Tells if the results of analysis and replacements are printed. */
   bool m_verbose;
 
-  /**Tells if some rare symbols will be stolen. */
-  bool m_useEscaping;
 };
 
 } //namespace bwtc

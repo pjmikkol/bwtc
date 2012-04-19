@@ -49,14 +49,13 @@
 namespace bwtc {
 
 
-Preprocessor::Preprocessor(uint64 block_size, const std::string& prepr,
-                           bool useEscaping)
+Preprocessor::Preprocessor(uint64 block_size, const std::string& prepr)
     : m_source(0), m_blockSize(block_size), m_blockManager(0),
-      m_preprocessingOptions(prepr), m_useEscaping(useEscaping) {}
+      m_preprocessingOptions(prepr) {}
 
 Preprocessor::Preprocessor(uint64 block_size) :
-    m_source(0), m_blockSize(block_size), m_blockManager(0),
-    m_useEscaping(true) {}
+    m_source(0), m_blockSize(block_size), m_blockManager(0)
+{}
 
 Preprocessor::~Preprocessor() {
   delete m_source;
@@ -104,7 +103,7 @@ MainBlock* Preprocessor::readBlock() {
 }
 
 #define PREPROCESS(Type, verb, src, dst) \
-  Type r(m_grammar, m_useEscaping, (verb));      \
+  Type r(m_grammar, (verb));      \
   r.analyseData((src), length); \
   r.finishAnalysation(); \
   r.decideReplacements(); \
@@ -135,6 +134,7 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
   if(verbosity > 0) {
     std::clog << "Size of preprocessed block is " << length <<std::endl;
   }
+  // TODO: write grammar!
   return length;
 }
 

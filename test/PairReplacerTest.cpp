@@ -46,16 +46,18 @@ BOOST_AUTO_TEST_SUITE(analyseTests)
 
 BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   Grammar grammar;
-  std::string abab = "ab";
+  std::string ab = "ab";
   std::vector<byte> data;
+  data.resize(20000+254);
+  uint32 k = 0;
   for(size_t j = 0; j < 10000; ++j) {
-    for(size_t i = 0; i < abab.size(); ++i) {
-      data.push_back(abab[i]);
+    for(size_t i = 0; i < ab.size(); ++i) {
+      data[k++] = (byte)ab[i];
     }
   }
   for(size_t i = 0; i < 256; ++i) {
     if (i == 'a' || i == 'b') continue;
-    data.push_back((byte) i);
+    data[k++] = ((byte) i);
   }
   PairReplacer pr(grammar, true);
   pr.analyseData(&data[0], data.size());
@@ -66,7 +68,40 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   result.resize(10254+7);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10254);
-  grammar.writeGrammar(&result[10254]);
+  uint32 gSize = grammar.writeGrammar(&result[10254]);
+  BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),0);
+  BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
+  BOOST_CHECK_EQUAL(gSize,7);
+}
+
+BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
+  Grammar grammar;
+  std::string ab = "ac";
+  std::vector<byte> data;
+  data.resize(20000+256);
+  uint32 k = 0;
+  for(size_t j = 0; j < 10000; ++j) {
+    for(size_t i = 0; i < ab.size(); ++i) {
+      data[k++] = (byte)ab[i];
+    }
+  }
+  for(size_t i = 0; i < 256; ++i) {
+    data[k++] = ((byte) i);
+  }
+  PairReplacer pr(grammar, true);
+  pr.analyseData(&data[0], data.size());
+  size_t rep = pr.decideReplacements();
+  BOOST_CHECK_EQUAL(rep, 1);
+  // size of replaced string == 10000+254 + 2 + 2
+  std::vector<byte> result;
+  //grammar header = 1 + 1 + 2 + 2 + 1+1+2
+  result.resize(10259+ 10);
+  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  BOOST_CHECK_EQUAL(cSize,10259);
+  uint32 gSize = grammar.writeGrammar(&result[10259]);
+  BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
+  BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
+  BOOST_CHECK_EQUAL(gSize,10);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

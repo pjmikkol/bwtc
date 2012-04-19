@@ -31,9 +31,6 @@
 
 #include "../globaldefs.hpp"
 
-//TODO: PostProcessor-class since at the moment only algorithms for
-//      postprocessing exists
-
 namespace bwtc {
 
 class PostProcessor {
@@ -60,6 +57,7 @@ class PostProcessor {
 
  private:
   std::string m_options;
+  std::vector<byte> m_replacements[256];
 };
   
 } //namespace bwtc

@@ -141,6 +141,54 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
   BOOST_CHECK_EQUAL(gSize,11);
 }
 
+BOOST_AUTO_TEST_CASE(MultipleRounds) {
+  Grammar grammar;
+  std::string ab = "ac";
+  std::vector<byte> data;
+  data.resize(20000+509);
+  uint32 k = 0;
+  for(size_t j = 0; j < 10000; ++j) {
+    for(size_t i = 0; i < ab.size(); ++i) {
+      data[k++] = (byte)ab[i];
+    }
+  }
+  for(size_t j = 0; j < 2; ++j) {
+    for(size_t i = 0; i < 256; ++i) {
+      if(i == 'X' || i == 'Y' || i == 'a') continue;
+      data[k++] = ((byte) i);
+    }
+  }
+  data[k++] = 'a';
+  data[k++] = 'X';
+  data[k++] = 'Y';
+  PairReplacer pr(grammar, true);
+  pr.analyseData(&data[0], data.size());
+  size_t rep = pr.decideReplacements();
+  BOOST_CHECK_EQUAL(rep, 1);
+  // size of replaced string == 10000+506 + 3*2
+  std::vector<byte> result;
+  //grammar header = 1 + 1 + 2 + 2 + 1+1+2
+  result.resize(10512+ 11);
+  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  BOOST_CHECK_EQUAL(cSize,10512);
+
+  PairReplacer pr1(grammar, true);
+  pr1.analyseData(&result[0], 10512);
+  rep = pr1.decideReplacements();
+  BOOST_CHECK_EQUAL(rep, 1);
+  // size of replaced string == 5000+ 505 + 4*2
+  //grammar header = 1 + 1 + 2 + 3 + 1+2+4
+  data.resize(5512 + 19);
+  BOOST_CHECK_EQUAL(grammar.isSpecial(result[0]), false);
+  cSize = pr1.writeReplacedVersion(&result[0], 10512, &data[0]);
+  BOOST_CHECK_EQUAL(cSize,5512);
+  
+
+  uint32 gSize = grammar.writeGrammar(&result[10512]);
+  BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
+  BOOST_CHECK_EQUAL(grammar.numberOfRules(),2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 

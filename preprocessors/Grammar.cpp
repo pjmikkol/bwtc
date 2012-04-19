@@ -70,7 +70,7 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
       uint32 nextSpecialPair = m_specialPairReplacements.size();
       uint32 offset = (numOfSpecials -1)*(numOfSpecials -1) + 1;
       uint32 index = nextSpecialPair - offset;
-      if(index < numOfSpecials -1) {
+      if(index < numOfSpecials - 1) {
         //new character is the second member of special pair
         // freedSymbol[i] -> (m_specialSymbols[index],m_specialSymbols.back())
         m_specialPairReplacements.push_back(std::make_pair(false, freedSymbols[i]));
@@ -81,7 +81,7 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
       } else {
         //new character is the first member of special pair
         // freedSymbol[i] -> (m_specialSymbols.back(),m_specialSymbols[index+1-numOfSpecials])
-        uint32 index = index+1-numOfSpecials;
+        index = index+1-numOfSpecials;
         m_specialPairReplacements.push_back(std::make_pair(false, freedSymbols[i]));
         isNewSpecial[freedSymbols[i]] = true;
         uint16 spPair = (m_specialSymbols.back() << 8) | m_specialSymbols[index];

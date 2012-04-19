@@ -65,7 +65,7 @@ class Encoder {
   void finishBlock(uint64 eob_byte); //TODO: this calls write trailer
 
  private:
-  OutStream* m_out;
+  RawOutStream* m_out;
   dcsbwt::BitEncoder* m_destination;
   ProbabilityModel* m_probModel;
   std::streampos m_headerPosition;
@@ -100,7 +100,7 @@ class Decoder {
   void endContextBlock();
 
  private:
-  InStream* m_in;
+  RawInStream* m_in;
   dcsbwt::BitDecoder* m_source;
   ProbabilityModel* m_probModel;
 

@@ -53,7 +53,7 @@ class WaveletEncoder {
   void finishBlock(const std::vector<uint32>& LFpowers);
 
  private:
-  OutStream* m_out;
+  RawOutStream* m_out;
   dcsbwt::BitEncoder m_destination;
   /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;
@@ -61,7 +61,7 @@ class WaveletEncoder {
   ProbabilityModel* m_gammaProbModel;
   /** Probability model for bits coming after gaps. */
   ProbabilityModel* m_gapProbModel;
-  std::streampos m_headerPosition;
+  /*std::streampos*/ long int m_headerPosition;
   uint64 m_compressedBlockLength;
 
   WaveletEncoder(const WaveletEncoder&);
@@ -86,7 +86,7 @@ class WaveletDecoder {
   void endContextBlock();
 
  private:
-  InStream* m_in;
+  RawInStream* m_in;
   dcsbwt::BitDecoder m_source;
   /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;

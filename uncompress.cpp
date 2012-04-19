@@ -66,7 +66,7 @@ void decompress(const std::string& input_name, const std::string& output_name,
   }
 
   
-  bwtc::OutStream out(output_name);
+  bwtc::RawOutStream out(output_name);
 
   bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
 
@@ -85,7 +85,10 @@ void decompress(const std::string& input_name, const std::string& output_name,
     delete bwt_block;
 
     postProcessor.postProcess(unbwt_block);
-    out.writeBlock(unbwt_block->begin(), unbwt_block->end());
+    //out.writeBlock(unbwt_block->begin(), unbwt_block->end());
+    byte *unbwt_block_ptr = &(*unbwt_block)[0];
+    out.writeBlock(unbwt_block_ptr, unbwt_block_ptr +
+      ((size_t)unbwt_block->size()));
     out.flush();
     delete unbwt_block;
   }

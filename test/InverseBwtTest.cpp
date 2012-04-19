@@ -1,5 +1,5 @@
 /**
- * @file TestInverseBwt.cpp
+ * @file InverseBwtTest.cpp
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
  *
  * @section LICENSE

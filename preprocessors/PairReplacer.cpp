@@ -154,7 +154,7 @@ int64 PairReplacer::findReplaceablePairs(
       ++currentPair;
       continue;
     }
-    if(m_grammar.isSpecial(currentSymbol)) {
+    if(m_grammar.isSpecial(freqs.getKey(currentSymbol))) {
       ++currentSymbol;
       continue;
     }
@@ -185,7 +185,7 @@ int64 PairReplacer::findReplaceablePairs(
     }
     if(fr > 0) {
       --freeSpecialPairs;
-      freedSymbols.push_back(currentSymbol);
+      freedSymbols.push_back(freqs.getKey(currentSymbol));
     }
     
     utility += pairs[currentPair].first;
@@ -194,7 +194,7 @@ int64 PairReplacer::findReplaceablePairs(
 
     replaceablePairs.push_back(pairs[currentPair]);
     usedFst[fst] = true; usedSnd[snd] = true;
-    replacements.push_back(currentSymbol);
+    replacements.push_back(freqs.getKey(currentSymbol));
     ++currentPair;
     ++currentSymbol;
   }
@@ -203,16 +203,16 @@ int64 PairReplacer::findReplaceablePairs(
   if(noHope) return utility;
   uint32 specialSymbols = m_grammar.numberOfSpecialSymbols();
 
+  int64 totalCostAfterNewSpecial = 0;
   while(replaceablePairs.size() < maxReplacements && currentPair < pairs.size()
         && currentSymbol < maxReplacements)
   {
-    int64 totalCostAfterNewSpecial = 0;
     while(m_grammar.isSpecial(currentSymbol) && currentSymbol < maxReplacements) {
       ++currentSymbol;
     }
-    newSpecials.push_back(currentSymbol);
+    newSpecials.push_back(freqs.getKey(currentSymbol));
     //Make currentSymbol to new special symbol
-    totalCostAfterNewSpecial = -freqs.getFrequency(currentSymbol);
+    totalCostAfterNewSpecial -= freqs.getFrequency(currentSymbol);
     // one special pair goes for the original occurrences of the new special
     // character
     freeSpecialPairs = 2*specialSymbols++;
@@ -231,11 +231,11 @@ int64 PairReplacer::findReplaceablePairs(
         ++currentPair;
         continue;
       }
-      if(m_grammar.isSpecial(currentSymbol)) {
+      if(m_grammar.isSpecial(freqs.getKey(currentSymbol))) {
         ++currentSymbol;
         continue;
       }
-
+      
       if(!freqs.decrease(fst, pairs[currentPair].first)) {
         ++currentPair;
         continue;
@@ -257,8 +257,8 @@ int64 PairReplacer::findReplaceablePairs(
       totalCostAfterNewSpecial += pairs[currentPair].first;
       totalCostAfterNewSpecial -= fr;
       --freeSpecialPairs;
-      tmpFreedSymbols.push_back(currentSymbol);
-      tmpReplacements.push_back(currentSymbol);
+      tmpFreedSymbols.push_back(freqs.getKey(currentSymbol));
+      tmpReplacements.push_back(freqs.getKey(currentSymbol));
 
       tmpReplaceablePairs.push_back(pairs[currentPair]);
       usedFst[fst] = true; usedSnd[snd] = true;
@@ -266,8 +266,8 @@ int64 PairReplacer::findReplaceablePairs(
       ++currentSymbol;
     }
     
-    if(totalCostAfterNewSpecial < (int64)tmpReplaceablePairs.size()*1000 ||
-       (tmpReplaceablePairs.size() == 0 && specialSymbols > 1) ) {
+    if(specialSymbols > 1 &&
+       totalCostAfterNewSpecial < (int64)tmpReplaceablePairs.size()*1000) {
       newSpecials.pop_back();
       if(newSpecials.size() == 1 && m_grammar.numberOfSpecialSymbols() == 0)
         newSpecials.pop_back();
@@ -279,6 +279,7 @@ int64 PairReplacer::findReplaceablePairs(
         replacements.push_back(tmpReplacements[i]);
       }
       utility += totalCostAfterNewSpecial;
+      totalCostAfterNewSpecial = 0;
     }
     
   }
@@ -309,7 +310,7 @@ size_t PairReplacer::findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
 
 void PairReplacer::constructReplacementTable(
     const std::vector<std::pair<uint32, uint16> >& pairs,
-    const FrequencyTable& freqTable, const std::vector<byte>& freedSymbols,
+    const std::vector<byte>& freedSymbols,
     const std::vector<byte>& newSpecials,const std::vector<byte>& replacements)
 {
   m_grammar.beginUpdatingRules();
@@ -320,20 +321,22 @@ void PairReplacer::constructReplacementTable(
     m_grammar.addRule(replacements[i], (pairs[i].second >> 8) & 0xff, pairs[i].second & 0xff);
   }
   std::vector<uint16> nextSpecialPairs;
-  m_grammar.increaseAlphabet(freedSymbols, newSpecials, nextSpecialPairs);
+  m_grammar.expandAlphabet(freedSymbols, newSpecials, nextSpecialPairs);
 
   for(size_t i = 0; i < freedSymbols.size(); ++i) {
     uint16 special = nextSpecialPairs[i];
     uint16 hVal = freedSymbols[i] << 8;
     for(size_t j = 0; j < 256; ++j) {
-      m_replacements[hVal | j] = special;
+      if((m_replacements[hVal | j] >> 8) == m_commonByte)
+        m_replacements[hVal | j] = special;
     }
   }
   for(size_t i = 0; i < newSpecials.size(); ++i) {
     uint16 special = (newSpecials[i] << 8) | newSpecials[i];
     uint16 hVal = newSpecials[i] << 8;
     for(size_t j = 0; j < 256; ++j) {
-      m_replacements[hVal | j] = special;
+      if((m_replacements[hVal | j] >> 8) == m_commonByte)
+        m_replacements[hVal | j] = special;
     }
   }
   m_grammar.endUpdatingRules();
@@ -398,13 +401,13 @@ size_t PairReplacer::decideReplacements() {
   if(m_verbose) {
     std::clog << "Replacing " << m_numOfReplacements << " pairs. ";
     std::clog << "Freed " << m_numOfFreedSymbols << " symbols for pairs and "
-              << m_numOfNewSpecials << " symbols for special " 
+              << m_numOfNewSpecials << " symbols for special "
               << "characters." << std::endl;
   }
   
   m_commonByte = freqTable.getKey(255);
   std::fill(m_replacements, m_replacements + (1 << 16), (m_commonByte<<8)|m_commonByte);
-  constructReplacementTable(replaceablePairs,freqTable,freedSymbols, newSpecials,replacements);
+  constructReplacementTable(replaceablePairs,freedSymbols, newSpecials,replacements);
   return m_numOfReplacements;
 }
 

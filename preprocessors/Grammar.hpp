@@ -83,7 +83,7 @@ class Grammar {
     m_updatingRules = false;
   }
 
-  void increaseAlphabet(const std::vector<byte>& freedSymbols,
+  void expandAlphabet(const std::vector<byte>& freedSymbols,
                         const std::vector<byte>& newSpecials,
                         std::vector<uint16>& nextSpecialPairs);
   
@@ -110,7 +110,11 @@ class Grammar {
     inline uint16 end() const {return m_end;}
     inline uint16 variable() const {return m_variable;}
     inline bool isLarge() const { return m_largeVariable; }
-    inline void changeVariable(uint16 nVariable) { m_variable = nVariable; }
+    inline void setRange(uint32 begin, uint32 end) { m_begin = begin; m_end = end; }
+    inline void changeVariable(uint16 nVariable, bool large=true) {
+      m_variable = nVariable;
+      m_largeVariable = large;
+    }
     inline size_t length() const { return m_end - m_begin; }
 
    private:

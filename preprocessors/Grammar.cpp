@@ -48,9 +48,12 @@ void Grammar::addRule(byte variable, byte first, byte second) {
   ++m_newRules;
 }
 
-void Grammar::increaseAlphabet(const std::vector<byte>& freedSymbols,
+void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
                                const std::vector<byte>& newSpecials,
                                std::vector<uint16>& nextSpecialPairs) {
+  bool isNewSpecial[256] = {false};
+  uint16 specialReplaces[256] = {0};
+
   uint32 numOfSpecials = m_specialSymbols.size();
   uint32 s = 0;
   for(size_t i = 0; i < freedSymbols.size();) {
@@ -58,6 +61,8 @@ void Grammar::increaseAlphabet(const std::vector<byte>& freedSymbols,
       m_specialPairReplacements.push_back(std::make_pair(false, newSpecials[s]));
       m_specialSymbols.push_back(newSpecials[s]);
       m_isSpecialSymbol[newSpecials[s]] = true;
+      isNewSpecial[newSpecials[s]] = true;
+      specialReplaces[newSpecials[s]] = (newSpecials[s] << 8) | newSpecials[s];
       ++s;
       ++numOfSpecials;
     } else {
@@ -69,18 +74,53 @@ void Grammar::increaseAlphabet(const std::vector<byte>& freedSymbols,
         //new character is the second member of special pair
         // freedSymbol[i] -> (m_specialSymbols[index],m_specialSymbols.back())
         m_specialPairReplacements.push_back(std::make_pair(false, freedSymbols[i]));
-        nextSpecialPairs.push_back((m_specialSymbols[index] << 8) | m_specialSymbols.back());
+        isNewSpecial[freedSymbols[i]] = true;
+        uint16 spPair = (m_specialSymbols[index] << 8) | m_specialSymbols.back();
+        nextSpecialPairs.push_back(spPair);
+        specialReplaces[freedSymbols[i]] = spPair;
       } else {
         //new character is the first member of special pair
         // freedSymbol[i] -> (m_specialSymbols.back(),m_specialSymbols[index+1-numOfSpecials])
         uint32 index = index+1-numOfSpecials;
         m_specialPairReplacements.push_back(std::make_pair(false, freedSymbols[i]));
-        nextSpecialPairs.push_back((m_specialSymbols.back() << 8) | m_specialSymbols[index]);
+        isNewSpecial[freedSymbols[i]] = true;
+        uint16 spPair = (m_specialSymbols.back() << 8) | m_specialSymbols[index];
+        specialReplaces[freedSymbols[i]] = spPair;
+        nextSpecialPairs.push_back(spPair);
       }
       ++i;
     }
-
   }
+  std::vector<byte> nRightSides;
+  uint32 leftSidesToUpdate = m_rules.size() - m_newRules;
+  
+  for(size_t i = 0; i < m_rules.size(); ++i) {
+    if(i < leftSidesToUpdate) {
+      if(!m_rules[i].isLarge() && isNewSpecial[m_rules[i].variable()]) {
+        --m_frequencies[m_rules[i].variable()];
+        assert(m_rules[i].variable() < 256);
+        uint16 nPair = specialReplaces[m_rules[i].variable()];
+        m_rules[i].changeVariable(nPair);
+        ++m_frequencies[nPair >> 8];
+        ++m_frequencies[nPair & 0xff];
+      }
+    }
+    uint32 posInRightSides = nRightSides.size();
+    for(size_t j = m_rules[i].begin(); j < m_rules[i].end(); ++j) {
+      if(isNewSpecial[m_rightHandSides[j]]) {
+        --m_frequencies[m_rightHandSides[j]];
+        uint16 nPair = specialReplaces[m_rightHandSides[j]];
+        ++m_frequencies[nPair >> 8];
+        ++m_frequencies[nPair & 0xff];
+        nRightSides.push_back(nPair >> 8);
+        nRightSides.push_back(nPair & 0xff);
+      } else {
+        nRightSides.push_back(m_rightHandSides[j]);
+      }
+    }
+    m_rules[i].setRange(posInRightSides, nRightSides.size());
+  }
+  std::swap(nRightSides, m_rightHandSides);
 }
 
 

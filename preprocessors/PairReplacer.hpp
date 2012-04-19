@@ -105,7 +105,7 @@ class PairReplacer {
   PairReplacer(const PairReplacer& pr);
   void constructReplacementTable(
       const std::vector<std::pair<uint32, uint16> >& pairs,
-      const FrequencyTable& freqTable, const std::vector<byte>& freedSymbols,
+      const std::vector<byte>& freedSymbols,
       const std::vector<byte>& newSpecials,const std::vector<byte>& replacements);
 
   Grammar& m_grammar;

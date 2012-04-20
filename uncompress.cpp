@@ -36,8 +36,7 @@
 namespace po = boost::program_options;
 
 #include "preprocessors/Postprocessor.hpp"
-#include "Coders.hpp"
-#include "WaveletCoders.hpp"
+#include "EntropyCoders.hpp"
 #include "Streams.hpp"
 #include "globaldefs.hpp"
 #include "bwtransforms/InverseBWT.hpp"
@@ -54,9 +53,8 @@ void decompress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  //bwtc::Decoder decoder(input_name);
-  bwtc::WaveletDecoder decoder(input_name);
-  std::string postproc = decoder.readGlobalHeader();
+  bwtc::EntropyDecoder *decoder = bwtc::giveEntropyDecoder(input_name);
+  std::string postproc = decoder->readGlobalHeader();
   std::reverse(postproc.begin(), postproc.end());
   bwtc::PostProcessor postProcessor(postproc);
 
@@ -73,7 +71,8 @@ void decompress(const std::string& input_name, const std::string& output_name,
   unsigned blocks = 0;
 
   std::vector<uint32> LFpowers;
-  while (std::vector<byte>* bwt_block = decoder.decodeBlock(LFpowers)) {
+  while (std::vector<byte>* bwt_block = decoder->decodeBlock(LFpowers)) {
+
     if(verbosity > 1) {
       std::clog << "Read " << LFpowers.size() << " starting points for "
                 << "inverse transform." << std::endl;
@@ -87,8 +86,8 @@ void decompress(const std::string& input_name, const std::string& output_name,
     postProcessor.postProcess(unbwt_block);
     //out.writeBlock(unbwt_block->begin(), unbwt_block->end());
     byte *unbwt_block_ptr = &(*unbwt_block)[0];
-    out.writeBlock(unbwt_block_ptr, unbwt_block_ptr +
-      ((size_t)unbwt_block->size()));
+    out.writeBlock(unbwt_block_ptr, unbwt_block_ptr + ((size_t)unbwt_block->size()));
+
     out.flush();
     delete unbwt_block;
   }
@@ -96,6 +95,7 @@ void decompress(const std::string& input_name, const std::string& output_name,
     std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
   }
 
+  delete decoder;
   delete transformer;
 }
 

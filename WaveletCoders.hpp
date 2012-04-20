@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 
+#include "EntropyCoders.hpp"
 #include "MainBlock.hpp"
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
@@ -38,7 +39,7 @@
 
 namespace bwtc {
 
-class WaveletEncoder {
+class WaveletEncoder : public EntropyEncoder {
  public:
   WaveletEncoder(const std::string& destination, char prob_model);
   ~WaveletEncoder();
@@ -68,7 +69,7 @@ class WaveletEncoder {
   WaveletEncoder& operator=(const WaveletEncoder&);
 };
 
-class WaveletDecoder {
+class WaveletDecoder : public EntropyDecoder {
  public:
   WaveletDecoder(const std::string& source);
   ~WaveletDecoder();

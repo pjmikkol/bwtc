@@ -37,8 +37,7 @@ namespace po = boost::program_options;
 
 #include "MainBlock.hpp"
 #include "BlockManager.hpp"
-#include "Coders.hpp"
-#include "WaveletCoders.hpp"
+#include "EntropyCoders.hpp"
 #include "preprocessors/Preprocessor.hpp"
 #include "Streams.hpp"
 #include "globaldefs.hpp"
@@ -68,9 +67,8 @@ void compress(const std::string& input_name, const std::string& output_name,
 
   bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
 
-  //bwtc::Encoder encoder(output_name, encoding);
-  bwtc::WaveletEncoder encoder(output_name, encoding);
-  encoder.writeGlobalHeader(preproc, encoding);
+  bwtc::EntropyEncoder *encoder = bwtc::giveEntropyEncoder(output_name, encoding);
+  encoder->writeGlobalHeader(preproc, encoding);
 
   unsigned blocks = 0;
   uint64 last_s = 0;
@@ -79,7 +77,7 @@ void compress(const std::string& input_name, const std::string& output_name,
     //Transformer could have some memory manager..
     transformer->connect(block);
     transformer->buildStats();
-    encoder.writeBlockHeader(block->m_stats);
+    encoder->writeBlockHeader(block->m_stats);
 
     /* The following way enables the calculation of transformation in 
      * several phases */
@@ -89,13 +87,12 @@ void compress(const std::string& input_name, const std::string& output_name,
       std::clog << "Writing " << startingPoints
                 << " starting points for inverse transform." << std::endl;
     }
-    
     while(std::vector<byte>* b = transformer->doTransform(LFpowers)) {
-      encoder.encodeData(b, block->m_stats, b->size());
+      encoder->encodeData(b, block->m_stats, b->size());
       delete b;
     }
 
-    encoder.finishBlock(LFpowers);
+    encoder->finishBlock(LFpowers);
     last_s = block->m_filled;
     delete block;
   }
@@ -104,6 +101,7 @@ void compress(const std::string& input_name, const std::string& output_name,
     std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
     std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
   }
+  delete encoder;
   delete transformer;
 }
 

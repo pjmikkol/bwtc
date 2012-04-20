@@ -25,7 +25,8 @@ set(EXECUTABLE_OUTPUT_PATH bin/)
 set(OBJECT_FILE_PATH ${bwtc_SOURCE_DIR}/${EXECUTABLE_OUTPUT_PATH})
 
 set(COMMON_SRC MainBlock.cpp BlockManager.cpp Coders.cpp BitCoders.cpp 
-  Utils.cpp Streams.cpp WaveletCoders.cpp)
+  Utils.cpp Streams.cpp WaveletCoders.cpp EntropyCoders.cpp
+  HuffmanCoders.cpp)
 add_library(common ${COMMON_SRC})
 
 set(PREPROCESSORS_SRC_DIR preprocessors)

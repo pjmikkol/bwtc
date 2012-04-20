@@ -46,18 +46,24 @@ class PostProcessor {
     bool isPair;
   };
 
-  PostProcessor(const std::string& postProcOptions);
+  PostProcessor(bool verbose);
 
+  void uncompress(const byte* from, size_t length, std::vector<byte>& to);
   void postProcess(std::vector<byte> *data);
-
+  uint32 readGrammar(const byte *src, size_t length);
+  uint32 readReversedPackedInteger(const byte* src, int* bytesRead);
+  
   static size_t uncompressCommonPairs(std::vector<byte> *from, size_t length);
   static size_t uncompressLongRuns(std::vector<byte> *from, size_t length);
   static size_t uncompressSequences(std::vector<byte> *from, size_t length);
   static size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length);
 
  private:
-  std::string m_options;
-  std::vector<byte> m_replacements[256];
+  // Almost half of the array is unused but that area of memory
+  // is never touched
+  std::vector<byte> m_replacements[1 << 17];
+  bool m_isSpecial[256];
+  bool m_verbose;
 };
   
 } //namespace bwtc

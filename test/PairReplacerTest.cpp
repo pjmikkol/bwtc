@@ -27,6 +27,7 @@
 
 #include "../preprocessors/PairReplacer.hpp"
 #include "../preprocessors/Grammar.hpp"
+#include "../preprocessors/Postprocessor.hpp"
 
 #define BOOST_TEST_MODULE 
 #define BOOST_TEST_DYN_LINK
@@ -65,16 +66,24 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   BOOST_CHECK_EQUAL(rep, 1);
   // size of replaced string == 10000+254
   std::vector<byte> result;
-  result.resize(10254+7);
+  result.resize(10254+8);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10254);
   uint32 gSize = grammar.writeGrammar(&result[10254]);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),0);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
-  BOOST_CHECK_EQUAL(gSize,7);
+  BOOST_CHECK_EQUAL(gSize,8);
+
+
+  PostProcessor post(true);
+  post.postProcess(&result);
+  BOOST_CHECK_EQUAL(result.size(), data.size());
+  for(size_t i = 0; i < result.size(); ++i)
+    BOOST_CHECK_EQUAL(result[i], data[i]);
 }
 
 BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
+  std::cout << std::endl << std::endl << std::endl;
   Grammar grammar;
   std::string ab = "ac";
   std::vector<byte> data;
@@ -94,17 +103,25 @@ BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
   BOOST_CHECK_EQUAL(rep, 1);
   // size of replaced string == 10000+253 + 2 + 2 + 2
   std::vector<byte> result;
-  //grammar header = 1 + 1 + 2 + 2 + 1+1+2
-  result.resize(10259+ 10);
+  //grammar header = 1 + 3 + 1 + 1 + 2 + 1+2
+  result.resize(10259+ 11);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10259);
   uint32 gSize = grammar.writeGrammar(&result[10259]);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
-  BOOST_CHECK_EQUAL(gSize,10);
+  BOOST_CHECK_EQUAL(gSize,11);
+
+  PostProcessor post(true);
+  post.postProcess(&result);
+  BOOST_CHECK_EQUAL(result.size(), data.size());
+  for(size_t i = 0; i < result.size(); ++i) 
+    BOOST_CHECK_EQUAL(result[i], data[i]);
 }
 
 BOOST_AUTO_TEST_CASE(MakeVariableFree) {
+  std::cout << std::endl << std::endl << std::endl;
+
   Grammar grammar;
   std::string ab = "ac";
   std::vector<byte> data;
@@ -132,16 +149,26 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
   // size of replaced string == 10000+506 + 3*2
   std::vector<byte> result;
   //grammar header = 1 + 1 + 2 + 2 + 1+1+2
-  result.resize(10512+ 11);
+  result.resize(10512+ 12);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10512);
   uint32 gSize = grammar.writeGrammar(&result[10512]);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
-  BOOST_CHECK_EQUAL(gSize,11);
+  BOOST_CHECK_EQUAL(gSize,12);
+  BOOST_CHECK_EQUAL(result.back(),1);
+
+  PostProcessor post(true);
+  post.postProcess(&result);
+  BOOST_CHECK_EQUAL(result.size(), data.size());
+  for(size_t i = 0; i < result.size(); ++i) 
+    BOOST_CHECK_EQUAL(result[i], data[i]);
+
 }
 
 BOOST_AUTO_TEST_CASE(MultipleRounds) {
+  std::cout << std::endl << std::endl << std::endl;
+
   Grammar grammar;
   std::string ab = "ac";
   std::vector<byte> data;
@@ -178,15 +205,28 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
   BOOST_CHECK_EQUAL(rep, 1);
   // size of replaced string == 5000+ 505 + 4*2
   //grammar header = 1 + 1 + 2 + 3 + 1+2+4
-  data.resize(5512 + 19);
   BOOST_CHECK_EQUAL(grammar.isSpecial(result[0]), false);
-  cSize = pr1.writeReplacedVersion(&result[0], 10512, &data[0]);
+  std::vector<byte> res2;
+  res2.resize(5512 + 40);
+  cSize = pr1.writeReplacedVersion(&result[0], 10512, &res2[0]);
   BOOST_CHECK_EQUAL(cSize,5512);
   
 
-  uint32 gSize = grammar.writeGrammar(&result[10512]);
+  uint32 gSize = grammar.writeGrammar(&res2[5512]);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),2);
+  BOOST_CHECK_EQUAL(res2[cSize+gSize-1],2);
+
+  res2.resize(gSize + cSize);
+
+  grammar.printRules();
+
+  PostProcessor post(true);
+  post.postProcess(&res2);
+  BOOST_CHECK_EQUAL(res2.size(), data.size());
+  for(size_t i = 0; i < res2.size(); ++i) 
+    BOOST_CHECK_EQUAL(res2[i], data[i]);
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

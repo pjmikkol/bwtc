@@ -396,6 +396,18 @@ size_t PairReplacer::decideReplacements() {
   m_numOfFreedSymbols = freedSymbols.size();
   m_numOfNewSpecials = newSpecials.size();
 
+  size_t j = 0;
+  for(size_t i = 0; i < m_numOfNewSpecials; ) {
+    byte k = freqTable.getKey(j++);
+    if(m_grammar.isSpecial(k)) continue;
+    newSpecials[i++] = k;
+  }
+  for(size_t i = m_numOfNewSpecials; i < m_numOfFreedSymbols; ++i) {
+    byte k = freqTable.getKey(j++);
+    if(m_grammar.isSpecial(k)) continue;
+    freedSymbols[i] = k;
+  }
+
   m_numOfReplacements = replaceablePairs.size();
 
   if(m_verbose) {

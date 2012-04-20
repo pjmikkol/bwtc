@@ -63,14 +63,14 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::Preprocessor preprocessor(block_size, preproc);
   preprocessor.connect(input_name);
 
-  bwtc::BlockManager block_manager(block_size + 5*preproc.size(), 1);
+  bwtc::BlockManager block_manager(block_size + 5*preproc.size() + 1, 1);
   preprocessor.addBlockManager(&block_manager);
 
   bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
 
   //bwtc::Encoder encoder(output_name, encoding);
   bwtc::WaveletEncoder encoder(output_name, encoding);
-  encoder.writeGlobalHeader(preproc, encoding);
+  encoder.writeGlobalHeader(encoding);
 
   unsigned blocks = 0;
   uint64 last_s = 0;
@@ -117,7 +117,8 @@ void validatePreprocOption(const std::string& p) {
 
   for(size_t i = 0; i < p.size(); ++i) {
     char c = p[i];
-    if(c != 'p' && c != 's') throw exc;
+    //if(c != 'p' && c != 's') throw exc;
+    if(c != 'p' ) throw exc;
   }
 }
 

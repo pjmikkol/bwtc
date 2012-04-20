@@ -94,6 +94,7 @@ uint64 packInteger(uint64 integer, int* bytes_needed) {
     assert(i < 8);
     if (integer) result |= (kEightBit << i*8);
   }
+  if(i == 0) ++i;
   *bytes_needed = i;
   return result;
 }

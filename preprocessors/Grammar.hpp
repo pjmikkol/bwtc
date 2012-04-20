@@ -29,6 +29,7 @@
 #define BWTC_GRAMMAR_HPP_
 
 #include <algorithm>
+#include <map>
 #include <vector>
 
 #include "../globaldefs.hpp"
@@ -43,6 +44,37 @@ namespace bwtc {
  */
 class Grammar {
  public:
+  /**Rule stores single replacement. They are chosen by preprocessing
+   * algoritms.*/
+  class Rule {
+   public:
+    Rule(uint16 variable, uint32 begin, uint32 end, bool largeVariable=false)
+        : m_begin(begin), m_end(end), m_variable(variable),
+          m_largeVariable(largeVariable) { }
+
+    inline uint32 begin() const {return m_begin;}
+    inline uint16 end() const {return m_end;}
+    inline uint16 variable() const {return m_variable;}
+    inline bool isLarge() const { return m_largeVariable; }
+    inline void setRange(uint32 begin, uint32 end) { m_begin = begin; m_end = end; }
+    inline void changeVariable(uint16 nVariable, bool large=true) {
+      m_variable = nVariable;
+      m_largeVariable = large;
+    }
+    inline size_t length() const { return m_end - m_begin; }
+
+   private:
+    /**Starting index in Grammar::m_rightHandSides of replaced string.*/
+    uint32 m_begin;
+    /**One past last index in Grammar::m_rightHandSides replaced string.*/
+    uint32 m_end;
+    uint16 m_variable;
+    /**Variable is large if it's formed of two special symbols.
+     * Otherwise the actual value of m_variable represents the actual
+     * replacement character.*/
+    bool m_largeVariable;
+  };
+
   Grammar();
 
   inline bool isSpecial(byte symbol) { return m_isSpecialSymbol[symbol]; }
@@ -62,6 +94,8 @@ class Grammar {
 
   void addSpecialSymbol(byte special);
 
+  void printRules() const;
+  
   inline uint32 numberOfRules() const {
     return m_rules.size();
   }
@@ -98,48 +132,18 @@ class Grammar {
   uint32 writeNumberOfRules(byte* dst) const;
 
  private:
-  /**Rule stores single replacement. They are chosen by preprocessing
-   * algoritms.*/
-  class Rule {
-   public:
-    Rule(uint16 variable, uint32 begin, uint32 end, bool largeVariable=false)
-        : m_begin(begin), m_end(end), m_variable(variable),
-          m_largeVariable(largeVariable) { }
-
-    inline uint32 begin() const {return m_begin;}
-    inline uint16 end() const {return m_end;}
-    inline uint16 variable() const {return m_variable;}
-    inline bool isLarge() const { return m_largeVariable; }
-    inline void setRange(uint32 begin, uint32 end) { m_begin = begin; m_end = end; }
-    inline void changeVariable(uint16 nVariable, bool large=true) {
-      m_variable = nVariable;
-      m_largeVariable = large;
-    }
-    inline size_t length() const { return m_end - m_begin; }
-
-   private:
-    /**Starting index in Grammar::m_rightHandSides of replaced string.*/
-    uint32 m_begin;
-    /**One past last index in Grammar::m_rightHandSides replaced string.*/
-    uint32 m_end;
-    uint16 m_variable;
-    /**Variable is large if it's formed of two special symbols.
-     * Otherwise the actual value of m_variable represents the actual
-     * replacement character.*/
-    bool m_largeVariable;
-  };
 
   /**Frequencies of bytes in the right-side of rules.*/
   uint32 m_frequencies[256];
   bool m_isSpecialSymbol[256];
   bool m_isVariable[256];
+  std::map<byte, uint16> m_specialInverse;
+
   std::vector<byte> m_specialSymbols;
   /**Special symbols are numbered in order they are created.
    * If pair.first==true then pair of this index is used as a grammar
    * variable. */
   std::vector<std::pair<bool,byte> > m_specialPairReplacements;
-
-  uint16 m_newSpecials[256];
 
   std::vector<Rule> m_rules;
   /**Right-hand sides of the rules.*/

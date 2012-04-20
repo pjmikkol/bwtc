@@ -130,11 +130,18 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
   }
   if(m_preprocessingOptions.size() & 1) {
     std::copy(src, src + length, dst);
+    src = dst;
   }
+  std::cout << "Number of Rules = " << m_grammar.numberOfRules() << std::endl;
+  std::cout << "length = " << length << std::endl;
+  uint32 gSize = m_grammar.writeGrammar(src+length);
+  std::cout << "Grammar size = " << gSize << std::endl;
+  length += gSize;
+  std::cout << "last byte = " << ((int)src[length-1]) << std::endl;
+  std::cout << "last-1 byte = " << ((int)src[length-2]) << std::endl;
   if(verbosity > 0) {
     std::clog << "Size of preprocessed block is " << length <<std::endl;
   }
-  // TODO: write grammar!
   return length;
 }
 

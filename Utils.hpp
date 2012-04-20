@@ -42,6 +42,45 @@ using bwtc::uint32;
 /* Useful functions for debugging activites etc. */
 namespace utils {
 
+/**If the result is to be read from left, then bits written through
+ * writeBit-function are written in reverse order, but still maintaining
+ * the same order between bytes.*/
+template <typename CharType, bool readFromLeft>
+class FlexibleWriter {
+ public:
+  FlexibleWriter(CharType* dst)
+      : m_dst(dst), m_charsWritten(0), m_bitBuffer(0),
+        m_bitsLeftInBuffer(s_maxBits) {}
+
+  void writeChar(CharType c) { m_dst[m_charsWritten++] = c; }
+
+  void flushBits() {
+    if(m_bitsLeftInBuffer < s_maxBits) {
+      writeChar(m_bitBuffer << m_bitsLeftInBuffer);
+      m_bitsLeftInBuffer = s_maxBits;
+    }
+  }
+
+  void writeBit(CharType bit) {
+    assert(0 <= bit && bit <= 1);
+    m_bitBuffer = (m_bitBuffer << 1) | bit;
+    if(--m_bitsLeftInBuffer == 0) {
+      writeChar(m_bitBuffer);
+      m_bitsLeftInBuffer = s_maxBits;
+    }
+  }
+  
+ private:
+  CharType* m_dst;
+  size_t m_charsWritten;
+  CharType m_bitBuffer;
+  size_t m_bitsLeftInBuffer;
+
+  static const size_t s_maxBits = std::numeric_limits<CharType>::digits +
+      std::numeric_limits<CharType>::is_signed?1:0;
+};
+
+
 static byte logFloor(unsigned n) {
   assert(n > 0);
 #ifdef __GNUC__

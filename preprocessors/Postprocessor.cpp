@@ -27,6 +27,7 @@
 #include <cassert>
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -57,26 +58,199 @@ PostProcessor::Replacement::operator=(const PostProcessor::Replacement& r) {
   return *this;
 }
 
-PostProcessor::PostProcessor(const std::string& postProcOptions)
-    : m_options(postProcOptions) {}
+PostProcessor::PostProcessor(bool verbose) : m_verbose(verbose)
+{
+  std::fill(m_isSpecial, m_isSpecial + 256, false);
+}
 
-void PostProcessor::postProcess(std::vector<byte> *data) {
-  PROFILE("PostProcessor::postProcess");
-  // TODO: optimize unnecessary copying away
-  size_t length = data->size();
-  for(size_t i = 0; i < m_options.size(); ++i) {
-    if(m_options[i] == 'r') {
-      length = uncompressLongRuns(data, length);
-    } else if (m_options[i] == 'p') {
-      length = uncompressCommonPairs(data, length);
-    } else if (m_options[i] == 'c') {
-      length = uncompressPairsAndRuns(data, length);
-    } else if (m_options[i] == 's') {
-      length = uncompressSequences(data, length);
+void PostProcessor::
+uncompress(const byte* src, size_t length, std::vector<byte>& dst) {
+  for(size_t i = 0; i < length; ++i) {
+    int key = src[i];
+    if(m_isSpecial[src[i]]) {
+      key = (1 << 16) | (src[i] << 8 )| src[i+1];
+      ++i;
+    }
+    for(size_t j = 0; j < m_replacements[key].size(); ++j) {
+      dst.push_back(m_replacements[key][j]);
     }
   }
 }
 
+void PostProcessor::postProcess(std::vector<byte> *data) {
+  PROFILE("PostProcessor::postProcess");
+  uint32 grammarSize = readGrammar(&(*data)[0], data->size());
+  if(grammarSize == 1) {
+    std::cout << "Grammar size " << grammarSize << std::endl;
+    data->resize(data->size()-1);
+    return;
+  }
+  std::vector<byte>& src = *data;
+  std::vector<byte> uncompressed;
+  uncompressed.reserve(src.size()-1);
+
+  uncompress(&src[0], src.size() - grammarSize, uncompressed);
+  std::swap(src,uncompressed);
+}
+
+uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
+  const size_t last = len-1;
+  std::cout << "last byte " << ((int)src[last]) << std::endl;
+  std::cout << "last-1 byte " << ((int)src[last-1]) << std::endl;
+  //Prepare the ordinary symbols
+  for(size_t i = 0; i < 256; ++i) {
+    m_replacements[i].push_back((byte)i);
+  }
+  uint32 size = 0;
+  int bytes;
+  uint32 nRules = readReversedPackedInteger(src+last, &bytes);
+  size += bytes;
+  if(m_verbose) {
+    std::clog << "Read " << nRules << " rules." << std::endl;
+  }
+  if(nRules == 0) return size;
+
+  uint32 nSpecialSymbols = *(src + last - size++);
+  std::cout << nSpecialSymbols << " specials " << std::endl;
+  std::vector<byte> specials;
+  int specialEnumeration[256] = {0};
+  for(size_t i = 0; i < nSpecialSymbols; ++i) {
+    byte special = *(src + last - size++);
+    specialEnumeration[special] = i;
+    specials.push_back(special);
+    m_isSpecial[special] = true;
+  }
+  std::cout << "Specials:" << std::endl;
+  for(size_t i = 0; i < specials.size(); ++i)
+    std::cout << ((int)specials[i]) << std::endl;
+
+  std::vector<bool> isLargeVariable;
+  bytes = nRules/8;
+  if(nRules % 8) ++bytes;
+  for(int i = 0; i < bytes; ++i) {
+    byte flags = *(src + last - size++);
+    for(int j = 7; j >= 0; --j) {
+      isLargeVariable.push_back(flags & 0x1);
+      flags >>= 1;
+    }
+  }
+
+  
+  // Prepare lookuptable of special pairs
+  std::vector<bool> usedSpecialPair;
+  usedSpecialPair.resize(nSpecialSymbols*nSpecialSymbols);
+  std::fill(usedSpecialPair.begin(), usedSpecialPair.end(), false);
+  for(size_t i = 0; i < nSpecialSymbols; ++i) {
+    usedSpecialPair[i*i] = true;
+    int replValue = (1 << 16) | (specials[i] << 8) | specials[i];
+    m_replacements[replValue].push_back(specials[i]);
+  }
+
+  std::vector<std::pair<bool, uint16> > leftSides;
+  for(size_t i = 0; i < nRules; ++i) {
+    uint16 variable = *(src + last - size++);
+    if(!isLargeVariable[i]) std::cout << "ISNOTLARGE" << std::endl;
+    else std::cout << "ISLARGE" << std::endl;
+    if(isLargeVariable[i]) {
+      uint16 first = *(src + last - size++);
+      assert(m_isSpecial[variable]);
+      assert(m_isSpecial[first]);
+      int s1enum = specialEnumeration[first],
+          s2enum = specialEnumeration[variable];
+      variable = (first << 8) | variable;
+      // calculate number for the pair:
+      int pairenum;
+      if(s1enum > s2enum) {
+        pairenum = s1enum*(s1enum+1) + s2enum + 1;
+      } else {
+        pairenum = s2enum*s2enum + s1enum + 1;
+      }
+      usedSpecialPair[pairenum] = true;
+    }
+    leftSides.push_back(std::make_pair(isLargeVariable[i], variable));
+  }
+  std::cout << "Size after vars " << size << std::endl;
+
+  uint32 freedSymbols = *(src + last - size++), read = 0;
+  std::cout << "freedSyms = " << freedSymbols << std::endl;
+  int current = 0;
+  while(read < freedSymbols) {
+    if(usedSpecialPair[current]) {
+      std::cout << "special pair " << current << " is already used" << std::endl;
+      ++current;
+    } else {
+      // Pair numered current is used for the next symbol
+      byte freedSymbol = *(src + last - size++);
+      std::cout << "fs = " << freedSymbol << std::endl;
+      int sqr = sqrt(current);
+      int offset = sqr*sqr;
+      int pairVal;
+      assert(current > 1);
+      if(current - offset - 1 < sqr) {
+        pairVal = (specials[current - offset - 1] << 8)| specials[sqr];
+      } else {
+        pairVal = (specials[sqr] << 8)| specials[current-offset-sqr-1];
+      }
+      std::cout << current << " -> " << ((int)freedSymbol) << std::endl;
+      std::cout << "with pair " << (pairVal >> 8) << " " << (pairVal & 0xff) << std::endl;
+      std::cout << "sqr = " << sqr << std::endl;
+
+      pairVal |= (1 << 16);
+      m_replacements[pairVal].push_back(freedSymbol);
+      ++current;
+      ++read;
+    }
+  }
+
+  std::vector<uint32> lengthsOfRules;
+  for(size_t i = 0; i < nRules; ++i) {
+    uint32 len = readReversedPackedInteger(src+last-size, &bytes);
+    lengthsOfRules.push_back(len);
+    size += bytes;
+  }
+
+  for(size_t i = 0; i < nRules; ++i) {
+    int value = leftSides[i].second;
+    if(leftSides[i].first) value |= (1 << 16);
+    size += lengthsOfRules[i]-1;
+
+    std::vector<byte> tmpReplacement;
+    
+    uncompress(src+last-size, lengthsOfRules[i], tmpReplacement);
+    ++size;
+    std::swap(m_replacements[value], tmpReplacement);
+
+    if(leftSides[i].first) {
+      std::cout << ((value >> 8) & 0xff) << " ";
+    }
+    std::cout << (value & 0xff) << " --> ";
+    for(size_t j = 0; j < m_replacements[value].size(); ++j) {
+      std::cout << ((int)m_replacements[value][j]) << " ";      
+    }
+    std::cout << std::endl;
+  }
+  if(m_verbose) {
+    std::clog << "Found " << nSpecialSymbols << " special symbols and "
+              << freedSymbols << " freed symbols." << std::endl;
+  }
+  return size;
+}
+
+
+
+uint32 PostProcessor::
+readReversedPackedInteger(const byte* src, int* bytesRead) {
+  int bytes = 0;
+  uint32 result = 0;
+  while(true) {
+    byte b = *src--;
+    result |= ((b & 0x7f) << 7*bytes);
+    ++bytes;
+    if((b & 0x80) == 0) break;
+  }
+  *bytesRead = bytes;
+  return result;
+}
 
 size_t PostProcessor::
 uncompressCommonPairs(std::vector<byte> *compressed, size_t length) {

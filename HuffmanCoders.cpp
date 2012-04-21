@@ -422,7 +422,6 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
   std::vector<byte>* data = new std::vector<byte>();
   data->resize(block_size);
   byte *data_ptr = &(*data)[0];
-  uint64 beg = 0;
 
   for(size_t i = 0; i < context_lengths.size(); ++i) {
     if(context_lengths[i] == 0) continue;
@@ -440,26 +439,218 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
     uint32 code[256];
     utils::computeHuffmanCodes(clen, code);
 
-    uint64 buffer = 0;
-    uint32 bitsInBuffer = 0;
-    for (uint64 k = 0; k < nRuns; ++k) {
-      buffer = 0;
-      bitsInBuffer = 0;
-      byte next_byte;
-      bool found = false;
-      while (!found) {
-        int32 bit = m_in->readBit();
-        buffer = (buffer << 1) | bit;
-        ++bitsInBuffer;
-        for (int32 j = 0; j < 256; ++j) {
-          if (clen[j] == bitsInBuffer && (uint64)code[j] == buffer) {
-            found = true;
-            next_byte = static_cast<byte>(j);
-            break;
+    // Comput lookup arrays used in Huffman decoding.
+    //   1. For each byte k, leadingZeros[p][k] tells what is the number of
+    //      leading zeros on p least significant bits of k (the other bits
+    //      doesn't matter).
+    byte leadingZeros[9][256];
+    
+    //   2. For each length t and byte k lookupWhich[t][k] tells which
+    //      Huffman code consists of t zeros followed by some prefix of k.
+    //      In case there is no such code, the value 256 is stored.
+    uint16 lookupWhich[50][256];
+    
+    //   3. For each length t and byte k such that lookupWhich[t][k] < 256,
+    //      lookupLength[t][k] tells the length of corresponding code prefix.
+    byte lookupLength[50][256];
+    
+    // Compute lookup arrays.
+    for (int32 p = 0; p <= 8; ++p) {
+      for (int32 k = 0; k < 256; ++k) {
+        leadingZeros[p][k] = p;
+        for (int32 t = 0; t < p; ++t)
+          if (k & (1 << t))
+            leadingZeros[p][k] = p - t - 1;
+      }
+    }
+    for (int32 k = 0; k < 50; ++k)
+      std::fill(&lookupWhich[k][0], &lookupWhich[k][256], 256);
+    for (int k = 0; k < 256; ++k) if (clen[k] && code[k]) {
+      int32 max_non0_bit = 0;
+      for (int32 j = 0; j < 16; ++j)
+        if (code[k] & (1 << j))
+          max_non0_bit = j;
+      ++max_non0_bit;
+      int32 lead0 = clen[k] - max_non0_bit;
+      int32 rest = 8 - max_non0_bit;
+      for (int32 any_set = 0; any_set < (1 << rest); ++any_set) {
+        lookupWhich[lead0][(code[k] << rest) + any_set] = k;
+        lookupLength[lead0][(code[k] << rest) + any_set] = max_non0_bit;
+      }
+    }
+    
+    // Store the symbol (and its length) that have code with zeros only.
+    int32 len0 = 0;
+    byte b = 0, code0 = 0;
+    for (int32 k = 0; k < 256; ++k, ++b) {
+      if (clen[k] > 0 && code[k] == 0) {
+        len0 = clen[k];
+        code0 = b;
+      }
+    }
+
+    // Decode Huffman codes.
+    byte buffer = 0;
+    int32 bitsInBuffer = 0, zeroCount = 0;
+    uint32 haveDecoded = 0;
+    while (haveDecoded < nRuns) {
+      byte b = m_in->readByte();
+      if (zeroCount > 0 && !bitsInBuffer) {
+        buffer = b;
+        if (!buffer) {
+          zeroCount += 8;
+          
+          // Extract codes consisting of zeros (code0s).
+          while (zeroCount >= len0 && haveDecoded < nRuns) {
+            runseq[haveDecoded++] = code0;
+            zeroCount -= len0;
+          }
+        } else {
+        
+          // Extract code0s.
+          zeroCount += leadingZeros[8][buffer];
+          bitsInBuffer = 8 - leadingZeros[8][buffer];
+          while (zeroCount >= len0 && haveDecoded < nRuns) {
+            runseq[haveDecoded++] = code0;
+            zeroCount -= len0;
+          }
+          
+          // Extract code on the boundary of previous byte (buffer) and b.
+          if (zeroCount + bitsInBuffer > 8 && haveDecoded < nRuns) {
+            byte sbuffer = (buffer << (8 - bitsInBuffer));
+            if (lookupWhich[zeroCount][sbuffer] < 256 &&
+                bitsInBuffer >= lookupLength[zeroCount][sbuffer]) {
+              runseq[haveDecoded++] = lookupWhich[zeroCount][sbuffer];
+              bitsInBuffer -= lookupLength[zeroCount][sbuffer];
+              zeroCount = leadingZeros[bitsInBuffer][buffer];
+              bitsInBuffer -= zeroCount;
+              buffer &= (1 << bitsInBuffer) - 1;
+            }
+            while (zeroCount >= len0 && haveDecoded < nRuns) {
+              runseq[haveDecoded++] = code0;
+              zeroCount -= len0;
+            }
+          }
+
+          // Extract codes from b.
+          if (zeroCount + bitsInBuffer <= 8 && haveDecoded < nRuns) {
+            while (haveDecoded < nRuns) { bool decoded = false;
+              byte sbuffer = (buffer << (8 - bitsInBuffer));
+              if (lookupWhich[zeroCount][sbuffer] < 256
+                  && bitsInBuffer >= lookupLength[zeroCount][sbuffer]) {
+                runseq[haveDecoded++] = lookupWhich[zeroCount][sbuffer];
+                bitsInBuffer -= lookupLength[zeroCount][sbuffer];
+                zeroCount = leadingZeros[bitsInBuffer][buffer];
+                bitsInBuffer -= zeroCount; decoded = true;
+                buffer &= (1 << bitsInBuffer) - 1;
+              }
+              while (zeroCount >= len0 && haveDecoded < nRuns) {
+                runseq[haveDecoded++] = code0;
+                zeroCount -= len0; decoded = true;
+              }
+              if (!decoded) break;
+            }
+            continue;
+          }
+
+          // Tricky case, the code starts in byte before b (buffer) and ends in
+          // byte after b (nextb), but since b is nonzero, we are guaranteed
+          // that this code will end in the very next byte after b (nextb).
+          if (zeroCount + bitsInBuffer > 8 && haveDecoded < nRuns) {
+            
+            // Read nextb.
+            byte nextb = m_in->readByte();
+            byte cbuffer = (buffer << (8 - bitsInBuffer)) |
+              (nextb >> bitsInBuffer);
+            assert(lookupWhich[zeroCount][cbuffer] < 256);
+            runseq[haveDecoded++] = lookupWhich[zeroCount][cbuffer];
+            bitsInBuffer = bitsInBuffer + (8 - lookupLength[zeroCount][cbuffer]);
+            zeroCount = leadingZeros[bitsInBuffer][nextb];
+            bitsInBuffer -= zeroCount;
+            buffer = nextb;
+            nextb &= (1 << bitsInBuffer) - 1;
+
+            // Extract codes from nextb.
+            while (haveDecoded < nRuns) { bool decoded = false;
+              byte sbuffer = (buffer << (8 - bitsInBuffer));
+              if (lookupWhich[zeroCount][sbuffer] < 256  &&
+                  bitsInBuffer >= lookupLength[zeroCount][sbuffer]) {
+                runseq[haveDecoded++] = lookupWhich[zeroCount][sbuffer];
+                bitsInBuffer -= lookupLength[zeroCount][sbuffer];
+                zeroCount = leadingZeros[bitsInBuffer][buffer];
+                bitsInBuffer -= zeroCount; decoded = true;
+                buffer &= (1 << bitsInBuffer) - 1;
+              }
+              while (zeroCount >= len0 && haveDecoded < nRuns) {
+                runseq[haveDecoded++] = code0;
+                zeroCount -= len0; decoded = true;
+              }
+              if (!decoded) break;
+            }
+            continue;
           }
         }
+      } else if (!zeroCount && !bitsInBuffer) {
+      
+        // Extract codes from b.
+        buffer = b;
+        bitsInBuffer = 8;
+        zeroCount = leadingZeros[bitsInBuffer][buffer];
+        bitsInBuffer -= zeroCount;
+        while (haveDecoded < nRuns) { bool decoded = false;
+          byte sbuffer = (buffer << (8 - bitsInBuffer));
+          if (lookupWhich[zeroCount][sbuffer] < 256
+              && bitsInBuffer >= lookupLength[zeroCount][sbuffer]) {
+            runseq[haveDecoded++] = lookupWhich[zeroCount][sbuffer];
+            bitsInBuffer -= lookupLength[zeroCount][sbuffer];
+            zeroCount = leadingZeros[bitsInBuffer][buffer];
+            bitsInBuffer -= zeroCount;
+            decoded = true;
+            buffer &= (1 << bitsInBuffer) - 1;
+          }
+          while (zeroCount >= len0 && haveDecoded < nRuns) {
+            runseq[haveDecoded++] = code0;
+            zeroCount -= len0;
+            decoded = true;
+          }
+          if (!decoded) break;
+        }
+        continue;
+      } else { // bitsInBuffer > 0
+
+        // Previous byte (buffer) contains nonzero non-consumed bits, hence
+        // this code will end in b.
+        byte cbuffer = (buffer << (8 - bitsInBuffer)) | (b >> bitsInBuffer);
+        assert(lookupWhich[zeroCount][cbuffer] < 256);
+        runseq[haveDecoded++] = lookupWhich[zeroCount][cbuffer];
+        bitsInBuffer = bitsInBuffer + (8 - lookupLength[zeroCount][cbuffer]);
+        zeroCount = leadingZeros[bitsInBuffer][b];
+        bitsInBuffer -= zeroCount;
+        buffer = b;
+        buffer &= (1 << bitsInBuffer) - 1;
+
+        // Extract codes from b.
+        while (haveDecoded < nRuns) {
+          bool decoded = false;
+          byte sbuffer = (buffer << (8 - bitsInBuffer));
+          if (lookupWhich[zeroCount][sbuffer] < 256 &&
+              bitsInBuffer >= lookupLength[zeroCount][sbuffer]) {
+            runseq[haveDecoded++] = lookupWhich[zeroCount][sbuffer];
+            bitsInBuffer -= lookupLength[zeroCount][sbuffer];
+            zeroCount = leadingZeros[bitsInBuffer][buffer];
+            bitsInBuffer -= zeroCount;
+            decoded = true;
+            buffer &= (1 << bitsInBuffer) - 1;
+          }
+          while (zeroCount >= len0 && haveDecoded < nRuns) {
+            runseq[haveDecoded++] = code0;
+            zeroCount -= len0;
+            decoded = true;
+          }
+          if (!decoded) break;
+        }
+        continue;
       }
-      runseq[k] = next_byte;
     }
     m_in->flushBuffer();
 
@@ -479,9 +670,11 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
     m_in->flushBuffer();
     
     // Fill the block with runs data.
+    byte *runseq_ptr = &runseq[0];
     for (uint64 k = 0; k < nRuns; ++k) {
       for (uint32 t = 0; t < runlen[k]; ++t)
-        data_ptr[beg++] = runseq[k];
+        *data_ptr++ = *runseq_ptr;
+      ++runseq_ptr;
     }
   }
 

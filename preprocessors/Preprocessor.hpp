@@ -79,8 +79,6 @@ class Preprocessor {
   InStream* m_source;
   uint64 m_blockSize;
   BlockManager* m_blockManager;
-  /**Stores the replacement rules. */
-  Grammar m_grammar;
   
  private:
   /* This should be done during preprocessing*/

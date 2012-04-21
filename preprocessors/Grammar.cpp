@@ -50,8 +50,8 @@ void Grammar::addRule(byte variable, byte first, byte second) {
 }
 
 void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
-                               const std::vector<byte>& newSpecials,
-                               std::vector<uint16>& nextSpecialPairs) {
+                             const std::vector<byte>& newSpecials,
+                             std::vector<uint16>& nextSpecialPairs) {
   bool isNewSpecial[256] = {false};
   uint16 specialReplaces[256] = {0};
 
@@ -60,7 +60,6 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
   uint32 numOfSpecials = m_specialSymbols.size();
   uint32 s = 0;
   for(size_t i = 0; i < freedSymbols.size();) {
-    //std::cout << (numOfSpecials*numOfSpecials) << " " << m_specialSymbols.size() << std::endl;
     assert(numOfSpecials*numOfSpecials >= m_specialSymbols.size());
     //if(numOfSpecials*numOfSpecials == m_specialSymbols.size()) {
     if(specialPairsLeft == 0) {
@@ -73,19 +72,13 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
       ++numOfSpecials;
       specialPairsLeft = specialSymbolPairsLeft();
     } else {
-      std::cout << "freeing symbol " << (int)freedSymbols[i] << " with ";
+      std::cout << (int)freedSymbols[i] << " -> ";
       // Calculate pair for freedSymbol
       uint32 nextSpecialPair = m_specialPairReplacements.size();
       uint32 offset = (numOfSpecials -1)*(numOfSpecials -1) + 1;
       uint32 index = nextSpecialPair - offset;
-
       
       bool toVariable = m_isVariable[freedSymbols[i]];
-
-      //std::map<byte, uint16>::iterator it = m_specialInverse.find();
-      // if(it != m_specialInverse.end()) {
-      //  toVariable = true;
-      //} 
 
       //m_specialInverse[freedSymbols[i]] = nextSpecialPair;
       m_isVariable[freedSymbols[i]] = true;
@@ -113,7 +106,8 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
       ++i;
     }
   }
-  assert(s==newSpecials.size());
+  
+  assert(s<=newSpecials.size());
   std::vector<byte> nRightSides;
   uint32 leftSidesToUpdate = m_rules.size() - m_newRules;
   
@@ -220,6 +214,7 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
       ++numOfFreedSymbols;
     }
   }
+  std::cout << "freed = " << numOfFreedSymbols << std::endl;
   if(numOfFreedSymbols > 0) {
     curr = m_specialSymbols.size()-1;
     sq = curr*curr;
@@ -235,7 +230,6 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
       }
     }
   }
-  std::cout << "freed = " << numOfFreedSymbols << std::endl;
   assert(numOfFreedSymbols <= 255);
   dst[s++] = numOfFreedSymbols;
   return s;

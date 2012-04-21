@@ -57,7 +57,6 @@ void decompress(const std::string& input_name, const std::string& output_name,
   //bwtc::Decoder decoder(input_name);
   bwtc::WaveletDecoder decoder(input_name);
   decoder.readGlobalHeader();
-  bwtc::PostProcessor postProcessor(verbosity > 1);
 
   bwtc::OutStream out(output_name);
 
@@ -77,6 +76,7 @@ void decompress(const std::string& input_name, const std::string& output_name,
                                                               LFpowers);
     delete bwt_block;
     std::cout << "Size of unbwt " << unbwt_block->size() << std::endl;
+    bwtc::PostProcessor postProcessor(verbosity > 1);
     postProcessor.postProcess(unbwt_block);
     out.writeBlock(unbwt_block->begin(), unbwt_block->end());
     out.flush();

@@ -51,12 +51,14 @@ class FrequencyTable {
   /** Returns the i:th lowest freq*/
   uint32 getFrequency(int i) const; 
 
+  uint32 getFrequencyWithKey(byte key) const;
+
   /** Returns the key which has i:th lowest freq*/
   byte getKey(int i) const; 
   
   /**Decrease value of given key.*/
   bool decrease(byte key, uint32 decrement);
-
+  
   /**Increase value of given key.*/
   void increase(byte key, uint32 increment);
 

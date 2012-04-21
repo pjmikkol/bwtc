@@ -165,7 +165,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       } else {
         pairenum = s2enum*s2enum + s1enum + 1;
       }
-      usedSpecialPair[pairenum] = true;
+      //usedSpecialPair[pairenum] = true;
     }
     leftSides.push_back(std::make_pair(isLargeVariable[i], variable));
   }
@@ -179,7 +179,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       std::cout << "special pair " << current << " is already used" << std::endl;
       ++current;
     } else {
-      // Pair numered current is used for the next symbol
+      // Pair numbered current is used for the next symbol
       byte freedSymbol = *(src + last - size++);
       std::cout << "fs = " << freedSymbol << std::endl;
       int sqr = sqrt(current);

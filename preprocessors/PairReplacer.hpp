@@ -82,20 +82,13 @@ class PairReplacer {
   void findReplaceablePairs(std::vector<std::pair<uint32, uint16> >& pairs,
                             std::vector<std::pair<uint32, uint16> >& replaceablePairs,
                             FrequencyTable& freqs, size_t maxReplacements,
-                            std::vector<byte>& freedSymbols,
-                            std::vector<byte>& newSpecials,
-                            std::vector<byte>& replacements) const;
+                            uint32& variables, uint32& specials, uint32& forFree) const;
 
-  int64 findReplaceablePairs(size_t startingPair,
-                             const std::vector<std::pair<uint32, uint16> >& pairs,
-                             std::vector<std::pair<uint32, uint16> >& replaceablePairs,
-                             FrequencyTable& freqs, size_t maxReplacements,
-                             std::vector<byte>& freedSymbols,
-                             std::vector<byte>& newSpecials,
-                              std::vector<byte>& replacements) const;
-
-  size_t findEscapeIndex(FrequencyTable& freqs, size_t freeSymbols,
-                     std::vector<std::pair<uint32, uint16> >& suitablePairs);
+  int64 findReplaceables(size_t start, 
+                         const std::vector<std::pair<uint32, uint16> >& pairs,
+                         std::vector<std::pair<uint32, uint16> >& replPairs,
+                         FrequencyTable& freqs, size_t maxRepl,
+                         uint32& variables, uint32& specials,uint32& forFree) const;
 
   size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
 

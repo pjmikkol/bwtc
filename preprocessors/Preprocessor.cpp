@@ -103,7 +103,7 @@ MainBlock* Preprocessor::readBlock() {
 }
 
 #define PREPROCESS(Type, verb, src, dst) \
-  Type r(m_grammar, (verb));      \
+  Type r(grammar, (verb));      \
   r.analyseData((src), length); \
   r.finishAnalysation(); \
   r.decideReplacements(); \
@@ -114,6 +114,8 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
   PROFILE("Preprocessor::preprocess");
   byte *dst, *src = &original[0];
   std::vector<byte> tmp;
+  /**Stores the replacement rules. */
+  Grammar grammar;
   if(m_preprocessingOptions.size() > 0) {
     //TODO: correct limits
     tmp.resize(length + m_preprocessingOptions.size()*5);
@@ -132,9 +134,11 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
     std::copy(src, src + length, dst);
     src = dst;
   }
-  std::cout << "Number of Rules = " << m_grammar.numberOfRules() << std::endl;
+  grammar.printRules();
+  
+  std::cout << "Number of Rules = " << grammar.numberOfRules() << std::endl;
   std::cout << "length = " << length << std::endl;
-  uint32 gSize = m_grammar.writeGrammar(src+length);
+  uint32 gSize = grammar.writeGrammar(src+length);
   std::cout << "Grammar size = " << gSize << std::endl;
   length += gSize;
   std::cout << "last byte = " << ((int)src[length-1]) << std::endl;

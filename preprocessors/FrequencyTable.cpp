@@ -32,6 +32,8 @@
 #include <cassert>
 #include <utility>
 
+#include <iostream>
+
 namespace bwtc {
 
 template <typename T>
@@ -79,6 +81,11 @@ uint32 FrequencyTable::getFrequency(int i) const {
   return m_frequencies[i].second;
 }
 
+uint32 FrequencyTable::getFrequencyWithKey(byte key) const {
+  assert(key >= 0 && key <= 255);
+  return m_frequencies[m_location[key]].second;
+}
+
 byte FrequencyTable::getKey(int i) const {
   assert(i >= 0 && i <= 255);
   return m_frequencies[i].first;
@@ -86,6 +93,8 @@ byte FrequencyTable::getKey(int i) const {
 
 bool FrequencyTable::decrease(byte key, uint32 value) {
   int freqIndex = m_location[key];
+  std::cout << key << std::endl;
+  assert(m_frequencies[freqIndex].second >= value);
   if(m_frequencies[freqIndex].second < value) return false;
   value = m_frequencies[freqIndex].second - value;
   std::pair<byte, uint32> pair =

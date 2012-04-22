@@ -32,8 +32,6 @@
 #include <cassert>
 #include <utility>
 
-#include <iostream>
-
 namespace bwtc {
 
 template <typename T>
@@ -49,7 +47,8 @@ FrequencyTable::FrequencyTable() {
   assert(test());
 }
 
-FrequencyTable::FrequencyTable(const FrequencyTable& freqTable) {
+FrequencyTable::FrequencyTable(const FrequencyTable& freqTable)
+    : m_last(256) {
   std::copy(freqTable.m_frequencies, freqTable.m_frequencies+256, m_frequencies);
   std::copy(freqTable.m_location, freqTable.m_location+256, m_location);
 }
@@ -77,7 +76,7 @@ void FrequencyTable::initialize(uint32* frequencies) {
 
 
 uint32 FrequencyTable::getFrequency(int i) const {
-  assert(i >= 0 && i <= 255);
+  assert(i >= 0 && i < m_last);
   return m_frequencies[i].second;
 }
 
@@ -93,7 +92,6 @@ byte FrequencyTable::getKey(int i) const {
 
 bool FrequencyTable::decrease(byte key, uint32 value) {
   int freqIndex = m_location[key];
-  std::cout << key << std::endl;
   assert(m_frequencies[freqIndex].second >= value);
   if(m_frequencies[freqIndex].second < value) return false;
   value = m_frequencies[freqIndex].second - value;
@@ -112,6 +110,15 @@ bool FrequencyTable::decrease(byte key, uint32 value) {
   return true;
 }
 
+void FrequencyTable::remove(byte key) {
+  uint32 freqIndex = m_location[key];
+  --m_last;
+  byte swapKey = m_frequencies[m_last].first;
+  std::swap(m_frequencies[m_last], m_frequencies[freqIndex]);
+  std::swap(m_location[swapKey], m_location[key]);
+  increase(key, 0);
+}
+
 void FrequencyTable::increase(byte key, uint32 value) {
   uint32 freqIndex = m_location[key];
   
@@ -119,7 +126,7 @@ void FrequencyTable::increase(byte key, uint32 value) {
   std::pair<byte, uint64> pair = 
       std::make_pair(m_frequencies[freqIndex].first, value);
   
-  while (freqIndex < 255 && value > m_frequencies[freqIndex + 1].second)
+  while (freqIndex < m_last && value > m_frequencies[freqIndex + 1].second)
   {
     --m_location[m_frequencies[freqIndex + 1].first];
     m_frequencies[freqIndex] = m_frequencies[freqIndex + 1];

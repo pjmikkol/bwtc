@@ -72,7 +72,7 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
       ++numOfSpecials;
       specialPairsLeft = specialSymbolPairsLeft();
     } else {
-      std::cout << (int)freedSymbols[i] << " -> ";
+      //std::cout << (int)freedSymbols[i] << " -> ";
       // Calculate pair for freedSymbol
       uint32 nextSpecialPair = m_specialPairReplacements.size();
       uint32 offset = (numOfSpecials -1)*(numOfSpecials -1) + 1;
@@ -88,7 +88,7 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
         m_specialPairReplacements.push_back(std::make_pair(toVariable, freedSymbols[i]));
         isNewSpecial[freedSymbols[i]] = true;
         uint16 spPair = (m_specialSymbols[index] << 8) | m_specialSymbols.back();
-        std::cout << ((int)m_specialSymbols[index]) << " " << ((int)m_specialSymbols.back()) << std::endl;
+        //std::cout << ((int)m_specialSymbols[index]) << " " << ((int)m_specialSymbols.back()) << std::endl;
         nextSpecialPairs.push_back(spPair);
         specialReplaces[freedSymbols[i]] = spPair;
       } else {
@@ -98,7 +98,7 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
         m_specialPairReplacements.push_back(std::make_pair(toVariable, freedSymbols[i]));
         isNewSpecial[freedSymbols[i]] = true;
         uint16 spPair = (m_specialSymbols.back() << 8) | m_specialSymbols[index];
-        std::cout << ((int)m_specialSymbols.back()) << " " << ((int)m_specialSymbols[index]) << std::endl;
+        //std::cout << ((int)m_specialSymbols.back()) << " " << ((int)m_specialSymbols[index]) << std::endl;
         specialReplaces[freedSymbols[i]] = spPair;
         nextSpecialPairs.push_back(spPair);
       }
@@ -170,7 +170,7 @@ uint32 Grammar::writeGrammar(byte* dst) const {
     s += writeFreedSymbols(dst+s);
 
     s += writeVariables(dst + s);
-    s += writeLargeVariableFlags(dst + s);
+    s += writeVariableFlags(dst + s);
 
     s += writeSpecialSymbols(dst + s);
     s += writeNumberOfSpecialSymbols(dst + s);
@@ -185,7 +185,6 @@ void Grammar::addSpecialSymbol(byte special) {
 }
 
 uint32 Grammar::writeNumberOfSpecialSymbols(byte* dst) const {
-  std::cout << "specials written : " << m_specialSymbols.size() << std::endl;
   *dst = m_specialSymbols.size();
   return 1;
 }
@@ -200,24 +199,26 @@ uint32 Grammar::writeSpecialSymbols(byte* dst) const {
 }
 
 uint32 Grammar::writeFreedSymbols(byte* dst) const {
-  std::cout <<  "Spess " << m_specialPairReplacements.size() << std::endl;
   uint32 s = 0;
-
+  
   uint32 numOfFreedSymbols = 0;
   int sq = 0;
   int curr = 0;
-  for(int i = 0; i < m_specialPairReplacements.size(); ++i) {
+  for(size_t i = 0; i < m_specialPairReplacements.size(); ++i) {
     if(sq == i) {
       ++curr;
       sq = curr*curr;
     } else if (!m_specialPairReplacements[i].first) {
       ++numOfFreedSymbols;
-    }
+    } 
   }
-  std::cout << "freed = " << numOfFreedSymbols << std::endl;
+
+  bool skipped = false;
   if(numOfFreedSymbols > 0) {
+    byte prev = m_specialSymbols[0];
     curr = m_specialSymbols.size()-1;
     sq = curr*curr;
+    int end = 1;
 
     // First and second are always for special symbols
     for(int i = m_specialPairReplacements.size()-1; i > 1; --i) {
@@ -225,11 +226,17 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
         --curr;
         sq = curr*curr;
       } else if(!m_specialPairReplacements[i].first) {
-        dst[s++] = m_specialPairReplacements[i].second;
-        std::cout << "fs = " << m_specialPairReplacements[i].second << std::endl;
+        dst[s++] = prev = m_specialPairReplacements[i].second;
+        skipped = false;
+      } else {
+        if(i == m_specialPairReplacements.size() - end) ++end;
+        else dst[s++] = prev; 
+        skipped = true;
       }
     }
   }
+  if(skipped) dst[s++] = 's';
+  else dst[s++] = 'n';
   assert(numOfFreedSymbols <= 255);
   dst[s++] = numOfFreedSymbols;
   return s;
@@ -238,7 +245,6 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
 uint32 Grammar::writeNumberOfRules(byte* dst) const {
   int bytesNeeded;
   uint64 packedLength = utils::packInteger(m_rules.size(), &bytesNeeded);
-  std::cout << packedLength << " " << bytesNeeded << std::endl;
   for(int i = bytesNeeded-1; i >= 0; --i) {
     dst[i] = packedLength & 0xff;
     packedLength >>= 8;
@@ -246,7 +252,7 @@ uint32 Grammar::writeNumberOfRules(byte* dst) const {
   return bytesNeeded;
 }
 
-uint32 Grammar::writeLargeVariableFlags(byte* dst) const {
+uint32 Grammar::writeVariableFlags(byte* dst) const {
   uint32 bytesNeeded = m_rules.size()/8;
   bool divisible = (m_rules.size() % 8) == 0;
   if(!divisible) ++bytesNeeded;
@@ -256,23 +262,18 @@ uint32 Grammar::writeLargeVariableFlags(byte* dst) const {
 
   for(std::vector<Rule>::const_iterator it = m_rules.begin();
       it != m_rules.end(); ++it) {
-    if(it->isLarge()) std::cout << "ISLARGE" << std::endl;
-    else std::cout << "ISNOTLARGE" << std::endl;
 
     buffer |= ((it->isLarge()?1:0) << bitsInBuffer);
     ++bitsInBuffer;
     if(bitsInBuffer == 8) {
       dst[currByte--] = buffer;
-      std::cout << "Flags " << ((int)buffer) << std::endl;
       bitsInBuffer = 0;
       buffer = 0;
     }
   }
   if(!divisible) {
-    std::cout << "Flags " << ((int)buffer) << std::endl;
     dst[0] = buffer;
   }
-  std::cout << "var" << bytesNeeded << std::endl;
   return bytesNeeded;
 }
 

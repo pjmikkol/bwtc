@@ -55,6 +55,8 @@ class FrequencyTable {
 
   /** Returns the key which has i:th lowest freq*/
   byte getKey(int i) const; 
+
+  void remove(byte key);
   
   /**Decrease value of given key.*/
   bool decrease(byte key, uint32 decrement);
@@ -67,6 +69,7 @@ class FrequencyTable {
   bool test();
   std::pair<byte, uint32> m_frequencies[256];
   byte m_location[256];
+  size_t m_last;
 };
 
 

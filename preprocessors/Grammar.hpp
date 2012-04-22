@@ -128,7 +128,7 @@ class Grammar {
   uint32 writeNumberOfSpecialSymbols(byte* dst) const;
   uint32 writeLengthsOfRules(byte* dst) const;
   uint32 writeVariables(byte* dst) const;
-  uint32 writeLargeVariableFlags(byte* dst) const;
+  uint32 writeVariableFlags(byte* dst) const;
   uint32 writeNumberOfRules(byte* dst) const;
 
  private:
@@ -137,7 +137,6 @@ class Grammar {
   uint32 m_frequencies[256];
   bool m_isSpecialSymbol[256];
   bool m_isVariable[256];
-  std::map<byte, uint16> m_specialInverse;
 
   std::vector<byte> m_specialSymbols;
   /**Special symbols are numbered in order they are created.

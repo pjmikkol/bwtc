@@ -81,7 +81,6 @@ void PostProcessor::postProcess(std::vector<byte> *data) {
   PROFILE("PostProcessor::postProcess");
   uint32 grammarSize = readGrammar(&(*data)[0], data->size());
   if(grammarSize == 1) {
-    std::cout << "Grammar size " << grammarSize << std::endl;
     data->resize(data->size()-1);
     return;
   }
@@ -95,8 +94,6 @@ void PostProcessor::postProcess(std::vector<byte> *data) {
 
 uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
   const size_t last = len-1;
-  std::cout << "last byte " << ((int)src[last]) << std::endl;
-  std::cout << "last-1 byte " << ((int)src[last-1]) << std::endl;
   //Prepare the ordinary symbols
   for(size_t i = 0; i < 256; ++i) {
     m_replacements[i].push_back((byte)i);
@@ -111,7 +108,6 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
   if(nRules == 0) return size;
 
   uint32 nSpecialSymbols = *(src + last - size++);
-  std::cout << nSpecialSymbols << " specials " << std::endl;
   std::vector<byte> specials;
   int specialEnumeration[256] = {0};
   for(size_t i = 0; i < nSpecialSymbols; ++i) {
@@ -120,11 +116,20 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
     specials.push_back(special);
     m_isSpecial[special] = true;
   }
-  std::cout << "Specials:" << std::endl;
-  for(size_t i = 0; i < specials.size(); ++i)
-    std::cout << ((int)specials[i]) << std::endl;
+
+  // Prepare lookuptable of special pairs
+  std::vector<bool> usedSpecialPair;
+  usedSpecialPair.resize(nSpecialSymbols*nSpecialSymbols);
+  std::fill(usedSpecialPair.begin(), usedSpecialPair.end(), false);
+  for(size_t i = 0; i < nSpecialSymbols; ++i) {
+    usedSpecialPair[i*i] = true;
+    int replValue = (1 << 16) | (specials[i] << 8) | specials[i];
+    m_replacements[replValue].push_back(specials[i]);
+  }
+
 
   std::vector<bool> isLargeVariable;
+
   bytes = nRules/8;
   if(nRules % 8) ++bytes;
   for(int i = 0; i < bytes; ++i) {
@@ -136,21 +141,10 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
   }
 
   
-  // Prepare lookuptable of special pairs
-  std::vector<bool> usedSpecialPair;
-  usedSpecialPair.resize(nSpecialSymbols*nSpecialSymbols);
-  std::fill(usedSpecialPair.begin(), usedSpecialPair.end(), false);
-  for(size_t i = 0; i < nSpecialSymbols; ++i) {
-    usedSpecialPair[i*i] = true;
-    int replValue = (1 << 16) | (specials[i] << 8) | specials[i];
-    m_replacements[replValue].push_back(specials[i]);
-  }
-
   std::vector<std::pair<bool, uint16> > leftSides;
   for(size_t i = 0; i < nRules; ++i) {
     uint16 variable = *(src + last - size++);
-    if(!isLargeVariable[i]) std::cout << "ISNOTLARGE" << std::endl;
-    else std::cout << "ISLARGE" << std::endl;
+
     if(isLargeVariable[i]) {
       uint16 first = *(src + last - size++);
       assert(m_isSpecial[variable]);
@@ -169,19 +163,23 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
     }
     leftSides.push_back(std::make_pair(isLargeVariable[i], variable));
   }
-  std::cout << "Size after vars " << size << std::endl;
 
   uint32 freedSymbols = *(src + last - size++), read = 0;
-  std::cout << "freedSyms = " << freedSymbols << std::endl;
+  bool off = *(src + last - size++) == 's';
   int current = 0;
+
   while(read < freedSymbols) {
     if(usedSpecialPair[current]) {
-      std::cout << "special pair " << current << " is already used" << std::endl;
       ++current;
     } else {
       // Pair numbered current is used for the next symbol
       byte freedSymbol = *(src + last - size++);
-      std::cout << "fs = " << freedSymbol << std::endl;
+      if(freedSymbol == *(src + last - size) && !off) {
+        ++current;
+        continue;
+      }
+      off = false;
+
       int sqr = sqrt(current);
       int offset = sqr*sqr;
       int pairVal;
@@ -191,9 +189,6 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       } else {
         pairVal = (specials[sqr] << 8)| specials[current-offset-sqr-1];
       }
-      std::cout << current << " -> " << ((int)freedSymbol) << std::endl;
-      std::cout << "with pair " << (pairVal >> 8) << " " << (pairVal & 0xff) << std::endl;
-      std::cout << "sqr = " << sqr << std::endl;
 
       pairVal |= (1 << 16);
       m_replacements[pairVal].push_back(freedSymbol);
@@ -212,14 +207,15 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
   for(size_t i = 0; i < nRules; ++i) {
     int value = leftSides[i].second;
     if(leftSides[i].first) value |= (1 << 16);
+    assert(lengthsOfRules[i] > 0);
     size += lengthsOfRules[i]-1;
 
     std::vector<byte> tmpReplacement;
-    
     uncompress(src+last-size, lengthsOfRules[i], tmpReplacement);
     ++size;
     std::swap(m_replacements[value], tmpReplacement);
 
+    
     if(leftSides[i].first) {
       std::cout << ((value >> 8) & 0xff) << " ";
     }
@@ -228,6 +224,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       std::cout << ((int)m_replacements[value][j]) << " ";      
     }
     std::cout << std::endl;
+    
   }
   if(m_verbose) {
     std::clog << "Found " << nSpecialSymbols << " special symbols and "

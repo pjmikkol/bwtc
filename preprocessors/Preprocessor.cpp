@@ -134,7 +134,7 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
     std::copy(src, src + length, dst);
     src = dst;
   }
-  //grammar.printRules();
+  grammar.printRules();
   
   uint32 gSize = grammar.writeGrammar(src+length);
   length += gSize;

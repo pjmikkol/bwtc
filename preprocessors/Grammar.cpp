@@ -227,18 +227,21 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
         --curr;
         sq = curr*curr;
       } else if(!m_specialPairReplacements[i].first) {
-        dst[s++] = prev = m_specialPairReplacements[i].second;
+        prev = m_specialPairReplacements[i].second;
+        dst[s++] = prev;
+        std::cout << i << " " << ((int)prev) << std::endl;
         skipped = false;
       } else {
-        if(i == m_specialPairReplacements.size() - end) {++end; /*std::cout << "from beg" << std::endl;*/ }
-        else dst[s++] = prev; 
+        if(i == m_specialPairReplacements.size() - end) {++end; std::cout << "from beg" << std::endl; }
+        else dst[s++] = prev;
         skipped = true;
+        std::cout << "skipped " << i << std::endl;
       }
     }
   }
   if(skipped) dst[s++] = 's';
   else dst[s++] = 'n';
-  //std::cout << dst[s-1] << std::endl;
+  std::cout << dst[s-1] << std::endl;
 
   assert(numOfFreedSymbols <= 255);
   dst[s++] = numOfFreedSymbols;

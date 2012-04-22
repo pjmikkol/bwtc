@@ -152,6 +152,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       int s1enum = specialEnumeration[first],
           s2enum = specialEnumeration[variable];
       variable = (first << 8) | variable;
+      /*
       // calculate number for the pair:
       int pairenum;
       if(s1enum > s2enum) {
@@ -160,6 +161,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
         pairenum = s2enum*s2enum + s1enum + 1;
       }
       //usedSpecialPair[pairenum] = true;
+      */
     }
     leftSides.push_back(std::make_pair(isLargeVariable[i], variable));
   }
@@ -174,11 +176,11 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
     } else {
       // Pair numbered current is used for the next symbol
       byte freedSymbol = *(src + last - size++);
-      if(freedSymbol == *(src + last - size) && !off) {
+      if(freedSymbol == *(src + last - size) && off) {
         ++current;
         continue;
       }
-      off = false;
+      off = true;
 
       int sqr = sqrt(current);
       int offset = sqr*sqr;
@@ -190,6 +192,8 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
         pairVal = (specials[sqr] << 8)| specials[current-offset-sqr-1];
       }
 
+      std::cout << current << " -> " << ((int)freedSymbol) << std::endl;
+      
       pairVal |= (1 << 16);
       m_replacements[pairVal].push_back(freedSymbol);
       ++current;

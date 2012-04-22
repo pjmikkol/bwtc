@@ -1,6 +1,7 @@
 /**
- * @file uncompress.cpp
+ * @file postprocess.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
  *
  * @section LICENSE
  *
@@ -21,13 +22,16 @@
  *
  * @section DESCRIPTION
  *
- * Main program for decompression.
+ * Main program for postprocessing.
  */
 
 /**Needed for allocating space for the bwtc::verbosity. */
 #define MAIN
+#define POSTPROCESSOR "postprocess"
 
-/* bwtc-decompressor main program */
+/* bwtc-postprocessor main program */
+#include <string>
+#include <cstdlib>
 #include <iostream>
 #include <iterator>
 #include <algorithm>
@@ -36,17 +40,60 @@
 namespace po = boost::program_options;
 
 #include "preprocessors/Postprocessor.hpp"
-#include "EntropyCoders.hpp"
 #include "Streams.hpp"
+#include "Utils.hpp"
 #include "globaldefs.hpp"
-#include "bwtransforms/InverseBWT.hpp"
 #include "Profiling.hpp"
 
 using bwtc::verbosity;
 
-void decompress(const std::string& input_name, const std::string& output_name,
+std::string readGlobalHeader(bwtc::RawInStream *in) {
+  std::string preproc;
+  size_t bitsLeft = 0;
+  size_t bitsInCode = 0;
+  size_t code = 0;
+  byte b = 0;
+
+  while(true) {
+    if(bitsInCode == 3) {
+      if(code == 0) break;
+      else if (code == 2) preproc += 'c';
+      else if (code == 1) preproc += 'r';
+      else if (code == 3) preproc += 'p';
+      else if (code == 4) preproc += 's';
+      code = 0;
+      bitsInCode = 0;
+    }
+    if(bitsLeft == 0) {
+      b = in->readByte();
+      bitsLeft = 8;
+    }
+    code = (code << 1) | ((b >> (bitsLeft - 1)) & 1);
+    --bitsLeft;
+    ++bitsInCode;
+  }
+  return preproc;
+}
+
+uint64 readPackedInteger(bwtc::RawInStream *in) {
+  static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
+  static const uint64 kEndMask = static_cast<uint64>(1) << 7;
+
+  uint64 packed_integer = 0;
+  bool bits_left = true;
+  int i;
+  for(i = 0; bits_left; ++i) {
+    uint64 read = static_cast<uint64>(in->readByte());
+    bits_left = (read & kEndMask) != 0;
+    packed_integer |= (read << i*8);
+  }
+  if (packed_integer == 0x80) return kEndSymbol;
+  return packed_integer;
+}
+
+void postprocess(const std::string& input_name, const std::string& output_name,
                 int verbosity) {
-  PROFILE("TOTAL_decompression_time");
+  PROFILE("TOTAL_postprocessing_time");
   if (verbosity > 0) {
     if (input_name != "") std::clog << "Input: " << input_name << std::endl;
     else std::clog << "Input: stdin" << std::endl;
@@ -54,44 +101,43 @@ void decompress(const std::string& input_name, const std::string& output_name,
     else std::clog << "Output: stdout" << std::endl;
   }
 
-  bwtc::EntropyDecoder *decoder = bwtc::giveEntropyDecoder(input_name);
-  decoder->readGlobalHeader();
+  bwtc::RawInStream in(input_name);
+  std::string postproc = readGlobalHeader(&in);
+  std::reverse(postproc.begin(), postproc.end());
   bwtc::PostProcessor postProcessor(verbosity > 0);
+
+  if(verbosity > 1) {
+    std::clog << "Postprocessor initiated with parameter: " << postproc
+              << std::endl;
+  }
 
   bwtc::RawOutStream out(output_name);
 
-  bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
-
   unsigned blocks = 0;
-
-  std::vector<uint32> LFpowers;
-  while (std::vector<byte>* bwt_block = decoder->decodeBlock(LFpowers)) {
-
-    if(verbosity > 1) {
-      std::clog << "Read " << LFpowers.size() << " starting points for "
-                << "inverse transform." << std::endl;
-    }
+  while (!in.compressedDataEnding()) {
     ++blocks;
-    std::vector<byte>* unbwt_block = transformer->doTransform(&(*bwt_block)[0],
-                                                              bwt_block->size(),
-                                                              LFpowers);
-    delete bwt_block;
+              
+    // Read block header (size).
+    uint64 packed_current_block_size = readPackedInteger(&in);
+    uint64 current_block_size = utils::unpackInteger(packed_current_block_size);
+    std::vector<byte> block;
+    block.resize(current_block_size);
 
-    bwtc::PostProcessor postProcessor(verbosity > 1);
-    postProcessor.postProcess(unbwt_block);
-    //out.writeBlock(unbwt_block->begin(), unbwt_block->end());
-    byte *unbwt_block_ptr = &(*unbwt_block)[0];
-    out.writeBlock(unbwt_block_ptr, unbwt_block_ptr + ((size_t)unbwt_block->size()));
+    // Read block bytes.
+    in.readBlock(&block[0], current_block_size);
 
+    // Proper postprocessing of data.
+    postProcessor.postProcess(&block);
+    
+    // Write the output.
+    uint64 final_block_size = static_cast<uint64>(block.size());
+    out.writeBlock(&block[0], (&block[0]) + final_block_size);
     out.flush();
-    delete unbwt_block;
   }
+
   if (verbosity > 0) {
     std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
   }
-
-  delete decoder;
-  delete transformer;
 }
 
 int main(int argc, char** argv) {
@@ -100,7 +146,7 @@ int main(int argc, char** argv) {
 
   try {
     po::options_description description(
-        "usage: "DECOMPRESSOR" [options] inputfile outputfile\n\nOptions");
+        "usage: "POSTPROCESSOR" [options] inputfile outputfile\n\nOptions");
     description.add_options()
         ("help,h", "print help message")
         ("stdin,i", "input from standard in")
@@ -144,7 +190,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  decompress(input_name, output_name, verbosity);
+  postprocess(input_name, output_name, verbosity);
   
   PRINT_PROFILE_DATA
   return 0;

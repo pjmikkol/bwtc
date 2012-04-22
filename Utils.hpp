@@ -144,6 +144,13 @@ unsigned readAndUnpackInteger(byte *from, uint64 *to);
 
 void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length);
 
+uint64 calculateRunFrequenciesAndStoreRuns(uint64 *runFreqs, byte *runseq,
+  uint32 *runlen,  const byte *src, size_t length);
+  
+bool isPrefix(const std::string &a, const std::string &b);
+  
+void computeHuffmanCodes(uint32 *clen, uint32 *code);
+
 /**Calculates the code lengths in Huffman coding. Implementation is an
  * algorithm presented in a paper "In-Place Calculation of Minimum-Redundancy
  * codes" by Alistair Moffat and Jyrki Katajainen.

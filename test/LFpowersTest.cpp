@@ -1,5 +1,5 @@
 /**
- * @file TestLFpowers.cpp
+ * @file LFpowersTest.cpp
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
  *
  * @section LICENSE

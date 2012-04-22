@@ -43,7 +43,7 @@
 namespace bwtc {
 
 WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
-    : m_out(new OutStream(destination)),
+    : m_out(new RawOutStream(destination)),
       m_probModel(giveProbabilityModel(prob_model)),
       m_gammaProbModel(giveModelForGamma()),
       m_gapProbModel(giveModelForGaps()),
@@ -323,7 +323,7 @@ uint64 WaveletDecoder::readPackedInteger() {
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
 WaveletDecoder::WaveletDecoder(const std::string& source) :
-    m_in(new InStream(source)), m_probModel(0),
+    m_in(new RawInStream(source)), m_probModel(0),
     m_gammaProbModel(giveModelForGamma()),
     m_gapProbModel(giveModelForGaps())
 {

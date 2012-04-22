@@ -36,6 +36,11 @@ target_link_libraries(StreamTest common ${Boost_LIBRARIES})
 add_test(StreamTest ${EXECUTABLE_OUTPUT_PATH}/StreamTest "test_file")
 set_tests_properties(StreamTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
+add_executable(RawStreamTest RawStreamTest.cpp)
+target_link_libraries(RawStreamTest common ${Boost_LIBRARIES})
+add_test(RawStreamTest ${EXECUTABLE_OUTPUT_PATH}/RawStreamTest "test_file")
+set_tests_properties(RawStreamTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
+
 add_executable(PreprocessorTest PreprocessorTest.cpp)
 target_link_libraries(PreprocessorTest common preprocessors)
 add_test(PreprocessorTest ${EXECUTABLE_OUTPUT_PATH}/PreprocessorTest "test_file")
@@ -44,14 +49,14 @@ set_tests_properties(PreprocessorTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass
 add_executable(LongSequencesTest LongSequencesTest.cpp)
 target_link_libraries(LongSequencesTest common preprocessors)
 
-add_executable(TestInverseBwt TestInverseBwt.cpp)
-target_link_libraries(TestInverseBwt common bwtransforms)
+add_executable(InverseBwtTest InverseBwtTest.cpp)
+target_link_libraries(InverseBwtTest common bwtransforms)
 
-add_executable(TestInverseBwtOnFile TestInverseBwtOnFile.cpp)
-target_link_libraries(TestInverseBwtOnFile common bwtransforms)
+add_executable(InverseBwtOnFileTest InverseBwtOnFileTest.cpp)
+target_link_libraries(InverseBwtOnFileTest common bwtransforms)
 
-add_executable(TestLFpowers TestLFpowers.cpp)
-target_link_libraries(TestLFpowers common bwtransforms)
+add_executable(LFpowersTest LFpowersTest.cpp)
+target_link_libraries(LFpowersTest common bwtransforms)
 
 #add_test(long_sequences_test ${EXECUTABLE_OUTPUT_PATH}/long_sequences_test)
 #set_tests_properties(long_sequences_test PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")

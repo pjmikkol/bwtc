@@ -124,6 +124,91 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length)
   if(prev < src + length) ++runFreqs[*prev];
 }
 
+uint64 calculateRunFrequenciesAndStoreRuns(uint64 *runFreqs, byte *runseq,
+  uint32 *runlen, const byte *src, size_t length)
+{
+  uint64 runs_cnt = 0;
+  byte *ptr = runseq;
+  const byte *prev = src;
+  const byte *curr = src+1;
+  do {
+    while(curr < src + length && *prev == *curr) ++curr;
+    ++runFreqs[*prev];
+    *ptr++ = *prev;
+    runlen[runs_cnt++] = curr - prev;
+    prev = curr++;
+  } while(curr < src + length);
+  if(prev < src + length) {
+    ++runFreqs[*prev];
+    runlen[runs_cnt++] = 1;
+    *ptr++ = *prev;
+  }
+  return runs_cnt;
+}
+
+bool isPrefix(const std::string &a, const std::string &b) {
+  if (a.length() > b.length()) return false;
+  bool isPref = true;
+  for (int j = 0; j < (int)a.length(); ++j)
+    if (a[j] != b[j]) isPref = false;
+  return isPref;
+}
+
+void computeHuffmanCodes(uint32 *clen, uint32 *code) {
+  // Compute the number of codes with given length.
+  uint32 lengthsCount[256];
+  std::fill(lengthsCount, lengthsCount + 256, 0);
+  for (bwtc::int32 k = 0; k < 256; ++k)
+    ++lengthsCount[clen[k]];
+  bwtc::int32 maxCodeLen = 0;
+  for (bwtc::int32 k = 0; k < 256; ++k)
+    if (lengthsCount[k] > 0) maxCodeLen = k;
+
+  // Compute codes. Only 8bit-suffix of each code is
+  // stored. The remaining bits are quaranteed to be 0.
+  uint32 start[256];
+  std::fill(start, start + 256, 0);
+  uint32 first = 0x00;
+  for (bwtc::int32 k = maxCodeLen; k >= 0; --k) {
+    start[k] = first;
+    first = (first + lengthsCount[k]) >> 1;
+  }
+  std::fill(code, code + 256, 0);
+  for (bwtc::int32 k = 0; k < 256; ++k)
+    if (clen[k] > 0) code[k] = start[clen[k]]++;
+
+  // Check if the code is prefix free.
+  /*std::string full_codes[256];
+  for (int32 k = 0; k < 256; ++k)
+    full_codes[k] = "";
+  for (int32 k = 0; k < 256; ++k) {
+    if (clen[k] > 8) {
+      for (int32 rr = 0; rr < (int32)clen[k] - 8; ++rr)
+        full_codes[k] += "0";
+    }
+    int32 limit = std::min(static_cast<uint32>(8), clen[k]);
+    for (int32 rr = 0; rr < limit; ++rr)
+      if (code[k] & (1 << (limit - 1 - rr))) full_codes[k] += "1";
+      else full_codes[k] += "0";
+  }
+  for (int32 k = 0; k < 256; ++k) {
+    for (int32 p = 0; p < 256; ++p) {
+      if (k != p && clen[k] > 0 && clen[p] > 0) {
+        if (isPrefix(full_codes[k], full_codes[p]) ||
+            isPrefix(full_codes[p], full_codes[k])) {
+          fprintf(stderr,"ERROR.\n");
+          fprintf(stderr,"full_codes[%d] = %s\n", k, full_codes[k].c_str());
+          fprintf(stderr,"full_codes[%d] = %s\n", p, full_codes[p].c_str());
+          fprintf(stderr,"clen:\n");
+          for (int32 t = 0; t < 256; ++t)
+            fprintf(stderr,"  clen[%d] = %u\n", t, clen[t]);
+          exit(1);
+        }
+      }
+    }
+  }*/
+}
+
 void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
                              uint64 *freqs)
 {

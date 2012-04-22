@@ -25,7 +25,8 @@ set(EXECUTABLE_OUTPUT_PATH bin/)
 set(OBJECT_FILE_PATH ${bwtc_SOURCE_DIR}/${EXECUTABLE_OUTPUT_PATH})
 
 set(COMMON_SRC MainBlock.cpp BlockManager.cpp Coders.cpp BitCoders.cpp 
-  Utils.cpp Streams.cpp WaveletCoders.cpp)
+  Utils.cpp Streams.cpp WaveletCoders.cpp EntropyCoders.cpp
+  HuffmanCoders.cpp)
 add_library(common ${COMMON_SRC})
 
 set(PREPROCESSORS_SRC_DIR preprocessors)
@@ -39,6 +40,8 @@ add_subdirectory(${PROBMODELS_SRC_DIR})
 
 set(COMPRESSOR_SRC compress.cpp)
 set(DECOMPRESSOR_SRC uncompress.cpp)
+set(PREPROCESSOR_SRC preprocess.cpp)
+set(POSTPROCESSOR_SRC postprocess.cpp)
 
 link_directories(${Boost_LIBRARY_DIR})
 include_directories(${Boost_INCLUDE_DIR})
@@ -49,6 +52,14 @@ target_link_libraries(compress common preprocessors probmodels bwtransforms
 
 add_executable(uncompress ${DECOMPRESSOR_SRC})
 target_link_libraries(uncompress common preprocessors probmodels bwtransforms
+  ${Boost_LIBRARIES})
+
+add_executable(preprocess ${PREPROCESSOR_SRC})
+target_link_libraries(preprocess common preprocessors 
+  ${Boost_LIBRARIES})
+
+add_executable(postprocess ${POSTPROCESSOR_SRC})
+target_link_libraries(postprocess common preprocessors 
   ${Boost_LIBRARIES})
 
 enable_testing()

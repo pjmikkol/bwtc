@@ -1,6 +1,7 @@
 /**
  * @file Streams.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
  *
  * @section LICENSE
  *
@@ -21,12 +22,13 @@
  *
  * @section DESCRIPTION
  *
- * Header for InStream and OutStream.
+ * Header for InStream, OutStream, RawInStream and RawOutStream.
  */
 
 #ifndef BWTC_STREAM_HPP_
 #define BWTC_STREAM_HPP_
 
+#include <cstdio>
 #include <iostream>
 #include <iterator>
 #include <string>
@@ -82,6 +84,29 @@ class OutStream {
   OutStream(const OutStream& os);
 };
 
+class RawOutStream {
+ public:
+  explicit RawOutStream(std::string file_name);
+  ~RawOutStream();
+
+  void writeByte(byte b);
+  void writeBlock(byte *begin, byte *end); // write [begin, end)
+  long int getPos();
+  void write48bits(uint64 to_written, long int position);
+  void flush();
+
+ private:
+  static const uint32 kBufferSize = 1 << 16; // 64KB
+
+  std::string m_name;
+  FILE *m_fileptr;
+  uint32 m_filled;
+  byte *m_buffer;
+
+  RawOutStream& operator=(const RawOutStream& os);
+  RawOutStream(const RawOutStream& os);
+};
+
 class InStream {
  public:
   explicit InStream(const std::string& file_name);
@@ -131,6 +156,62 @@ class InStream {
 
   InStream& operator=(const InStream& os);
   InStream(const InStream& os);
+};
+
+struct RawInStream {
+ public:
+  explicit RawInStream(const std::string &file_name);
+  ~RawInStream();
+
+  uint64 readBlock(byte *to, uint64 max_block_size);
+  inline bool readBit() {
+    if (m_bitsInBuffer == 0) {
+      m_buffer = static_cast<byte>(fetchByte());
+      m_bitsInBuffer = 8;
+    }
+    return (m_buffer >> --m_bitsInBuffer) & 1;
+  }
+
+  inline byte readByte() {
+    assert(m_bitsInBuffer < 8);
+    byte nextByte = static_cast<byte>(fetchByte());
+    m_buffer = (m_buffer << 8) | nextByte;
+    return (m_buffer >> m_bitsInBuffer) & 0xff;
+  }
+
+  inline void flushBuffer() {
+    m_bitsInBuffer = 0;
+  }
+  
+  uint64 read48bits();
+
+  bool compressedDataEnding() {
+    /* Quick workaround. For some mysterious reason there is single
+     * additional byte in the end of compressed file. It seems that
+     * BitEncoder is responsible for this. */
+    if (m_bigbuf_left > 1) return false;
+    if (m_bigbuf_left == 0) {
+      return (peekByte() == EOF);
+    } else {
+      return feof(m_fileptr);
+    }
+  }
+
+ private:
+  static const uint32 kBigbufSize = 1 << 16; // 64KB
+ 
+  std::string m_name;
+  FILE *m_fileptr;
+  uint16 m_buffer;
+  byte m_bitsInBuffer;
+  byte *m_bigbuf;
+  int32 m_bigbuf_left;
+  uint32 m_bigbuf_pos;
+
+  int fetchByte();
+  int peekByte();
+  RawInStream& operator=(const RawInStream& os);
+  RawInStream(const RawInStream& os);
 };
 
 } //namespace bwtc

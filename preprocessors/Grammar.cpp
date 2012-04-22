@@ -230,7 +230,7 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
         dst[s++] = prev = m_specialPairReplacements[i].second;
         skipped = false;
       } else {
-        if(i == m_specialPairReplacements.size() - end) {++end; std::cout << "from beg" << std::endl; }
+        if(i == m_specialPairReplacements.size() - end) {++end; /*std::cout << "from beg" << std::endl;*/ }
         else dst[s++] = prev; 
         skipped = true;
       }
@@ -238,7 +238,7 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
   }
   if(skipped) dst[s++] = 's';
   else dst[s++] = 'n';
-  std::cout << dst[s-1] << std::endl;
+  //std::cout << dst[s-1] << std::endl;
 
   assert(numOfFreedSymbols <= 255);
   dst[s++] = numOfFreedSymbols;

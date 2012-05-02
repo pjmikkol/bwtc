@@ -39,7 +39,7 @@ bool comparePairSecondAsc(const T& p1, const T& p2) {
   return (p1.second < p2.second);
 }
 
-FrequencyTable::FrequencyTable() {
+FrequencyTable::FrequencyTable() : m_last(256) {
   for(int i = 0; i < 256; ++i) {
     m_frequencies[i] = std::make_pair(static_cast<byte>(i), 0);
   }
@@ -48,19 +48,20 @@ FrequencyTable::FrequencyTable() {
 }
 
 FrequencyTable::FrequencyTable(const FrequencyTable& freqTable)
-    : m_last(256) {
+    : m_last(freqTable.m_last) {
   std::copy(freqTable.m_frequencies, freqTable.m_frequencies+256, m_frequencies);
   std::copy(freqTable.m_location, freqTable.m_location+256, m_location);
 }
 
 FrequencyTable& FrequencyTable::operator=(const FrequencyTable& freqTable) {
+  m_last = freqTable.m_last;
   std::copy(freqTable.m_frequencies, freqTable.m_frequencies+256, m_frequencies);
   std::copy(freqTable.m_location, freqTable.m_location+256, m_location);
   return *this;
 }
 
 
-FrequencyTable::FrequencyTable(uint32* frequencies) {
+FrequencyTable::FrequencyTable(uint32* frequencies) : m_last(256) {
   initialize(frequencies);
 }
 
@@ -81,7 +82,6 @@ uint32 FrequencyTable::getFrequency(int i) const {
 }
 
 uint32 FrequencyTable::getFrequencyWithKey(byte key) const {
-  assert(key >= 0 && key <= 255);
   return m_frequencies[m_location[key]].second;
 }
 
@@ -112,19 +112,22 @@ bool FrequencyTable::decrease(byte key, uint32 value) {
 
 void FrequencyTable::remove(byte key) {
   uint32 freqIndex = m_location[key];
-  --m_last;
-  byte swapKey = m_frequencies[m_last].first;
-  std::swap(m_frequencies[m_last], m_frequencies[freqIndex]);
-  std::swap(m_location[swapKey], m_location[key]);
-  increase(key, 0);
+  if(freqIndex < m_last) {
+    --m_last;
+    byte swapKey = m_frequencies[m_last].first;
+    std::swap(m_frequencies[m_last], m_frequencies[freqIndex]);
+    m_location[swapKey] = freqIndex;
+    m_location[key] = m_last;
+    increase(key, 0);
+  }
 }
 
 void FrequencyTable::increase(byte key, uint32 value) {
   uint32 freqIndex = m_location[key];
   
   value += m_frequencies[freqIndex].second;
-  std::pair<byte, uint64> pair = 
-      std::make_pair(m_frequencies[freqIndex].first, value);
+  assert(m_frequencies[freqIndex].first == key);
+  std::pair<byte, uint32> pair = std::make_pair(key, value);
   
   while (freqIndex < m_last && value > m_frequencies[freqIndex + 1].second)
   {
@@ -133,7 +136,7 @@ void FrequencyTable::increase(byte key, uint32 value) {
     ++freqIndex;
   }
   m_frequencies[freqIndex] = pair;
-  m_location[pair.first]= freqIndex;
+  m_location[key]= freqIndex;
   assert(m_frequencies[m_location[pair.first]].first == pair.first);
 }
 

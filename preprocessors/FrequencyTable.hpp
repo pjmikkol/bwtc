@@ -64,6 +64,8 @@ class FrequencyTable {
   /**Increase value of given key.*/
   void increase(byte key, uint32 increment);
 
+  inline size_t size() const { return m_last; }
+  
  private:
   void initLocations();
   bool test();

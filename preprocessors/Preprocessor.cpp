@@ -124,7 +124,6 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
       char c = m_preprocessingOptions[i];
       if(c == 'p') {
         PREPROCESS(PairReplacer, verbosity > 1, src, dst);
-        std::cout << "UUSI " << std::endl;
       } /*else if(c == 's') {
         PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
         }*/
@@ -135,7 +134,6 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
     std::copy(src, src + length, dst);
     src = dst;
   }
-  grammar.printRules();
   
   uint32 gSize = grammar.writeGrammar(src+length);
   length += gSize;

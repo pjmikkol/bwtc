@@ -112,6 +112,10 @@ bool FrequencyTable::decrease(byte key, uint32 value) {
 
 void FrequencyTable::remove(byte key) {
   uint32 freqIndex = m_location[key];
+  //Somehow ugly way to remove keys...
+  increase(key, m_frequencies[m_last-1].second -  m_frequencies[freqIndex].second + 1);
+  --m_last;
+  /*
   if(freqIndex < m_last) {
     --m_last;
     byte swapKey = m_frequencies[m_last].first;
@@ -119,7 +123,7 @@ void FrequencyTable::remove(byte key) {
     m_location[swapKey] = freqIndex;
     m_location[key] = m_last;
     increase(key, 0);
-  }
+    }*/
 }
 
 void FrequencyTable::increase(byte key, uint32 value) {

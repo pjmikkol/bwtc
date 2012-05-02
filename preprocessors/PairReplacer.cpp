@@ -145,7 +145,7 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
   
   uint32 withoutNew = m_grammar.specialSymbolPairsLeft() + freeSymbols;
   bool hope = currentPair < pairs.size() && currentSymbol < symbolsToUse
-      && !m_grammar.isSpecial(freqs.getKey(currentSymbol)) && replPairs.size() < maxRepl;
+      && replPairs.size() < maxRepl;
 
   while(hope) {
     byte fst = static_cast<byte>((pairs[currentPair].second >> 8) & 0xFF);
@@ -180,10 +180,6 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
       //freqs.increase(fst, pairs[currentPair].first);
       //freqs.increase(snd, pairs[currentPair].first);
       hope = false;
-      std::cout << "lost hope" << std::endl;
-      std::cout << "fr = " << fr << " pairs = " << pairs[currentPair].first << std::endl;
-      std::cout << "curSym = " << currentSymbol << " curPair = " << currentPair << std::endl;
-      std::cout << "vars = " << vars << std::endl;
       break;
     }
 
@@ -200,13 +196,12 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
 
     usedFst[fst] = true;
     usedSnd[snd] = true;
-    hope = currentPair < pairs.size() && currentSymbol < symbolsToUse
-        && !m_grammar.isSpecial(freqs.getKey(currentSymbol));
+    hope = currentPair < pairs.size() && currentSymbol < symbolsToUse;
+    //&& !m_grammar.isSpecial(freqs.getKey(currentSymbol));
     
   }
 
-  hope = currentPair < pairs.size() && currentSymbol < symbolsToUse
-      && !m_grammar.isSpecial(freqs.getKey(currentSymbol)) && withoutNew == 0;
+  hope = currentPair < pairs.size() && currentSymbol < symbolsToUse && withoutNew == 0;
 
   uint32 tSpecials = m_grammar.numberOfSpecialSymbols();
   uint32 unusedSpecials = 0;
@@ -223,6 +218,7 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
     utilityAfterNewSpecials -= freqs.getFrequency(currentSymbol);
 
     assert(freqs.getFrequency(currentSymbol) > 0);
+    assert(!m_grammar.isSpecial(freqs.getKey(currentSymbol)));
     //freqs.removeKey(currentSymbol);
     currentSymbol++;
     if(tSpecials == 0) {
@@ -230,6 +226,7 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
       nSpecials = 2;
 
       utilityAfterNewSpecials -= freqs.getFrequency(currentSymbol);
+      assert(!m_grammar.isSpecial(freqs.getKey(currentSymbol)));
       //freqs.removeKey(currentSymbol);
       currentSymbol++;
     }
@@ -262,6 +259,7 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
       }
       if(fst != snd && freqs.getFrequencyWithKey(snd) == 0) ++newFrees;
       */
+      assert(!m_grammar.isSpecial(freqs.getKey(currentSymbol)));
 
       uint32 fr = freqs.getFrequency(currentSymbol);
       //if(newFrees > 0) fr = 0;
@@ -271,10 +269,6 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
         //freqs.increase(fst, pairs[currentPair].first);
         //freqs.increase(snd, pairs[currentPair].first);
         hope = false;
-        std::cout << "lost hope with " << pairsAfterSpecial << " pAS "<< std::endl;
-        std::cout << "fr = " << fr << " pairs = " << pairs[currentPair].first << std::endl;
-        std::cout << "curSym = " << currentSymbol << " curPair = " << currentPair << std::endl;
-        std::cout << "vars = " << vars << std::endl;
         break;
       }
 
@@ -310,23 +304,19 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
       usedFst[fst] = true;
       usedSnd[snd] = true;
 
-      hope = currentPair < pairs.size() && currentSymbol < symbolsToUse &&
-          !m_grammar.isSpecial(freqs.getKey(currentSymbol));
+      hope = currentPair < pairs.size() && currentSymbol < symbolsToUse;
     }
     // Worth of new special symbol
     int64 totalUt = utilityFromFrees + utilityAfterNewSpecials + utilityFromFreesBeg;
-    std::cout << "util = " << utilityAfterNewSpecials << std::endl;
 
     //if(totalUt > (freeVars+freeVarsBeg+pairsAfterSpecial)*1000 && pairsAfterSpecial > freeVarsBeg) {
     if(totalUt > 1000 && pairsAfterSpecial > freeVarsBeg) {
-      std::cout << "eka" << std::endl;
       utility += totalUt;
       vars += pairsAfterSpecial + freeVars + freeVarsBeg;
       specs += nSpecials;
       tSpecials += nSpecials;
       unusedSpecials = freeVars + freeVarsBeg;
     } else if(utilityFromFreesBeg > 0){
-      std::cout << "toka" << std::endl;
       utility += utilityFromFreesBeg;
       vars += freeVarsBeg;
       forFree -= freeVars;
@@ -341,7 +331,6 @@ int64 PairReplacer::findReplaceables(size_t startingPair,
         replPairs.pop_back();
       }
     } else {
-      std::cout << "totalUt = " << totalUt << std::endl;
       //forFree = forFree - freeVarsBeg - freeVars;
       hope = false;
       for(size_t i = 0; i < pairsAfterSpecial + freeVars + freeVarsBeg; ++i) {
@@ -409,7 +398,6 @@ void PairReplacer::constructReplacementTable(
 
 size_t PairReplacer::
 writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
-  //std::cout << std::endl << std::endl << "START OF NEW "<< std::endl << std::endl; 
 
   size_t j = 0; /* Is used for indexing the target. */
   uint16 pair = src[0];
@@ -420,20 +408,12 @@ writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
     pair = (pair << 8) | src[i];
     uint16 replValue = m_replacements[pair];
     if(replValue == noop) {
-      //std::cout << src[i-1] << " -> " << src[i-1] << std::endl;
       dst[j++] = src[i-1];
     } else if((replValue & 0xff) == m_commonByte) {
-      //std::cout << "i " << src[i-1] << src[i] << " -> " << (replValue >> 8) << std::endl;
       dst[j++] = replValue >> 8;
-#if 1
-      byte var = replValue >> 8;
-      assert(!m_grammar.isSpecial(var));
-      assert(m_replacements[replValue] != ((var << 8)| var));
-#endif
       if(i == length - 1) break;
       pair = src[++i];
     } else {
-      //std::cout << "e " << src[i-1] << " -> " << (replValue >> 8)  << " " << (replValue & 0xff) << std::endl;
       dst[j++] = replValue >> 8;
       dst[j++] = replValue & 0xff;
     }
@@ -460,6 +440,7 @@ size_t PairReplacer::decideReplacements() {
   makePairList(pairs, m_pairFrequencies);
   std::vector<std::pair<uint32, uint16> > replaceablePairs;
 
+  
   for(size_t i = 0; i < 256; ++i) {
     if(m_grammar.isSpecial(i)) {
       freqTable.remove(i);

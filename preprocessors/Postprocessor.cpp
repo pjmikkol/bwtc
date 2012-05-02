@@ -172,7 +172,6 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
 
   while(read < freedSymbols) {
     if(usedSpecialPair[current]) {
-      std::cout << "was used " << current << std::endl;
       ++current;
     } else {
       // Pair numbered current is used for the next symbol
@@ -180,9 +179,6 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       ++size;
       byte next = *(src + last - size);
       if(freedSymbol == next && off && current != nSpecialSymbols*nSpecialSymbols - 1) {
-        std::cout << "Skipped " << current << " " <<
-            ((int)freedSymbol) << " " << ((int)*(src + last - size)) << std::endl;
-        std::cout << "Place " << size << std::endl;
         ++current;
         continue;
       }
@@ -198,8 +194,6 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
         pairVal = (specials[sqr] << 8)| specials[current-offset-sqr-1];
       }
 
-      std::cout << current << " -> " << ((int)freedSymbol) << std::endl;
-      
       pairVal |= (1 << 16);
       m_replacements[pairVal].push_back(freedSymbol);
       ++current;
@@ -225,7 +219,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
     ++size;
     std::swap(m_replacements[value], tmpReplacement);
 
-    
+    /* Printing the rules
     if(leftSides[i].first) {
       std::cout << ((value >> 8) & 0xff) << " ";
     }
@@ -234,6 +228,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       std::cout << ((int)m_replacements[value][j]) << " ";      
     }
     std::cout << std::endl;
+    */
     
   }
   if(m_verbose) {

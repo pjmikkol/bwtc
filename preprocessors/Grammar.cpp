@@ -72,7 +72,6 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
       ++numOfSpecials;
       specialPairsLeft = specialSymbolPairsLeft();
     } else {
-      //std::cout << (int)freedSymbols[i] << " -> ";
       // Calculate pair for freedSymbol
       uint32 nextSpecialPair = m_specialPairReplacements.size();
       uint32 offset = (numOfSpecials -1)*(numOfSpecials -1) + 1;
@@ -88,7 +87,6 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
         m_specialPairReplacements.push_back(std::make_pair(toVariable, freedSymbols[i]));
         isNewSpecial[freedSymbols[i]] = true;
         uint16 spPair = (m_specialSymbols[index] << 8) | m_specialSymbols.back();
-        //std::cout << ((int)m_specialSymbols[index]) << " " << ((int)m_specialSymbols.back()) << std::endl;
         nextSpecialPairs.push_back(spPair);
         specialReplaces[freedSymbols[i]] = spPair;
       } else {
@@ -98,7 +96,6 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
         m_specialPairReplacements.push_back(std::make_pair(toVariable, freedSymbols[i]));
         isNewSpecial[freedSymbols[i]] = true;
         uint16 spPair = (m_specialSymbols.back() << 8) | m_specialSymbols[index];
-        //std::cout << ((int)m_specialSymbols.back()) << " " << ((int)m_specialSymbols[index]) << std::endl;
         specialReplaces[freedSymbols[i]] = spPair;
         nextSpecialPairs.push_back(spPair);
       }
@@ -229,19 +226,16 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
       } else if(!m_specialPairReplacements[i].first) {
         prev = m_specialPairReplacements[i].second;
         dst[s++] = prev;
-        std::cout << i << " " << ((int)prev) << std::endl;
         skipped = false;
       } else {
-        if(i == m_specialPairReplacements.size() - end) {++end; std::cout << "from beg" << std::endl; }
+        if(i == m_specialPairReplacements.size() - end) ++end; 
         else dst[s++] = prev;
         skipped = true;
-        std::cout << "skipped " << i << std::endl;
       }
     }
   }
   if(skipped) dst[s++] = 's';
   else dst[s++] = 'n';
-  std::cout << dst[s-1] << std::endl;
 
   assert(numOfFreedSymbols <= 255);
   dst[s++] = numOfFreedSymbols;

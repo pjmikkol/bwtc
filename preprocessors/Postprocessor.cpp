@@ -184,6 +184,8 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
       }
       off = true;
 
+      //std::cout << current << " -> " << (int)freedSymbol << std::endl; 
+      
       int sqr = sqrt(current);
       int offset = sqr*sqr;
       int pairVal;

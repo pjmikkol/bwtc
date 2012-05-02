@@ -207,7 +207,7 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
       sq = curr*curr;
     } else if (!m_specialPairReplacements[i].first) {
       ++numOfFreedSymbols;
-    } 
+    }
   }
 
   bool skipped = false;
@@ -223,12 +223,13 @@ uint32 Grammar::writeFreedSymbols(byte* dst) const {
       if(sq == i) {
         --curr;
         sq = curr*curr;
+        if(i == m_specialPairReplacements.size() - end) ++end;
       } else if(!m_specialPairReplacements[i].first) {
         prev = m_specialPairReplacements[i].second;
         dst[s++] = prev;
         skipped = false;
       } else {
-        if(i == m_specialPairReplacements.size() - end) ++end; 
+        if(i == m_specialPairReplacements.size() - end) ++end;
         else dst[s++] = prev;
         skipped = true;
       }

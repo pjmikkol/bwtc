@@ -31,6 +31,7 @@
 #include "../globaldefs.hpp"
 #include "BWTransform.hpp"
 #include "SA-IS-bwt.hpp"
+#include "Divsufsorter.hpp"
 
 namespace bwtc {
 
@@ -53,7 +54,14 @@ std::vector<byte>* BWTransform::allocateMemory(uint64 size) {
 
 BWTransform* giveTransformer(char transform) {
   (void) transform;
-  return new SAISBWTransform();
+  if(transform != 's') {
+    if(verbosity > 1) std::clog << "Using divsufsort for calculating BWT.\n";
+    return new Divsufsorter();
+  }
+  else {
+    if(verbosity > 1) std::clog << "Using sais for calculating BWT.\n";
+    return new SAISBWTransform();
+  }
 }
 
 }

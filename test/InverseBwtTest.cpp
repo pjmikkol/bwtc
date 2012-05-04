@@ -24,6 +24,8 @@
  * Testing the correctness of BWT inverse transform on many random inputs.
  */
 
+#define MAIN
+
 #include <cstdio>
 #include <cstring>
 #include <string>

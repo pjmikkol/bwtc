@@ -49,7 +49,7 @@ using bwtc::verbosity;
 
 void compress(const std::string& input_name, const std::string& output_name,
               uint64 block_size, const std::string& preproc, char encoding,
-              uint32 startingPoints)
+              uint32 startingPoints, char bwtAlgo)
 {
   PROFILE("TOTAL_compression_time");
 
@@ -65,7 +65,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   bwtc::BlockManager block_manager(block_size + 5*preproc.size() + 1, 1);
   preprocessor.addBlockManager(&block_manager);
 
-  bwtc::BWTransform* transformer = bwtc::giveTransformer('s');
+  bwtc::BWTransform* transformer = bwtc::giveTransformer(bwtAlgo);
 
   bwtc::EntropyEncoder *encoder = bwtc::giveEntropyEncoder(output_name, encoding);
   encoder->writeGlobalHeader(encoding);
@@ -147,10 +147,23 @@ void validateEncodingOption(char c) {
   throw exc;
 }
 
+/* Notifier function for encoding option choice */
+void validateBWTchoice(char c) {
+  if (c == 'd' || c == 's') return;
+
+  class EncodingExc : public std::exception {
+    virtual const char* what() const throw() {
+      return "Invalid choice for BWT-algorithm.";
+    }
+  } exc;
+
+  throw exc;
+}
+
 
 int main(int argc, char** argv) {
   uint64 block_size;
-  char encoding;
+  char encoding, bwtAlgo;
   std::string input_name, output_name, preprocessing;
   bool stdout, stdin;
   uint32 startingPoints;
@@ -172,6 +185,10 @@ int main(int argc, char** argv) {
         ("input-file", po::value<std::string>(&input_name),
          "file to compress, defaults to stdin")
         ("output-file", po::value<std::string>(&output_name),"target file")
+        ("bwt", po::value<char>(&bwtAlgo)->default_value('d')->notifier(&validateBWTchoice),
+         "BWT-algorithm to use:\n"
+         "  d -- Yuta Mori's libdivsufsort\n"
+         "  s -- Yuta Mori's sais")
         ("prepr", po::value<std::string>(&preprocessing)->default_value("")->
          notifier(&validatePreprocOption),
          "preprocessor options:\n"
@@ -226,7 +243,7 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints);
+  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
 
   PRINT_PROFILE_DATA
   return 0;

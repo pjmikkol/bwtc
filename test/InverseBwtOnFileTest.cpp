@@ -24,7 +24,9 @@
  * Testing the correctness of BWT inverse transform on file specified by the
  * user.
  */
- 
+
+#define MAIN
+
 #include <cstdio>
 #include <cstring>
 #include <string>

@@ -25,6 +25,8 @@
  * BWT inversion.
  */
 
+#define MAIN
+
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -103,8 +105,8 @@ void test(int testcases, int max_n, int max_sigma) {
     LF[eob_pos] = 0;
 
     // get LF powers using sais
-    int starting_positions = my_random(1, 256);
-    BWTransform* transform = giveTransformer('a');
+    int starting_positions = my_random(1, n);
+    BWTransform* transform = giveTransformer('d');
     MainBlock* data;
     data = new MainBlock(&v, NULL, (uint64)n);
     transform->connect(data);
@@ -182,14 +184,22 @@ void test(int testcases, int max_n, int max_sigma) {
 
 int main() {
   srand(time(0) + getpid());
-  test(10000000,  3, 256);
+  test(1000,  3, 256);
+  test(1000, 10, 256);
+  test(100, 100, 256);
+  test(100, 1000, 256);
+  test(100, 10000, 256);
+  test(10, 100000, 256);
+  test(10, 1000000, 256);
+  test(1, 10000000, 256);
+  /*  test(10000000,  3, 256);
   test(10000000, 10, 256);
   test(1000000, 100, 256);
   test(100000, 1000, 256);
   test(10000, 10000, 256);
   test(1000, 100000, 256);
   test(100, 1000000, 256);
-  test(10, 10000000, 256);
+  test(10, 10000000, 256);*/
   fprintf(stderr,"All tests passed.\n");
   return 0;
 }

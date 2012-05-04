@@ -75,6 +75,7 @@ void computeData(const byte *bwt, uint64 bwt_size, uint32 *data,
   }
   std::partial_sum(count.begin(), count.end(), count.begin());
   std::copy(count.begin(), count.end(), rank.begin());
+
   assert(count[256] == bwt_size);
 
   // During the scan of BWT stores the corresponding character from the

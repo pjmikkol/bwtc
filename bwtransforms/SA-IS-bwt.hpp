@@ -53,7 +53,7 @@ class SAISBWTransform : public BWTransform {
  public:
   SAISBWTransform();
   virtual ~SAISBWTransform() {}
-  virtual std::vector<byte>* doTransform(std::vector<uint32>& LFpowers);
+  virtual void doTransform(std::vector<uint32>& LFpowers);
 
   /* The following values aren't correct */
   virtual uint64 maxSizeInBytes(uint64) const { return 0; }

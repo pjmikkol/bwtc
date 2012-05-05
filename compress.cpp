@@ -87,10 +87,9 @@ void compress(const std::string& input_name, const std::string& output_name,
       std::clog << "Writing " << startingPoints
                 << " starting points for inverse transform." << std::endl;
     }
-    while(std::vector<byte>* b = transformer->doTransform(LFpowers)) {
-      encoder->encodeData(b, block->m_stats, b->size());
-      delete b;
-    }
+    transformer->doTransform(LFpowers);
+    encoder->encodeData(block->begin(), block->m_stats, block->size());
+
 
     encoder->finishBlock(LFpowers);
     last_s = block->m_filled;

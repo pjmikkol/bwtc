@@ -45,7 +45,7 @@ class HuffmanEncoder : public EntropyEncoder {
   HuffmanEncoder(const std::string& destination, char prob_model);
   ~HuffmanEncoder();
   void writeGlobalHeader(char encoding);
-  void encodeData(std::vector<byte>* data, std::vector<uint64>* stats,
+  void encodeData(const byte* data, std::vector<uint64>* stats,
                   uint64 data_size);
   void writeBlockHeader(std::vector<uint64>* stats);
 

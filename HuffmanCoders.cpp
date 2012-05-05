@@ -161,7 +161,7 @@ size_t HuffmanDecoder::deserializeShape(RawInStream &input, uint32 *clen) {
  * c) Ending symbol of the block header (2 bytes = 0x8000) which is           *
  *    invalid code for packed integer                                         *
  ******************************************************************************/
-void HuffmanEncoder::encodeData(std::vector<byte>* block,
+void HuffmanEncoder::encodeData(const byte* block,
     std::vector<uint64>* stats, uint64 block_size) {
   PROFILE("HuffmanEncoder::encodeData");
   (void) block_size;
@@ -175,7 +175,7 @@ void HuffmanEncoder::encodeData(std::vector<byte>* block,
     exit(1);
   }
 
-  byte *block_ptr = &(*block)[0];
+  const byte *block_ptr = block;
   for(size_t i = 0; i < stats->size(); ++i) {
     size_t current_cblock_size = (*stats)[i];
     if(current_cblock_size == 0) continue;

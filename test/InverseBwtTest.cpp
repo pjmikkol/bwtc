@@ -59,9 +59,11 @@ void test(byte *t, uint32 n) {
   LFpowers.resize(starting_points);
   data = new MainBlock(&v, NULL, (uint64)n);
   transform->connect(data);
-  std::vector<byte>* result = transform->doTransform(LFpowers);
+  //std::vector<byte>* result =
+  transform->doTransform(LFpowers);
+  MainBlock *result = data;
   std::vector<byte> *original =
-    inverse_transform->doTransform(&(*result)[0], result->size(), LFpowers);
+      inverse_transform->doTransform(data->begin(), data->size(), LFpowers);
 
   bool ok = true;
   if (original->size() != n) ok = false;
@@ -80,7 +82,7 @@ void test(byte *t, uint32 n) {
     fprintf(stderr,"\n");
     fprintf(stderr,"returned = ");
     for (uint32 j = 0; j < n; ++j) {
-      fprintf(stderr,"%c", (*result)[j]);
+      fprintf(stderr,"%c", result->begin()[j]);
     }
     fprintf(stderr,"\n");
     exit(1);
@@ -89,7 +91,6 @@ void test(byte *t, uint32 n) {
   delete original;
   delete transform;
   delete inverse_transform;
-  delete result;
   delete data;
 }
 

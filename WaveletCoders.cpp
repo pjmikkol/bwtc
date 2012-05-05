@@ -133,7 +133,7 @@ int WaveletEncoder::writeTrailer(const std::vector<uint32>& LFpowers) {
 
 //At the moment we lose at worst case 7 bits when writing the shape of
 //wavelet tree
-void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* stats,
+void WaveletEncoder::encodeData(const byte* block, std::vector<uint64>* stats,
                                 uint64 block_size)
 {
   PROFILE("WaveletEncoder::encodeData");
@@ -141,7 +141,7 @@ void WaveletEncoder::encodeData(std::vector<byte>* block, std::vector<uint64>* s
   size_t beg = 0;
   for(size_t i = 0; i < stats->size(); ++i) {
     if((*stats)[i] == 0) continue;
-    WaveletTree<std::vector<bool> > wavelet(&(*block)[beg], (*stats)[i]);
+    WaveletTree<std::vector<bool> > wavelet(&block[beg], (*stats)[i]);
 
     int bytes;
     writePackedInteger(utils::packInteger(wavelet.bitsInRoot(), &bytes)); 

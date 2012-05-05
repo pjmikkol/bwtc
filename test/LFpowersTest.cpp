@@ -112,8 +112,8 @@ void test(int testcases, int max_n, int max_sigma) {
     transform->connect(data);
     std::vector<uint32> LFpowers;
     LFpowers.resize(starting_positions);
-    std::vector<byte>* result = transform->doTransform(LFpowers);
-
+    transform->doTransform(LFpowers);
+    MainBlock* result = data;
 
     // get the same LF powers just from LF array
     int *LFpow = new int[n + 1];
@@ -176,7 +176,6 @@ void test(int testcases, int max_n, int max_sigma) {
     delete[] bwt;
     delete[] LF;
     delete transform;
-    delete data;
     delete result;
     delete[] LFpow;
   }

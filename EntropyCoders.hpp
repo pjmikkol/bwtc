@@ -49,8 +49,8 @@ class EntropyEncoder {
   }
   virtual ~EntropyEncoder() {}
   virtual void writeGlobalHeader(char encoding) = 0;
-  virtual void encodeData(std::vector<byte>* data, std::vector<uint64>* stats,
-                  uint64 data_size) = 0;
+  virtual void encodeData(const byte* data, std::vector<uint64>* stats,
+                          uint64 data_size) = 0;
   virtual void writeBlockHeader(std::vector<uint64>* stats) = 0;
   virtual void finishBlock(const std::vector<uint32>& LFpowers) = 0;
 };

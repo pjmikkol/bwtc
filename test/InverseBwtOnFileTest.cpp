@@ -88,10 +88,10 @@ int main(int argc, char **argv) {
   transform->connect(data);
 
   fprintf(stderr,"Forward transform... ");
-  std::vector<byte>* result = transform->doTransform(LFpowers);
+  transform->doTransform(LFpowers);
   fprintf(stderr,"DONE\n");
 
-  delete data;
+  MainBlock* result = data;
   delete transform;
   delete[] t;
     
@@ -99,12 +99,12 @@ int main(int argc, char **argv) {
   clock_t time_start = clock();
   fprintf(stderr,"Inverse transform... ");
   std::vector<byte> *original =
-    inverse_transform->doTransform(&(*result)[0], result->size(), LFpowers);
+      inverse_transform->doTransform(data->begin(), data->size(), LFpowers);
   fprintf(stderr,"DONE\n");
   clock_t time_end = clock();
 
   delete inverse_transform;
-  delete result;
+  delete data;
 
   t = new byte[n];
   if (!t) {

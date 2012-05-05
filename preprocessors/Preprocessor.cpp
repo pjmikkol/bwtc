@@ -96,7 +96,7 @@ MainBlock* Preprocessor::readBlock() {
       &(*to)[0], static_cast<std::streamsize>(
           m_blockSize - 1 - m_preprocessingOptions.size()*5));
   if (!read) return 0;
-  
+
   size_t preprocessedSize = preprocess(*to, read);
   
   return m_blockManager->makeBlock(to, stats, preprocessedSize);

@@ -50,8 +50,8 @@ namespace bwtc {
  *   MainBlock* data; uint64 eob_byte;
  *   transform->Connect(data);
  *   transform->buildStats();
- *   while( std::vector<byte>* result = transform->DoTransform(&eob_byte) {
- *     ...do something with stats and a part of a transform
+ *   transform->DoTransform(&eob_byte) {
+ *     ...do something with stats and a transformed string
  *
  */
 class BWTransform {
@@ -63,7 +63,7 @@ class BWTransform {
     m_currentBlock = block;
     std::reverse(m_currentBlock->begin(), m_currentBlock->end());
   }
-  virtual std::vector<byte>* doTransform(std::vector<uint32>&) = 0;
+  virtual void doTransform(std::vector<uint32>&) = 0;
   virtual void buildStats();
 
   virtual uint64 maxSizeInBytes(uint64 block_size) const = 0;

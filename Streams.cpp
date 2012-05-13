@@ -36,6 +36,8 @@
 #include "globaldefs.hpp"
 #include "Streams.hpp"
 
+#include "Profiling.hpp"
+
 namespace bwtc {
 
 OutStream::OutStream(std::string file_name) :
@@ -142,6 +144,7 @@ RawOutStream::RawOutStream(std::string file_name)
 }
 
 RawOutStream::~RawOutStream() {
+  PROFILE("RawOutStream::~RawOutStream()");
   if (m_filled > 0) {
     flush();
   }

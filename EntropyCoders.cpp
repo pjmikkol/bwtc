@@ -43,8 +43,8 @@ EntropyEncoder* giveEntropyEncoder(const std::string& destination,
 }
 
 EntropyDecoder* giveEntropyDecoder(const std::string& source) {
- return new HuffmanDecoder(source);
- //return new WaveletDecoder(source);
+  return new HuffmanDecoder(source);
+  //return new WaveletDecoder(source);
 }
 
 } // namespace bwtc

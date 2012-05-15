@@ -63,17 +63,13 @@ ProbabilityModel* giveProbabilityModel(char choice) {
         std::clog << "Using FSM.\n";
       return new FSM<6, EvenIntervalPredictor<4> >();
     case 'B':
+    default:
       if( verbosity > 1) 
         std::clog << "Using FSM8.\n";
       return new FSM8<UnbiasedPredictor<2, 4, 2400>,
         UnbiasedPredictor<2, 5, 2300>,
         UnbiasedPredictor<2, 5, 2200 >,
         UnbiasedPredictor<2, 5, 2100> >();
-    case 'n':
-    default:
-      if( verbosity > 1)
-        std::clog << "Predicting always probability 0.5.\n";
-      return new ProbabilityModel();
   }
 }
 

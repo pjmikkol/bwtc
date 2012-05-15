@@ -66,6 +66,7 @@ class HuffmanEncoder : public EntropyEncoder {
 class HuffmanDecoder : public EntropyDecoder {
  public:
   HuffmanDecoder(const std::string& source);
+  HuffmanDecoder(RawInStream *in);
   ~HuffmanDecoder();
   void readGlobalHeader();
   uint64 readPackedInteger();

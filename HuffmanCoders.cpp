@@ -661,6 +661,9 @@ uint64 HuffmanDecoder::readPackedInteger() {
 HuffmanDecoder::HuffmanDecoder(const std::string& source) :
     m_in(new RawInStream(source)) {}
 
+HuffmanDecoder::HuffmanDecoder(RawInStream* in) :
+    m_in(in) {}
+
 HuffmanDecoder::~HuffmanDecoder() {
   delete m_in;
 }

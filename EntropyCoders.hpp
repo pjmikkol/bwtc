@@ -69,7 +69,7 @@ class EntropyDecoder {
 
 EntropyEncoder* giveEntropyEncoder(const std::string& destination, char prob_model);
 
-EntropyDecoder* giveEntropyDecoder(const std::string& source);
+EntropyDecoder* giveEntropyDecoder(RawInStream* in, char decoder);
 
 } // namespace bwtc
 

@@ -134,7 +134,7 @@ void validateStartingPoints(uint32 sp) {
 
 /* Notifier function for encoding option choice */
 void validateEncodingOption(char c) {
-  if (c == 'n' || c == 'm' || c == 'M' || c == 'u' || c == 'b' || c == 'B'
+  if (c == 'H' || c == 'm' || c == 'M' || c == 'u' || c == 'b' || c == 'B'
       /* || c == <other option> */) return;
 
   class EncodingExc : public std::exception {
@@ -197,10 +197,12 @@ int main(int argc, char** argv) {
         ("enc,e", po::value<char>(&encoding)->default_value('B')->
          notifier(&validateEncodingOption),
          "entropy encoding scheme, options:\n"
-         "  b -- Finite State Machine with unbiased and equal predictors in each state\n"
-         "  B -- Slightly optimised version of above\n"
-         "  u -- Simple predictor with 4 states. These are used in FSM's states.\n"
-         "  n -- Predicts always probability 0.5.")
+         "  H -- Huffman coding with run-length encoding\n"
+         "  M -- Remembering 16 previous bits (Wavelet tree)\n"
+         "  m -- Remembering 8 previous bits (Wavelet tree)\n"
+         "  b -- Finite State Machine with unbiased and equal predictors in each state (Wavelet tree)\n"
+         "  B -- Slightly optimised version of above (Wavelet tree)\n"
+         "  u -- Simple predictor with 4 states. These are used in FSM's states (Wavelet tree)")
         ;
 
     /* Allow input and output files given in user friendly form,

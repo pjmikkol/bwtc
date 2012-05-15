@@ -36,6 +36,7 @@
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
 #include "probmodels/ProbabilityModel.hpp"
+#include "Streams.hpp"
 
 namespace bwtc {
 
@@ -72,6 +73,7 @@ class WaveletEncoder : public EntropyEncoder {
 class WaveletDecoder : public EntropyDecoder {
  public:
   WaveletDecoder(const std::string& source);
+  WaveletDecoder(RawInStream* in, char decoder);
   ~WaveletDecoder();
   /* It changes the used probability model automatically. */
   void readGlobalHeader();

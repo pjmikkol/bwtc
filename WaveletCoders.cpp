@@ -330,6 +330,14 @@ WaveletDecoder::WaveletDecoder(const std::string& source) :
   m_source.connect(m_in);
 }
 
+WaveletDecoder::WaveletDecoder(RawInStream* in, char decoder) :
+    m_in(in), m_probModel(giveProbabilityModel(decoder)),
+    m_gammaProbModel(giveModelForGamma()),
+    m_gapProbModel(giveModelForGaps())
+{
+  m_source.connect(m_in);
+}
+
 WaveletDecoder::~WaveletDecoder() {
   delete m_in;
   delete m_probModel;

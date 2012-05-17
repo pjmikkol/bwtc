@@ -33,6 +33,7 @@
 #include <algorithm> // for sort, reverse, fill
 #include <string>
 #include <vector>
+#include <map> // for entropy profiling
 
 #include "MainBlock.hpp"
 #include "HuffmanCoders.hpp"
@@ -187,6 +188,29 @@ void HuffmanEncoder::encodeData(const byte* block,
     std::fill(freqs, freqs + 256, 0);
     uint64 nRuns = utils::calculateRunFrequenciesAndStoreRuns(freqs,
       runseq, runlen, block_ptr + beg, current_cblock_size);
+
+#ifdef ENTROPY_PROFILER
+    {
+      std::map<uint32, uint32> runDistribution, charDistribution;
+      for(size_t j = 0; j < nRuns; ++j) {
+        ++runDistribution[runlen[j]];
+        ++charDistribution[runseq[j]];
+      }
+      
+      for(std::map<uint32, uint32>::const_iterator it = runDistribution.begin();
+          it != runDistribution.end(); ++it)
+        std::cout << it->first << ":" <<  it->second << std::endl;
+
+      std::cout << "----" << std::endl;
+
+      for(std::map<uint32, uint32>::const_iterator it = charDistribution.begin();
+          it != charDistribution.end(); ++it)
+        std::cout << it->first << ":" <<  it->second << std::endl;
+
+      std::cout << "####" << std::endl;
+    }
+#endif
+
     std::vector<std::pair<uint64, byte> > codeLengths;
     utils::calculateHuffmanLengths(codeLengths, freqs);
     int32 nCodes = codeLengths.size();

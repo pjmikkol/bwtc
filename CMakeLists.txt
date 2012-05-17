@@ -14,6 +14,10 @@ else(PROFILER_ON MATCHES 1)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
 endif()
 
+if(ENTROPY_PROFILER MATCHES 1)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENTROPY_PROFILER")
+endif()
+
 if(CMAKE_BUILD_TYPE MATCHES Release)
   add_definitions(-DNDEBUG)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fomit-frame-pointer -O3")

@@ -96,6 +96,14 @@ void compress(const std::string& input_name, const std::string& output_name,
     delete block;
   }
 
+#ifdef ENTROPY_PROFILER  
+  if(encoding != 'H') {
+    std::cout << "kBytes for characters " << (encoder->m_bytesForCharacters/1024.0)
+              << std::endl << "kBytes for runs " << (encoder->m_bytesForRuns/1024.0)
+              << std::endl;
+  }
+#endif
+  
   if (verbosity > 0) {
     std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
     std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";

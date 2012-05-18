@@ -49,6 +49,10 @@ WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
       m_gapProbModel(giveModelForGaps()),
       m_headerPosition(0), m_compressedBlockLength(0)
 {
+#ifdef ENTROPY_PROFILER
+  m_bytesForCharacters = 0;
+  m_bytesForRuns = 0;
+#endif
   m_destination.connect(m_out);
 }
 
@@ -171,6 +175,12 @@ void WaveletEncoder::encodeData(const byte* block, std::vector<uint64>* stats,
     //wavelet.encodeTree(m_destination, *m_probModel);
     wavelet.encodeTreeBF(m_destination, *m_probModel, *m_gammaProbModel,
                          *m_gapProbModel);
+
+#ifdef ENTROPY_PROFILER    
+    m_bytesForCharacters += wavelet.m_bytesForCharacters;
+    m_bytesForRuns += wavelet.m_bytesForRuns;
+#endif
+    
     beg += (*stats)[i];
     endContextBlock();
   }

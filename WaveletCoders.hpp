@@ -65,7 +65,7 @@ class WaveletEncoder : public EntropyEncoder {
   ProbabilityModel* m_gapProbModel;
   /*std::streampos*/ long int m_headerPosition;
   uint64 m_compressedBlockLength;
-
+ 
   WaveletEncoder(const WaveletEncoder&);
   WaveletEncoder& operator=(const WaveletEncoder&);
 };

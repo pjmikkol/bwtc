@@ -148,8 +148,13 @@ class WaveletTree {
 
   template <typename Encoder, typename ProbabilisticModel, typename GammaModel,
             typename GapModel>
+#ifdef ENTROPY_PROFILER
+  void encodeTreeBF(Encoder& enc, ProbabilisticModel& pm, GammaModel& gm,
+                    GapModel& gapm);
+#else
   void encodeTreeBF(Encoder& enc, ProbabilisticModel& pm, GammaModel& gm,
                     GapModel& gapm) const;
+#endif
 
   /** Decoder is required to have decode(Probability prob)-method.
     * ProbabilisticModel is required to have probabilityOfOne()- and
@@ -179,11 +184,17 @@ class WaveletTree {
    */
   void assignPrefixCodes(std::vector<std::pair<uint64, byte> >& lengths);
 
+#ifdef ENTROPY_PROFILER
+  uint32 m_bytesForCharacters;
+  uint32 m_bytesForRuns;
+#endif
+
   
  private:
   TreeNode<BitVector>* m_root;
   BitVector m_codes[256];
 
+  
   template <typename Decoder, typename ProbabilisticModel>
   void decodeTree(TreeNode<BitVector> *node, size_t nodeSize, Decoder& dec,
                   ProbabilisticModel& pm) const;
@@ -224,12 +235,20 @@ class WaveletTree {
 };
 
 template <typename BitVector>
-WaveletTree<BitVector>::WaveletTree() {
+WaveletTree<BitVector>::WaveletTree()
+#ifdef ENTROPY_PROFILER
+    : m_bytesForCharacters(0), m_bytesForRuns(0)
+#endif
+{
   m_root = new TreeNode<BitVector>();
 }
 
 template <typename BitVector>
-WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length) {
+WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
+#ifdef ENTROPY_PROFILER
+    : m_bytesForCharacters(0), m_bytesForRuns(0)
+#endif
+{
   PROFILE("WaveletTree::WaveletTree");
   uint64 runFreqs[256] = {0};
   utils::calculateRunFrequencies(runFreqs, src, length);
@@ -437,10 +456,17 @@ void WaveletTree<BitVector>::outputShapeDfs(BitVector& output, size_t depth,
 }
 
 template <typename BitVector>
+#ifdef ENTROPY_PROFILER
+template <typename Encoder, typename ProbabilisticModel, typename GammaModel,
+          typename GapModel>
+void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
+                                          GammaModel& gm, GapModel& gapm)
+#else
 template <typename Encoder, typename ProbabilisticModel, typename GammaModel,
           typename GapModel>
 void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
                                           GammaModel& gm, GapModel& gapm) const
+#endif
 {
   PROFILE("WaveletTree::encodeTreeBF");
   /* Additional bitvector is used to encode gaps and continuous runs in the
@@ -450,6 +476,10 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
    * using single larger bitvector. Now we just make redundant copies of
    * bitvectors.
    */
+
+#ifdef ENTROPY_PROFILER
+  uint64 bytesWritten = enc.counter();
+#endif
 
   std::queue<InternalNode> queue;
   std::list<TreeNode<BitVector>*> gammaCodeNodes;
@@ -546,6 +576,12 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
     }
     queue.pop();
   }
+
+#ifdef ENTROPY_PROFILER
+  uint64 nBytes = enc.counter();
+  m_bytesForCharacters += (nBytes - bytesWritten);
+  bytesWritten = nBytes;
+#endif
   
   // Synchronized gamma-coding phase (symbol nodes and gamma nodes)
   std::list<TreeNode<BitVector>*> left, right;
@@ -565,6 +601,10 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
       if(node->m_right) right.push_back(node->m_right);
     }
   }
+#ifdef ENTROPY_PROFILER
+  nBytes = enc.counter();
+  m_bytesForRuns += (nBytes - bytesWritten);
+#endif
 }
 
 template <typename BitVector>

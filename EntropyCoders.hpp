@@ -53,6 +53,12 @@ class EntropyEncoder {
                           uint64 data_size) = 0;
   virtual void writeBlockHeader(std::vector<uint64>* stats) = 0;
   virtual void finishBlock(const std::vector<uint32>& LFpowers) = 0;
+
+#ifdef ENTROPY_PROFILER
+  uint32 m_bytesForCharacters;
+  uint32 m_bytesForRuns;
+#endif
+
 };
 
 /* Base class for all entropy decoders */

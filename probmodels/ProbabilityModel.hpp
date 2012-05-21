@@ -66,7 +66,7 @@ class SimpleMarkov : public ProbabilityModel {
 };
 
 ProbabilityModel* giveProbabilityModel(char choice);
-ProbabilityModel* giveModelForGamma();
+ProbabilityModel* giveModelForIntegerCodes();
 ProbabilityModel* giveModelForGaps();
   
 } // namespace bwtc

@@ -59,8 +59,8 @@ class WaveletEncoder : public EntropyEncoder {
   dcsbwt::BitEncoder m_destination;
   /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;
-  /** Probability model for gamma code nodes in wavelet tree. */
-  ProbabilityModel* m_gammaProbModel;
+  /** Probability model for integer code nodes in wavelet tree. */
+  ProbabilityModel* m_integerProbModel;
   /** Probability model for bits coming after gaps. */
   ProbabilityModel* m_gapProbModel;
   /*std::streampos*/ long int m_headerPosition;
@@ -92,8 +92,8 @@ class WaveletDecoder : public EntropyDecoder {
   dcsbwt::BitDecoder m_source;
   /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;
-  /** Probability model for gamma code nodes in wavelet tree. */
-  ProbabilityModel* m_gammaProbModel;
+  /** Probability model for integer code nodes in wavelet tree. */
+  ProbabilityModel* m_integerProbModel;
   /** Probability model for bits coming after gaps. */
   ProbabilityModel* m_gapProbModel;
 

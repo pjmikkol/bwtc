@@ -117,13 +117,10 @@ class WaveletTree {
   void pushRun(byte symbol, size_t runLength);
   TreeNode<BitVector> *pushBits(const BitVector& bits);
 
-  /**Writes the encoding of the shape of tree into given vector.*/
-  void treeShape(BitVector& vector) const;
-
   /**Writes encoding of the shape of tree into given vector. The shape of
    * the tree is in form presented in "Housekeeping for Prefix Codes" by
    * Turpin and Moffat. */
-  void treeShape2(BitVector& vector) const;
+  void treeShape(BitVector& vector) const;
 
   size_t bitsInRoot() const { return m_root->m_bitVector.size(); }
   size_t totalBits() const { return m_root->totalBits(); }
@@ -131,14 +128,10 @@ class WaveletTree {
   template <typename OutputIterator>
   void message(OutputIterator out) const;
 
-  /**Input is required to have readBit()-method returning bool.*/
-  template<typename Input>
-  size_t readShape(Input& input);
-
   /**Input is required to have readBit()-method returning bool and readByte().
    */
   template<typename Input>
-  size_t readShape2(Input& input);
+  size_t readShape(Input& input);
 
   /** Encoder is required to have encode(bool bit, Probability prob)-method.
     * ProbabilisticModel is required to have probabilityOfOne()- and
@@ -210,13 +203,6 @@ class WaveletTree {
   template <typename Encoder, typename ProbabilisticModel>
   void encodeTree(TreeNode<BitVector>* node, Encoder& enc,
                   ProbabilisticModel& pm) const;
-
-  template <typename Input>
-  TreeNode<BitVector> *readShapeDfs(Input& input, const std::vector<byte> symbols,
-                                    size_t *bitsUsed);
-
-  void outputShapeDfs(BitVector& output, size_t depth,
-                      const std::vector<byte>& symbols) const;
 
   static void destroy(TreeNode<BitVector>* node);
   /**Recursive function which is used in assigning codes and constructing the
@@ -290,7 +276,7 @@ void WaveletTree<BitVector>::destroy(TreeNode<BitVector>* node) {
 
 
 template <typename BitVector> template <typename Input>
-size_t WaveletTree<BitVector>::readShape2(Input& input) {
+size_t WaveletTree<BitVector>::readShape(Input& input) {
   assert(m_root->m_left == 0 && m_root->m_right == 0);
   size_t maxSym = input.readByte();
   size_t symbols = input.readByte();
@@ -325,58 +311,6 @@ size_t WaveletTree<BitVector>::readShape2(Input& input) {
   return bitsRead;
 }
 
-template <typename BitVector> template <typename Input>
-size_t WaveletTree<BitVector>::readShape(Input& input) {
-  assert(m_root->m_left == 0 && m_root->m_right == 0);
-  std::vector<byte> symbols;
-  byte b = 0;
-  for(size_t i = 0; i < 256; ++i, ++b) {
-    if(input.readBit()) symbols.push_back(b);
-  }
-  std::vector<byte> leftSymbols, rightSymbols;
-  for(size_t i = 0; i < symbols.size(); ++i) {
-    bool bit = input.readBit();
-    m_codes[symbols[i]].push_back(bit);
-
-    if(bit) rightSymbols.push_back(symbols[i]);
-    else leftSymbols.push_back(symbols[i]);
-  }
-  size_t bitsRead = 256 + symbols.size();
-  if(leftSymbols.size() > 0) {
-    m_root->m_left = readShapeDfs(input, leftSymbols, &bitsRead);
-  }
-  if(rightSymbols.size() > 0) {
-    m_root->m_right = readShapeDfs(input, rightSymbols, &bitsRead);
-  }
-  return bitsRead;
-}
-
-template <typename BitVector> template <typename Input>
-TreeNode<BitVector>*
-WaveletTree<BitVector>::readShapeDfs(Input& input, const std::vector<byte> symbols,
-                                     size_t *bitsUsed)
-{
-  if(symbols.size() == 1) {
-    return new TreeNode<BitVector>(symbols[0]);
-  }
-  *bitsUsed += symbols.size();
-  TreeNode<BitVector> *node = new TreeNode<BitVector>();
-  std::vector<byte> leftSymbols, rightSymbols;
-  for(size_t i = 0; i < symbols.size(); ++i) {
-    bool bit = input.readBit();
-    m_codes[symbols[i]].push_back(bit);
-
-    if(bit) rightSymbols.push_back(symbols[i]);
-    else leftSymbols.push_back(symbols[i]);
-  }
-  if(leftSymbols.size() > 0) {
-    node->m_left = readShapeDfs(input, leftSymbols, bitsUsed);
-  }
-  if(rightSymbols.size() > 0) {
-    node->m_right = readShapeDfs(input, rightSymbols, bitsUsed);
-  }
-  return node;
-}
 
 template <typename BitVector>
 void WaveletTree<BitVector>::gammaCode(BitVector& bits, size_t integer) {
@@ -391,26 +325,7 @@ void WaveletTree<BitVector>::gammaCode(BitVector& bits, size_t integer) {
 }
 
 template <typename BitVector>
-void WaveletTree<BitVector>::treeShape(BitVector& vector) const {
-  byte b = 0;
-  std::vector<byte> symbols;
-  for(size_t i = 0; i < 256; ++i, ++b) {
-    if(m_codes[b].size() > 0) {
-      vector.push_back(true);
-      symbols.push_back(b);
-    } else {
-      vector.push_back(false);
-    }
-  }
-  if(symbols.size() > 1) {
-    outputShapeDfs(vector, 0, symbols);
-  } else {
-    vector.push_back(false);
-  }
-}
-
-template <typename BitVector>
-void WaveletTree<BitVector>::treeShape2(BitVector& vec) const {
+void WaveletTree<BitVector>::treeShape(BitVector& vec) const {
   size_t maxLen = 0;
   byte b = 0;
   std::vector<byte> symbols;
@@ -434,25 +349,6 @@ void WaveletTree<BitVector>::treeShape2(BitVector& vec) const {
 
   for(size_t i = 0; i < symbols.size(); ++i) 
     utils::unaryCode(vec, maxLen - m_codes[symbols[i]].size() + 1);
-}
-
-template <typename BitVector>
-void WaveletTree<BitVector>::outputShapeDfs(BitVector& output, size_t depth,
-                                            const std::vector<byte>& symbols) const
-{
-  if (symbols.size() <= 1) return;
-  std::vector<byte> leftSymbols, rightSymbols;
-  for(size_t i = 0; i < symbols.size(); ++i) {
-    if(m_codes[symbols[i]][depth]) {
-      output.push_back(true);
-      rightSymbols.push_back(symbols[i]);
-    } else {
-      output.push_back(false);
-      leftSymbols.push_back(symbols[i]);
-    }
-  }
-  outputShapeDfs(output, depth+1, leftSymbols);
-  outputShapeDfs(output, depth+1, rightSymbols);
 }
 
 template <typename BitVector>

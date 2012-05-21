@@ -36,7 +36,7 @@
 
 namespace bwtc {
 
-ProbabilityModel* giveModelForGamma() {
+ProbabilityModel* giveModelForIntegerCodes() {
   return new FSM<2, UnbiasedPredictor<100, 5, kHalfProbability> >();
 }
 

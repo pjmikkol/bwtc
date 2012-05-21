@@ -45,7 +45,7 @@ namespace bwtc {
 WaveletEncoder::WaveletEncoder(const std::string& destination, char prob_model)
     : m_out(new RawOutStream(destination)),
       m_probModel(giveProbabilityModel(prob_model)),
-      m_gammaProbModel(giveModelForGamma()),
+      m_integerProbModel(giveModelForIntegerCodes()),
       m_gapProbModel(giveModelForGaps()),
       m_headerPosition(0), m_compressedBlockLength(0)
 {
@@ -69,14 +69,14 @@ void WaveletDecoder::readGlobalHeader() {
 WaveletEncoder::~WaveletEncoder() {
   delete m_out;
   delete m_probModel;
-  delete m_gammaProbModel;
+  delete m_integerProbModel;
   delete m_gapProbModel;
 }
 
 void WaveletEncoder::endContextBlock() {
   assert(m_probModel);
   m_probModel->resetModel();
-  m_gammaProbModel->resetModel();
+  m_integerProbModel->resetModel();
   m_gapProbModel->resetModel();
   m_destination.finish();
 }
@@ -84,7 +84,7 @@ void WaveletEncoder::endContextBlock() {
 void WaveletDecoder::endContextBlock() {
   assert(m_probModel);
   m_probModel->resetModel();
-  m_gammaProbModel->resetModel();
+  m_integerProbModel->resetModel();
   m_gapProbModel->resetModel();
 }
 
@@ -152,8 +152,7 @@ void WaveletEncoder::encodeData(const byte* block, std::vector<uint64>* stats,
     m_compressedBlockLength += bytes;
 
     std::vector<bool> shape;
-    //wavelet.treeShape(shape);
-    wavelet.treeShape2(shape);
+    wavelet.treeShape(shape);
 
     // Write shape vector to output
     for(size_t k = 0; k < shape.size();) {
@@ -173,7 +172,7 @@ void WaveletEncoder::encodeData(const byte* block, std::vector<uint64>* stats,
       std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
     }
     //wavelet.encodeTree(m_destination, *m_probModel);
-    wavelet.encodeTreeBF(m_destination, *m_probModel, *m_gammaProbModel,
+    wavelet.encodeTreeBF(m_destination, *m_probModel, *m_integerProbModel,
                          *m_gapProbModel);
 
 #ifdef ENTROPY_PROFILER    
@@ -285,13 +284,12 @@ std::vector<byte>* WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
 
     WaveletTree<std::vector<bool> > wavelet;
 
-    //size_t bits = wavelet.readShape(*m_in);
-    size_t bits = wavelet.readShape2(*m_in);
+    size_t bits = wavelet.readShape(*m_in);
 
     m_in->flushBuffer();
     m_source.start();
     //wavelet.decodeTree(rootSize, m_source, *m_probModel);
-    wavelet.decodeTreeBF(rootSize, m_source, *m_probModel, *m_gammaProbModel,
+    wavelet.decodeTreeBF(rootSize, m_source, *m_probModel, *m_integerProbModel,
                          *m_gapProbModel);
     if(verbosity > 3) {
       size_t shapeBytes = bits/8;
@@ -334,7 +332,7 @@ uint64 WaveletDecoder::readPackedInteger() {
 
 WaveletDecoder::WaveletDecoder(const std::string& source) :
     m_in(new RawInStream(source)), m_probModel(0),
-    m_gammaProbModel(giveModelForGamma()),
+    m_integerProbModel(giveModelForIntegerCodes()),
     m_gapProbModel(giveModelForGaps())
 {
   m_source.connect(m_in);
@@ -342,7 +340,7 @@ WaveletDecoder::WaveletDecoder(const std::string& source) :
 
 WaveletDecoder::WaveletDecoder(RawInStream* in, char decoder) :
     m_in(in), m_probModel(giveProbabilityModel(decoder)),
-    m_gammaProbModel(giveModelForGamma()),
+    m_integerProbModel(giveModelForIntegerCodes()),
     m_gapProbModel(giveModelForGaps())
 {
   m_source.connect(m_in);
@@ -351,7 +349,7 @@ WaveletDecoder::WaveletDecoder(RawInStream* in, char decoder) :
 WaveletDecoder::~WaveletDecoder() {
   delete m_in;
   delete m_probModel;
-  delete m_gammaProbModel;
+  delete m_integerProbModel;
   delete m_gapProbModel;
 }
 

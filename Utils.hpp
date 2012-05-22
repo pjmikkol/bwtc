@@ -31,9 +31,11 @@
 
 #include <cassert>
 #include <iostream>
+#include <map>
 #include <stack>
 #include <utility>
 #include <vector>
+
 
 using bwtc::uint64;
 using bwtc::byte;
@@ -41,45 +43,6 @@ using bwtc::uint32;
 
 /* Useful functions for debugging activites etc. */
 namespace utils {
-
-/**If the result is to be read from left, then bits written through
- * writeBit-function are written in reverse order, but still maintaining
- * the same order between bytes.*/
-template <typename CharType, bool readFromLeft>
-class FlexibleWriter {
- public:
-  FlexibleWriter(CharType* dst)
-      : m_dst(dst), m_charsWritten(0), m_bitBuffer(0),
-        m_bitsLeftInBuffer(s_maxBits) {}
-
-  void writeChar(CharType c) { m_dst[m_charsWritten++] = c; }
-
-  void flushBits() {
-    if(m_bitsLeftInBuffer < s_maxBits) {
-      writeChar(m_bitBuffer << m_bitsLeftInBuffer);
-      m_bitsLeftInBuffer = s_maxBits;
-    }
-  }
-
-  void writeBit(CharType bit) {
-    assert(0 <= bit && bit <= 1);
-    m_bitBuffer = (m_bitBuffer << 1) | bit;
-    if(--m_bitsLeftInBuffer == 0) {
-      writeChar(m_bitBuffer);
-      m_bitsLeftInBuffer = s_maxBits;
-    }
-  }
-  
- private:
-  CharType* m_dst;
-  size_t m_charsWritten;
-  CharType m_bitBuffer;
-  size_t m_bitsLeftInBuffer;
-
-  static const size_t s_maxBits = std::numeric_limits<CharType>::digits +
-      std::numeric_limits<CharType>::is_signed?1:0;
-};
-
 
 static byte logFloor(unsigned n) {
   assert(n > 0);
@@ -144,6 +107,9 @@ unsigned readAndUnpackInteger(byte *from, uint64 *to);
 
 void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length);
 
+void calculateRunsAndCharacters(uint64 *runFreqs, const byte *src,
+                                size_t length, std::map<uint32, uint32>& runs);
+
 uint64 calculateRunFrequenciesAndStoreRuns(uint64 *runFreqs, byte *runseq,
   uint32 *runlen,  const byte *src, size_t length);
   
@@ -157,11 +123,18 @@ void computeHuffmanCodes(uint32 *clen, uint32 *code);
  *
  * @param codeLengths Answer is returned in vector consisting of
  *                    <codelength, symbol> pairs.
- * @param freqs Array of size 256 (frequency for each character.).
+ * @param freqs Array of size alphabetSize.
  *              Array IS modified during the calculation.
+ * @param alphabetSize Size of the freqs-array.
  */
-void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
-                             uint64 *freqs);
+void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                             uint64 *freqs, uint32 alphabetSize=256);
+
+void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                             uint64 *freqs, const std::vector<uint32>& names);
+
+void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                          uint64 *freqs);
  
 template <typename Unsigned, typename BitVector>
 void pushBits(Unsigned n, byte bits, BitVector& bitVector) {

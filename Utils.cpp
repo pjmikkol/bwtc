@@ -124,6 +124,24 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length)
   if(prev < src + length) ++runFreqs[*prev];
 }
 
+void calculateRunsAndCharacters(uint64 *runFreqs, const byte *src,
+                                size_t length, std::map<uint32, uint32>& runs)
+{
+  const byte *prev = src;
+  const byte *curr = src+1;
+  do {
+    while(curr < src + length && *prev == *curr) ++curr;
+    ++runFreqs[*prev];
+    ++runs[curr - prev];
+    prev = curr++;
+  } while(curr < src + length);
+  if(prev < src + length) {
+    ++runFreqs[*prev];
+    ++runs[1];
+  }
+}
+
+
 uint64 calculateRunFrequenciesAndStoreRuns(uint64 *runFreqs, byte *runseq,
   uint32 *runlen, const byte *src, size_t length)
 {
@@ -209,14 +227,33 @@ void computeHuffmanCodes(uint32 *clen, uint32 *code) {
   }*/
 }
 
-void calculateHuffmanLengths(std::vector<std::pair<uint64, byte> >& codeLengths,
-                             uint64 *freqs)
+void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                             uint64 *freqs, const std::vector<uint32>& names)
 {
   assert(codeLengths.size() == 0);
-  for(size_t i = 0; i < 256; ++i) {
+  for(size_t i = 0; i < names.size(); ++i) {
     if(freqs[i])
-      codeLengths.push_back(std::make_pair(freqs[i], static_cast<byte>(i)));
+      codeLengths.push_back(std::make_pair(freqs[i], names[i]));
   }
+  calculateCodeLengths(codeLengths, freqs);
+}
+
+    
+void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                             uint64 *freqs, uint32 alphabetSize)
+{
+  assert(codeLengths.size() == 0);
+  for(size_t i = 0; i < alphabetSize; ++i) {
+    if(freqs[i])
+      codeLengths.push_back(std::make_pair(freqs[i], i));
+  }
+  calculateCodeLengths(codeLengths, freqs);
+}
+
+void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                          uint64 *freqs)
+{
+  assert(codeLengths.size() >  0);
   if(codeLengths.size() == 1) {
     codeLengths[0].first = 1;
     return;

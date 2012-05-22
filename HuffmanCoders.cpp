@@ -211,7 +211,7 @@ void HuffmanEncoder::encodeData(const byte* block,
     }
 #endif
 
-    std::vector<std::pair<uint64, byte> > codeLengths;
+    std::vector<std::pair<uint64, uint32> > codeLengths;
     utils::calculateHuffmanLengths(codeLengths, freqs);
     int32 nCodes = codeLengths.size();
     for (int32 k = 0; k < nCodes; ++k)

@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(HuffmanLengths1) {
   freqs['a'] = 5;
   freqs['b'] = 1;
   freqs['c'] = 1;
-  std::vector<std::pair<uint64, byte> > t;
+  std::vector<std::pair<uint64, uint32> > t;
   calculateHuffmanLengths(t, freqs);
   BOOST_CHECK_EQUAL(t[2].first, 1);
   BOOST_CHECK_EQUAL(t[2].second, 'a');
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(HuffmanLengths2) {
   freqs['e'] = 8;
   freqs['f'] = 4;
   freqs['g'] = 1;
-  std::vector<std::pair<uint64, byte> > t;
+  std::vector<std::pair<uint64, uint32> > t;
   calculateHuffmanLengths(t, freqs);
   BOOST_CHECK_EQUAL(t[0].first, 4);
   BOOST_CHECK_EQUAL(t[1].first, 4);
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(HuffmanLengths3) {
   freqs['c'] = 4;
   freqs['d'] = 8;
   freqs['e'] = 8;
-  std::vector<std::pair<uint64, byte> > t;
+  std::vector<std::pair<uint64, uint32> > t;
   calculateHuffmanLengths(t, freqs);
 
   BOOST_CHECK_EQUAL(t[0].first, 3);
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(HuffmanLengths4) {
   uint64 freqs[256] = {0};
   freqs['a'] = 2;
   freqs['b'] = 20000;
-  std::vector<std::pair<uint64, byte> > t;
+  std::vector<std::pair<uint64, uint32> > t;
   calculateHuffmanLengths(t, freqs);
 
   BOOST_CHECK_EQUAL(t[0].first, 1);
@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(HuffmanLengths4) {
 BOOST_AUTO_TEST_CASE(HuffmanLengths5) {
   uint64 freqs[256] = {0};
   freqs['a'] = 1;
-  std::vector<std::pair<uint64, byte> > t;
+  std::vector<std::pair<uint64, uint32> > t;
   calculateHuffmanLengths(t, freqs);
 
   BOOST_CHECK_EQUAL(t[0].first, 1);

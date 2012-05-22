@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   BOOST_CHECK_EQUAL(rep, 1);
   // size of replaced string == 10000+254
   std::vector<byte> result;
-  result.resize(10254+9);
+  result.resize(10254+20);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10254);
   uint32 gSize = grammar.writeGrammar(&result[10254]);
@@ -74,6 +74,8 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
   BOOST_CHECK_EQUAL(gSize,9);
 
+  result.resize(cSize+gSize);
+  
   PostProcessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
@@ -104,7 +106,7 @@ BOOST_AUTO_TEST_CASE(pairOfSame) {
   BOOST_CHECK_EQUAL(rep, 1);
   // size of replaced string == 20000 + 255
   std::vector<byte> result;
-  result.resize(10000 + 255 + 9);
+  result.resize(10000 + 255 + 20);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10255);
   uint32 gSize = grammar.writeGrammar(&result[10255]);
@@ -112,6 +114,8 @@ BOOST_AUTO_TEST_CASE(pairOfSame) {
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
   BOOST_CHECK_EQUAL(gSize,9);
 
+  result.resize(cSize+gSize);
+  
   grammar.printRules();
   
   PostProcessor post(true);
@@ -143,7 +147,7 @@ BOOST_AUTO_TEST_CASE(twoForFree) {
   BOOST_CHECK_EQUAL(rep, 2);
 
   std::vector<byte> result;
-  result.resize(20001 + 255 + 13);
+  result.resize(20001 + 255 + 23);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,20256);
   uint32 gSize = grammar.writeGrammar(&result[20256]);
@@ -151,6 +155,8 @@ BOOST_AUTO_TEST_CASE(twoForFree) {
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),2);
   BOOST_CHECK_EQUAL(gSize,13);
 
+  result.resize(cSize+gSize);
+  
   grammar.printRules();
   
   PostProcessor post(true);
@@ -182,7 +188,7 @@ BOOST_AUTO_TEST_CASE(simpleSpecialScenario) {
   BOOST_CHECK_EQUAL(rep, 2);
   // size of replaced string == 20000 + 256 + 4 (two specials, two freed) 
   std::vector<byte> result;
-  result.resize(20000 + 256 + 4 + 17);
+  result.resize(20000 + 256 + 4 + 37);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,20260);
   uint32 gSize = grammar.writeGrammar(&result[20260]);
@@ -190,6 +196,7 @@ BOOST_AUTO_TEST_CASE(simpleSpecialScenario) {
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),2);
   BOOST_CHECK_EQUAL(gSize,17);
 
+  result.resize(cSize+gSize);
   grammar.printRules();
   
   PostProcessor post(true);
@@ -224,7 +231,7 @@ BOOST_AUTO_TEST_CASE(freeVariableFromReplacements) {
   BOOST_CHECK_EQUAL(rep, 2);
   // size of replaced string == 20000 + 254
   std::vector<byte> result;
-  result.resize(20000 + 258 + 16);
+  result.resize(20000 + 258 + 36);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,20258);
   uint32 gSize = grammar.writeGrammar(&result[20258]);
@@ -232,6 +239,7 @@ BOOST_AUTO_TEST_CASE(freeVariableFromReplacements) {
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),2);
   BOOST_CHECK_EQUAL(gSize,16);
 
+  result.resize(cSize+gSize);
   grammar.printRules();
   
   PostProcessor post(true);
@@ -263,7 +271,7 @@ BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
   // size of replaced string == 10000+253 + 2 + 2 + 2
   std::vector<byte> result;
   //grammar header = 1 + 3 + 1 + 1 + 2 + 1+2
-  result.resize(10259+ 12);
+  result.resize(10259+ 32);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10259);
   uint32 gSize = grammar.writeGrammar(&result[10259]);
@@ -271,6 +279,8 @@ BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
   BOOST_CHECK_EQUAL(gSize,12);
 
+  result.resize(cSize+gSize);
+  
   PostProcessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
@@ -308,7 +318,7 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
   // size of replaced string == 10000+506 + 3*2
   std::vector<byte> result;
   //grammar header = 1 + 1 + 2 + 2 + 1+1+2
-  result.resize(10512+ 13);
+  result.resize(10512+ 33);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10512);
   uint32 gSize = grammar.writeGrammar(&result[10512]);
@@ -317,6 +327,8 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
   BOOST_CHECK_EQUAL(gSize,13);
   BOOST_CHECK_EQUAL(result.back(),1);
 
+  result.resize(cSize+gSize);
+  
   PostProcessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
@@ -359,6 +371,7 @@ BOOST_AUTO_TEST_CASE(MoreReplacements) {
   result.resize(cSize+gSize);
 
   grammar.printRules();
+  result.resize(cSize+gSize);
   
   PostProcessor post(true);
   post.postProcess(&result);
@@ -397,7 +410,7 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
   // size of replaced string == 10000+506 + 3*2
   std::vector<byte> result;
   //grammar header = 1 + 1 + 2 + 2 + 1+1+2
-  result.resize(10512+ 11);
+  result.resize(10512+ 31);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10512);
 
@@ -409,11 +422,11 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
   //grammar header = 1 + 1 + 2 + 3 + 1+2+4
   BOOST_CHECK_EQUAL(grammar.isSpecial(result[0]), false);
   std::vector<byte> res2;
-  res2.resize(5512 + 40);
+  res2.resize(5512 + 60);
   cSize = pr1.writeReplacedVersion(&result[0], 10512, &res2[0]);
   BOOST_CHECK_EQUAL(cSize,5512);
   
-
+  
   uint32 gSize = grammar.writeGrammar(&res2[5512]);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),2);
@@ -455,14 +468,14 @@ BOOST_AUTO_TEST_CASE(NewSpecialOnRightSide) {
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 1);
   std::vector<byte> result;
-  result.resize(10000 + 512 + 6 + 12);
+  result.resize(10000 + 512 + 6 + 22);
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   uint32 gSize = grammar.writeGrammar(&result[cSize]);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
   BOOST_CHECK_EQUAL(cSize, 10518);
   BOOST_CHECK_EQUAL(gSize, 12);
-  result.resize(10530);
+  result.resize(cSize+gSize);
 
   grammar.printRules();
   

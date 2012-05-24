@@ -196,6 +196,8 @@ class WaveletTree {
   BitVector m_codes[256];
 #ifdef OPTIMIZED_INTEGER_CODE
   std::map<uint32, BitVector> m_integerCodes;
+  // used for tracking the code in decoder
+  TreeNode<BitVector>* m_integerCodeTree; 
 #endif
   
   template <typename Decoder, typename ProbabilisticModel>
@@ -236,6 +238,9 @@ WaveletTree<BitVector>::WaveletTree()
     : m_bytesForCharacters(0), m_bytesForRuns(0)
 #endif
 {
+#ifdef OPTIMIZED_INTEGER_CODE
+  m_integerCodeTree = 0;
+#endif
   m_root = new TreeNode<BitVector>();
 }
 
@@ -260,29 +265,26 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
 
 #ifdef OPTIMIZED_INTEGER_CODE
   {
+    assert(runDistribution.size() > 0);
     std::vector<std::pair<uint64, uint32> > integerCodeLengths;
     std::vector<uint64> freqs;
     std::vector<uint32> integers;
     for(std::map<uint32, uint32>::const_iterator it = runDistribution.begin();
-        it != runDistribution.begin(); ++it) {
+        it != runDistribution.end(); ++it) {
       integers.push_back(it->first);
       freqs.push_back(it->second);
     }
     utils::calculateHuffmanLengths(integerCodeLengths, &freqs[0], integers);
     std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
     
-    TreeNode<BitVector>* root = new TreeNode<BitVector>();
-    assignPrefixCodes(integerCodeLengths, root, 0, 0);
-    collectCodes(m_integerCodes, root);
-    
-    destroy(root);
+    m_integerCodeTree = new TreeNode<BitVector>();
+    assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
+    collectCodes(m_integerCodes, m_integerCodeTree);
   }
 
 #endif
   
   assignPrefixCodes(codeLengths);
-
-
   
   // Old way to construct huffman shape
   //m_root = createHuffmanShape(runFreqs);
@@ -302,6 +304,9 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
 template <typename BitVector>
 WaveletTree<BitVector>::~WaveletTree() {
   destroy(m_root);
+#ifdef OPTIMIZED_INTEGER_CODE
+  destroy(m_integerCodeTree);
+#endif  
 }
 
 template <typename BitVector>
@@ -311,7 +316,6 @@ void WaveletTree<BitVector>::destroy(TreeNode<BitVector>* node) {
   delete node;
 }
 
-
 template <typename BitVector> template <typename Input>
 size_t WaveletTree<BitVector>::readShape(Input& input) {
   assert(m_root->m_left == 0 && m_root->m_right == 0);
@@ -319,16 +323,9 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
   size_t symbols = input.readByte();
   if(symbols == 0) symbols = 256;
 
-  size_t bitsRead = 16;
-  size_t maxLen = 0;
-  size_t read = 0xff;
-  size_t j = 0;
-  while(read & 0x80) {
-    read = input.readByte();
-    maxLen |= ((read & 0x7f) << j);
-    j += 7;
-    bitsRead += 8;
-  }
+  size_t bitsRead = 0;
+  size_t maxLen = utils::readPackedInteger(input, bitsRead);
+  bitsRead = 8*bitsRead + 16;
 
   std::vector<byte> alphabet;
   bitsRead += utils::binaryInterpolativeDecode(alphabet, input,
@@ -345,6 +342,42 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
   assignPrefixCodes(codeLengths);
   collectCodes(m_codes, m_root);
   
+#ifdef OPTIMIZED_INTEGER_CODE
+
+  {
+    size_t bytesRead = 0;
+    size_t longestRun = utils::readPackedInteger(input, bytesRead);
+    bitsRead += 8*bytesRead;
+
+    symbols = utils::readPackedInteger(input, bytesRead);
+    bitsRead += 8*bytesRead;
+
+    maxLen = utils::readPackedInteger(input, bytesRead);
+    bitsRead += 8*bytesRead;
+
+    std::vector<uint32> integers;
+    bitsRead += utils::binaryInterpolativeDecode(integers, input, 1,
+                                                 longestRun, symbols);
+    std::cout << "integers " << symbols << " maxRun " << longestRun << " maxCode = "
+              << maxLen << std::endl;
+    std::vector<std::pair<uint64, uint32> > integerCodeLengths;
+    for(size_t i = 0; i < symbols; ++i) {
+      size_t n = utils::unaryDecode(input);
+      assert(n <= maxLen);
+      bitsRead += n;
+      size_t len = maxLen + 1 - n;
+      integerCodeLengths.push_back(std::make_pair(len, integers[i]));
+    }
+
+    std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
+    m_integerCodeTree = new TreeNode<BitVector>();
+    std::cout << integerCodeLengths[0].first << " " << integerCodeLengths[0].second << std::endl;
+    assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
+    collectCodes(m_integerCodes, m_integerCodeTree);
+
+    assert(!m_integerCodeTree->m_hasSymbol);
+  }
+#endif
   return bitsRead;
 }
 
@@ -380,12 +413,50 @@ void WaveletTree<BitVector>::treeShape(BitVector& vec) const {
 
   int bytesInLongestCode;
   size_t packedInt = utils::packInteger(maxLen, &bytesInLongestCode);
-  utils::pushBits(vec, packedInt, bytesInLongestCode*8);
+  utils::pushBitsRev(vec, packedInt, 8*bytesInLongestCode);
 
   utils::binaryInterpolativeCode(symbols, symbols.back(), vec);
 
   for(size_t i = 0; i < symbols.size(); ++i) 
     utils::unaryCode(vec, maxLen - m_codes[symbols[i]].size() + 1);
+
+#ifdef OPTIMIZED_INTEGER_CODE
+  {
+    maxLen = 0;
+    std::vector<uint32> integers;
+    for(typename std::map<uint32, BitVector>::const_iterator it = m_integerCodes.begin();
+        it != m_integerCodes.end(); ++it)
+    {
+      integers.push_back(it->first);
+      size_t len = it->second.size();
+      if(len > maxLen) maxLen = len;
+    }
+
+    int bytes;
+    // Largest symbol
+    packedInt = utils::packInteger(integers.back(), &bytes);
+    utils::pushBitsRev(vec, packedInt, 8*bytes);
+
+    // Num of distinct symbols
+    packedInt = utils::packInteger(integers.size(), &bytes);
+    utils::pushBitsRev(vec, packedInt, 8*bytes);
+
+    // Maximum length of code
+    packedInt = utils::packInteger(maxLen, &bytes);
+    utils::pushBitsRev(vec, packedInt, 8*bytes);
+    
+    utils::binaryInterpolativeCode(integers, 0, integers.size() - 1, 1, integers.back(), vec);
+
+    std::cout << "integers = " << integers.size() << " laargest = "
+              << integers.back() << " maxCode = " << maxLen << std::endl;
+    for(typename std::map<uint32, BitVector>::const_iterator it = m_integerCodes.begin();
+        it != m_integerCodes.end(); ++it) {
+      assert(it->second.size() > 0);
+      utils::unaryCode(vec, maxLen - it->second.size() + 1);
+    }
+
+  }
+#endif
 }
 
 template <typename BitVector>
@@ -415,7 +486,7 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
 #endif
 
   std::queue<InternalNode> queue;
-  std::list<TreeNode<BitVector>*> gammaCodeNodes;
+  std::list<TreeNode<BitVector>*> integerCodeNodes;
   {
     // Root node
     InternalNode left, right;
@@ -429,11 +500,11 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
       prev = bit;
     }
     if(m_root->m_left) {
-      if(m_root->m_left->m_hasSymbol) gammaCodeNodes.push_back(m_root->m_left);
+      if(m_root->m_left->m_hasSymbol) integerCodeNodes.push_back(m_root->m_left);
       else { left.first = m_root->m_left; queue.push(left); }
     }
     if(m_root->m_right) {
-      if(m_root->m_right->m_hasSymbol) gammaCodeNodes.push_back(m_root->m_right);
+      if(m_root->m_right->m_hasSymbol) integerCodeNodes.push_back(m_root->m_right);
       else { right.first = m_root->m_right; queue.push(right); }
     }
   }
@@ -459,8 +530,8 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
           gapm.update(bit);
 
         }
-        gammaCodeNodes.push_back(node.first->m_left);
-        gammaCodeNodes.push_back(node.first->m_right);
+        integerCodeNodes.push_back(node.first->m_left);
+        integerCodeNodes.push_back(node.first->m_right);
         
       } else if(node.first->m_left->m_hasSymbol) {
         right.first = node.first->m_right;
@@ -481,9 +552,9 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
           prev = bit; 
         }
         queue.push(right);
-        gammaCodeNodes.push_back(node.first->m_left);
+        integerCodeNodes.push_back(node.first->m_left);
       } else {
-        // Shouldn't never happen
+        // Shouldn't never happen, because we use canonical Huffman code
         assert(0);
       }
       
@@ -516,22 +587,31 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
   bytesWritten = nBytes;
 #endif
   
-  // Synchronized gamma-coding phase (symbol nodes and gamma nodes)
+  // Synchronized integer-coding phase (symbol nodes and integer-code nodes)
   std::list<TreeNode<BitVector>*> left, right;
-  while(!gammaCodeNodes.empty() || !left.empty() || !right.empty()) {
-    gammaCodeNodes.splice(gammaCodeNodes.end(), left);
-    gammaCodeNodes.splice(gammaCodeNodes.end(), right);
+  while(!integerCodeNodes.empty() || !left.empty() || !right.empty()) {
+    integerCodeNodes.splice(integerCodeNodes.end(), left);
+    integerCodeNodes.splice(integerCodeNodes.end(), right);
     gm.resetModel();
-    while(!gammaCodeNodes.empty()) {
+    while(!integerCodeNodes.empty()) {
 
-      TreeNode<BitVector>* node = gammaCodeNodes.front();
+      TreeNode<BitVector>* node = integerCodeNodes.front();
       for(size_t i = 0; i < node->m_bitVector.size(); ++i) {
         enc.encode(node->m_bitVector[i], gm.probabilityOfOne());
         gm.update(node->m_bitVector[i]);
       }
-      gammaCodeNodes.pop_front();
-      if(node->m_left) left.push_back(node->m_left);
-      if(node->m_right) right.push_back(node->m_right);
+      integerCodeNodes.pop_front();
+#ifdef OPTIMIZED_INTEGER_CODE
+      if(node->m_left && !node->m_left->m_hasSymbol)
+        left.push_back(node->m_left);
+      if(node->m_right && !node->m_right->m_hasSymbol)
+        right.push_back(node->m_right);
+#else      
+      if(node->m_left)
+        left.push_back(node->m_left);
+      if(node->m_right)
+        right.push_back(node->m_right);
+#endif
     }
   }
 #ifdef ENTROPY_PROFILER
@@ -621,14 +701,27 @@ void WaveletTree<BitVector>::decodeTreeGammaInc(TreeNode<BitVector>* node,
 
 /**Used in decoding the tree. */
 template<typename BitVector>
-struct GammaNode {
-  GammaNode(TreeNode<BitVector>* node, size_t bits, size_t len, byte status)
+#ifndef OPTIMIZED_INTEGER_CODE
+// Used for gamma codes, tracks progression of the code with variables
+struct IntegerNode {
+  IntegerNode(TreeNode<BitVector>* node, size_t bits, size_t len, byte status)
       : m_node(node), m_bits(bits), m_gammaLen(len), m_gammaStatus(status) {}
   TreeNode<BitVector> *m_node;
   size_t m_bits;
   size_t m_gammaLen;
   byte m_gammaStatus; // Flag telling in what phase of gamma-code decoding is
 };
+#else
+// Used for more general integer codes. Tracks progression of the code by
+// following the corresponding integer code tree
+struct IntegerNode {
+  IntegerNode(TreeNode<BitVector>* node, TreeNode<BitVector>* intNode, size_t bits)
+      : m_node(node), m_intNode(intNode), m_bits(bits) {}
+  TreeNode<BitVector> *m_node;
+  TreeNode<BitVector> *m_intNode;
+  size_t m_bits;
+};
+#endif
 
 /** Note that we assume that the wavelet tree has canonical Huffman shape ie.
  *  the longest codewords are placed to right.
@@ -646,7 +739,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
   typedef std::pair<TreeNode<BitVector>*, BitVector> InternalNode; 
   
   std::queue<InternalNode> queue;
-  std::list<GammaNode<BitVector> > gammaCodeNodes;
+  std::list<IntegerNode<BitVector> > integerCodeNodes;
 
   //Decoding of the root node
   {
@@ -669,16 +762,24 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
     }
     // Left node has to always exist
     if(m_root->m_left->m_hasSymbol) {
-      gammaCodeNodes.push_back(
-          GammaNode<BitVector>(m_root->m_left, left.size(), 0, 0));
+      integerCodeNodes.push_back(
+#ifndef OPTIMIZED_INTEGER_CODE
+        IntegerNode<BitVector>(m_root->m_left, left.size(), 0, 0));
+#else
+        IntegerNode<BitVector>(m_root->m_left, m_integerCodeTree, left.size()));
+#endif      
     } else {
       queue.push(std::make_pair(m_root->m_left, left));
     }
     
     if(right.size() > 0) {
       if(m_root->m_right->m_hasSymbol) {
-        gammaCodeNodes.push_back(
-            GammaNode<BitVector>(m_root->m_right, right.size(), 0, 0));
+        integerCodeNodes.push_back(
+#ifndef OPTIMIZED_INTEGER_CODE
+          IntegerNode<BitVector>(m_root->m_right, right.size(), 0, 0));
+#else
+          IntegerNode<BitVector>(m_root->m_right, m_integerCodeTree, right.size()));      
+#endif      
       } else {
         queue.push(std::make_pair(m_root->m_right, right));
       }
@@ -708,10 +809,18 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
             node.first->m_bitVector.push_back(prev);
             if(prev) ++ones;
           }
-          gammaCodeNodes.push_back(GammaNode<BitVector>(
+          integerCodeNodes.push_back(IntegerNode<BitVector>(
+#ifndef OPTIMIZED_INTEGER_CODE
               node.first->m_left, node.second.size() - ones, 0, 0));
-          gammaCodeNodes.push_back(GammaNode<BitVector>(
+#else
+              node.first->m_left, m_integerCodeTree, node.second.size() - ones));
+#endif
+          integerCodeNodes.push_back(IntegerNode<BitVector>(
+#ifndef OPTIMIZED_INTEGER_CODE
               node.first->m_right, ones, 0, 0));
+#else
+              node.first->m_right, m_integerCodeTree, ones));
+#endif
         } else {
           assert(!node.first->m_right->m_hasSymbol);
           bool prev = true;
@@ -731,8 +840,12 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
             if(bit) right.push_back(prev != bit || node.second[i]);
             prev = bit;
           }
-          gammaCodeNodes.push_back(GammaNode<BitVector>(
-              node.first->m_left, node.second.size() - right.size(), 0, 0));
+          integerCodeNodes.push_back(IntegerNode<BitVector>(
+#ifndef OPTIMIZED_INTEGER_CODE
+            node.first->m_left, node.second.size() - right.size(), 0, 0));
+#else
+            node.first->m_left, m_integerCodeTree, node.second.size() - right.size()));
+#endif
           queue.push(std::make_pair(node.first->m_right, right));
         }
       } else {
@@ -759,14 +872,22 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
     }
   }
 
-  //Decoding of gamma-code nodes
+  //Decoding of integer-code nodes
   {
-    std::list<GammaNode<BitVector> > left, right;
-    while(!gammaCodeNodes.empty() || !left.empty() || !right.empty()) {
+    std::list<IntegerNode<BitVector> > left, right;
+    while(!integerCodeNodes.empty() || !left.empty() || !right.empty()) {
       gm.resetModel();
       
-      while(!gammaCodeNodes.empty()) {
-        GammaNode<BitVector> node = gammaCodeNodes.front();
+      while(!integerCodeNodes.empty()) {
+        IntegerNode<BitVector> node = integerCodeNodes.front();
+        integerCodeNodes.pop_front();
+#ifdef OPTIMIZED_INTEGER_CODE
+        if(node.m_intNode->m_hasSymbol) {
+          node.m_node->m_hasSymbol = true;
+          node.m_node->m_symbol = node.m_intNode->m_symbol;
+          continue;
+        }
+#endif
         size_t ones = 0;
         for(size_t i = 0; i < node.m_bits; ++i) {
           bool bit = dec.decode(gm.probabilityOfOne());
@@ -774,15 +895,16 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
           if(bit) ++ones;
           node.m_node->m_bitVector.push_back(bit);
         }
-        gammaCodeNodes.pop_front();
         
+#ifndef OPTIMIZED_INTEGER_CODE
         if(node.m_gammaStatus == 2 && node.m_gammaLen == 1) continue;
+
         
         if(node.m_bits > ones && node.m_gammaStatus != 0) {
           if(!node.m_node->m_left)
             node.m_node->m_left = new TreeNode<BitVector>();
 
-          GammaNode<BitVector> lnode(node.m_node->m_left, node.m_bits - ones,
+          IntegerNode<BitVector> lnode(node.m_node->m_left, node.m_bits - ones,
                                      node.m_gammaLen, node.m_gammaStatus);
           if(node.m_gammaStatus == 1) {
             lnode.m_gammaStatus = 2;
@@ -796,7 +918,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
           if(!node.m_node->m_right)
             node.m_node->m_right = new TreeNode<BitVector>();
 
-          GammaNode<BitVector> rnode(node.m_node->m_right, ones,
+          IntegerNode<BitVector> rnode(node.m_node->m_right, ones,
                                      node.m_gammaLen, node.m_gammaStatus);
           if(node.m_gammaStatus == 0) {
             rnode.m_gammaLen = 1;
@@ -808,9 +930,32 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
           }
           right.push_back(rnode);
         }
+#else
+        if(node.m_bits > ones) {
+          if(!node.m_node->m_left)
+            node.m_node->m_left = new TreeNode<BitVector>();
+
+          assert(node.m_intNode->m_left);
+          IntegerNode<BitVector> lnode(node.m_node->m_left,
+                                       node.m_intNode->m_left,
+                                       node.m_bits - ones);
+          left.push_back(lnode);
+        }
+
+        if(ones > 0) {
+          if(!node.m_node->m_right)
+            node.m_node->m_right = new TreeNode<BitVector>();
+
+          assert(node.m_intNode->m_right);
+          IntegerNode<BitVector> rnode(node.m_node->m_right,
+                                       node.m_intNode->m_right,
+                                       ones);
+          right.push_back(rnode);
+        }
+#endif        
       }
-      gammaCodeNodes.splice(gammaCodeNodes.end(), left);
-      gammaCodeNodes.splice(gammaCodeNodes.end(), right);
+      integerCodeNodes.splice(integerCodeNodes.end(), left);
+      integerCodeNodes.splice(integerCodeNodes.end(), right);
     }
   }
 }
@@ -925,9 +1070,13 @@ void WaveletTree<BitVector>::pushRun(byte symbol, size_t runLength)
 {
   TreeNode<BitVector> *node = pushBits(m_codes[symbol]);
   assert(node->m_hasSymbol);
+#ifndef OPTIMIZED_INTEGER_CODE
   BitVector integerCode;
   gammaCode(integerCode, runLength);
   pushBits(node, integerCode);
+#else
+  pushBits(node, m_integerCodes[runLength], runLength); //third parameter!?
+#endif  
 }
 
 template <typename BitVector> template <typename OutputIterator>
@@ -947,7 +1096,8 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
     } while(!node->m_hasSymbol);
     byte symbol = node->m_symbol;
 
-    // Decoding of gamma-code
+    // Decoding of integer-code
+#ifndef OPTIMIZED_INTEGER_CODE
     size_t runBits = 0;
     bit = node->m_bitVector[i];
     while(bit) {
@@ -966,6 +1116,21 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
       bit = node->m_bitVector[i];
       runLength |= (bit?1:0);
     }
+#else
+    bit = node->m_bitVector[i];
+    do {
+      if(bit) {
+        i = bitsSeen[node]++;
+        assert(node->m_right);
+        node = node->m_right;
+      } else {
+        i = i - bitsSeen[node];
+        assert(node->m_left);
+        node = node->m_left;
+      }
+    } while(!node->m_hasSymbol);
+    size_t runLength = node->m_symbol;
+#endif    
     for(size_t k = 0; k < runLength; ++k) {
       *out++ = symbol;
     }

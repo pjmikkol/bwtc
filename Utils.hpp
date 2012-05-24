@@ -99,6 +99,22 @@ uint64 packInteger(uint64 integer, int* bytes_needed);
 
 uint64 unpackInteger(uint64 packed_integer);
 
+template <typename Input>
+size_t readPackedInteger(Input& input, size_t& bytesRead) {
+  size_t read = 0xff, result = 0, j = 0;
+  bytesRead = 0;
+  while(read & 0x80) {
+    read = 0;
+    for(size_t i = 0; i < 8; ++i) {
+      read |= ((input.readBit()?1:0) << i);
+    }
+    result |= ((read & 0x7f) << j);
+    j += 7;
+    ++bytesRead;
+  }
+  return result;
+}
+
 void writePackedInteger(uint64 packed_integer, byte *to);
 
 unsigned packAndWriteInteger(uint64 integer, byte *to);
@@ -299,6 +315,14 @@ template <typename BitVector, typename Integer>
 inline void pushBits(BitVector& bv, Integer n, size_t bits) {
   for(size_t i = 1; i <= bits; ++i)
     bv.push_back( (n >> (bits-i)) & 1 );
+}
+
+template <typename BitVector, typename Integer>
+inline void pushBitsRev(BitVector& bv, Integer n, size_t bits) {
+  for(size_t i = 0; i < bits; ++i) {
+    bv.push_back( n & 1 );
+    n >>= 1;
+  }
 }
 
 /**Forms unary code for given integer and pushes it into the back of

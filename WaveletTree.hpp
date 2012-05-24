@@ -274,9 +274,13 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
       integers.push_back(it->first);
       freqs.push_back(it->second);
     }
+    /* Huffman-codes for integers */
     utils::calculateHuffmanLengths(integerCodeLengths, &freqs[0], integers);
     std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
     
+    /* Hu-Tucker-codes for integers
+    utils::calculateHuTuckerLengths(integerCodeLengths, &freqs[0], integers);
+    */
     m_integerCodeTree = new TreeNode<BitVector>();
     assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
     collectCodes(m_integerCodes, m_integerCodeTree);
@@ -367,6 +371,7 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
       integerCodeLengths.push_back(std::make_pair(len, integers[i]));
     }
 
+    /* Would sort if used Huffman codes*/
     std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
     m_integerCodeTree = new TreeNode<BitVector>();
 
@@ -1209,6 +1214,11 @@ size_t WaveletTree<BitVector>::assignPrefixCodes(
     size_t elem, size_t bits)
 {
   if(elem >= lengths.size()) return elem;
+  /*if(bits == lengths[elem].first) {
+    node->m_hasSymbol = true;
+    node->m_symbol = lengths[elem].second;
+    return elem + 1;
+  } else */
   if(bits == lengths[elem].first - 1) {
     if(!node->m_left) {
       node->m_left = new TreeNode<BitVector>(lengths[elem].second);

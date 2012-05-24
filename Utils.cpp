@@ -27,6 +27,7 @@
 #include <cassert>
 #include <algorithm>
 #include <utility>
+#include <map>
 #include <vector>
 
 #include "globaldefs.hpp"
@@ -225,6 +226,167 @@ void computeHuffmanCodes(uint32 *clen, uint32 *code) {
       }
     }
   }*/
+}
+
+namespace {
+
+struct HuTuckerNode {
+  HuTuckerNode(HuTuckerNode* l, HuTuckerNode* r, uint64 w, uint32 s)
+      : left(l), right(r), weight(w), symbol(s) {}
+
+  HuTuckerNode* left;
+  HuTuckerNode* right;
+  uint64 weight;
+  uint32 symbol;
+};
+
+int nextTerminal(const std::vector<HuTuckerNode*>& v, int i) {
+  while(i < v.size() && (!v[i] || v[i]->left)) ++i;
+  if (i == v.size()) --i;
+  return i;
+}
+
+int nextValid(const std::vector<HuTuckerNode*>& v, int i) {
+  while(i < v.size() && !v[i]) ++i;
+  return i;
+}
+
+std::pair<int, int> findMinSum(const std::vector<HuTuckerNode*>& v, int begin,
+                               int end, uint64& minSum) {
+  int s = nextValid(v, begin+1);
+  int left = begin, right = s;
+  uint64 mS = v[s]->weight + v[begin]->weight;
+  while(s <= end) {
+    uint64 sum = v[s]->weight + v[begin]->weight;
+    if(sum < mS) {
+      mS = sum; left = begin, right = s;
+    }
+
+    if(v[s]->weight < v[begin]->weight) {
+      begin = s;
+    }
+    s = nextValid(v, s+1);
+  }
+
+  minSum = mS;
+  return std::make_pair(left, right);
+}
+
+void collectLengthsAndDestroyTree(HuTuckerNode* node, uint32 d,
+                                  std::map<uint32, uint32>& lengths) {
+  if(node->left == 0) {
+    lengths[node->symbol] = d;
+    delete node;
+  } else {
+    collectLengthsAndDestroyTree(node->left, d+1, lengths);
+    collectLengthsAndDestroyTree(node->right, d+1, lengths);
+    delete node;
+  }
+}
+} // namespace
+
+void calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                              uint64 *freqs, const std::vector<uint32>& names)
+{
+  if(names.size() == 1) {
+    codeLengths.push_back(std::make_pair(1,names[0]));
+    return;
+  } else if(names.size() == 2) {
+    codeLengths.push_back(std::make_pair(1,names[0]));
+    codeLengths.push_back(std::make_pair(1,names[1]));
+    return;
+  }
+
+  std::vector<HuTuckerNode*> nodes;
+  for(size_t i = 0; i < names.size(); ++i) {
+    nodes.push_back(new HuTuckerNode(0, 0, freqs[i], names[i]));
+  }
+  size_t removed = 0;
+  int im1 = 0, curr = 0;
+  // first pass to combine nodes at the beginning:
+  if(nodes[0]->weight <= nodes[2]->weight) {
+    HuTuckerNode* n = new HuTuckerNode(
+        nodes[0], nodes[1], nodes[0]->weight +  nodes[1]->weight, 0);
+    nodes[0] = n;
+    nodes[1] = 0;
+    curr = 2;
+    ++removed;
+  } else {
+    curr = 1;
+  }
+  while(curr + 2 < nodes.size()) {
+    if(nodes[im1]->weight > nodes[curr+1]->weight &&
+       nodes[curr]->weight <= nodes[curr+2]->weight)
+    {
+      HuTuckerNode* n = new HuTuckerNode(
+          nodes[curr], nodes[curr + 1],
+          nodes[curr]->weight + nodes[curr + 1]->weight, 0);
+      nodes[curr] = n;
+      nodes[curr+1] = 0;
+      im1 = curr;
+      curr += 2;
+      ++removed;
+    } else {
+      im1 = curr;
+      ++curr;
+    }
+  }
+  if(curr == nodes.size() - 2) {
+    if(nodes[curr + 1]->weight < nodes[curr - 1]->weight) {
+      HuTuckerNode* n = new HuTuckerNode(
+          nodes[curr], nodes[curr + 1],
+          nodes[curr]->weight + nodes[curr + 1]->weight, 0);
+      nodes[curr] = n;
+      nodes[curr+1] = 0;
+      ++removed;
+    }
+  }
+
+  int deleted = removed;
+  while(removed < names.size()-1) {
+    if(deleted >= nodes.size()/2) {
+      int i = 0;
+      for(size_t j = 0; j < nodes.size(); ++j) {
+        if(nodes[j]) nodes[i++] = nodes[j];
+      }
+      nodes.resize(i);
+      deleted = 0;
+    }
+    int first = nextTerminal(nodes, 0);
+    int second = nextTerminal(nodes, first+1);
+
+    uint64 minWeight = nodes[first]->weight + nodes[second]->weight;
+    int minLeft = first, minRight = second;
+
+    while(first + 1 < nodes.size()) {
+      uint64 minSum;
+      std::pair<int, int> lr = findMinSum(nodes, first, second, minSum);
+      if(minSum < minWeight) {
+        minWeight = minSum;
+        minLeft = lr.first, minRight = lr.second;
+      }
+      first = second;
+      second = nextTerminal(nodes, first+1);
+    }
+
+    HuTuckerNode* n = new HuTuckerNode(
+        nodes[minLeft], nodes[minRight], minWeight, 0);
+    nodes[minLeft] = n;
+    nodes[minRight] = 0;
+    
+    ++removed;
+    ++deleted;
+  }
+
+  std::map<uint32, uint32> lengths;
+  collectLengthsAndDestroyTree(nodes[0], 0, lengths);
+
+  for(std::map<uint32, uint32>::const_iterator it = lengths.begin();
+      it != lengths.end(); ++it)
+  {
+    std::cout << it->first << " " << it->second << std::endl;
+    codeLengths.push_back(std::make_pair(it->second, it->first));
+  }
 }
 
 void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,

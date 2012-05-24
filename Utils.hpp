@@ -149,6 +149,9 @@ void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLength
 void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
                              uint64 *freqs, const std::vector<uint32>& names);
 
+void calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                              uint64 *freqs, const std::vector<uint32>& names);
+
 void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
                           uint64 *freqs);
  

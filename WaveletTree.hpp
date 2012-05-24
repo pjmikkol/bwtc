@@ -39,7 +39,7 @@
 #include <utility>
 #include <vector>
 
-//#define OPTIMIZED_INTEGER_CODE
+#define OPTIMIZED_INTEGER_CODE
 
 namespace bwtc {
 
@@ -358,8 +358,6 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
     std::vector<uint32> integers;
     bitsRead += utils::binaryInterpolativeDecode(integers, input, 1,
                                                  longestRun, symbols);
-    std::cout << "integers " << symbols << " maxRun " << longestRun << " maxCode = "
-              << maxLen << std::endl;
     std::vector<std::pair<uint64, uint32> > integerCodeLengths;
     for(size_t i = 0; i < symbols; ++i) {
       size_t n = utils::unaryDecode(input);
@@ -371,7 +369,7 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
 
     std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
     m_integerCodeTree = new TreeNode<BitVector>();
-    std::cout << integerCodeLengths[0].first << " " << integerCodeLengths[0].second << std::endl;
+
     assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
     collectCodes(m_integerCodes, m_integerCodeTree);
 
@@ -447,8 +445,6 @@ void WaveletTree<BitVector>::treeShape(BitVector& vec) const {
     
     utils::binaryInterpolativeCode(integers, 0, integers.size() - 1, 1, integers.back(), vec);
 
-    std::cout << "integers = " << integers.size() << " laargest = "
-              << integers.back() << " maxCode = " << maxLen << std::endl;
     for(typename std::map<uint32, BitVector>::const_iterator it = m_integerCodes.begin();
         it != m_integerCodes.end(); ++it) {
       assert(it->second.size() > 0);
@@ -1117,8 +1113,8 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
       runLength |= (bit?1:0);
     }
 #else
-    bit = node->m_bitVector[i];
     do {
+      bit = node->m_bitVector[i];
       if(bit) {
         i = bitsSeen[node]++;
         assert(node->m_right);
@@ -1130,6 +1126,7 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
       }
     } while(!node->m_hasSymbol);
     size_t runLength = node->m_symbol;
+    assert(m_integerCodes.count(runLength) > 0);
 #endif    
     for(size_t k = 0; k < runLength; ++k) {
       *out++ = symbol;

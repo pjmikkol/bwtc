@@ -236,6 +236,8 @@ void WaveletEncoder::writeBlockHeader(std::vector<uint64>* stats) {
     headerLength += bytes;
     writePackedInteger(packed_cblock_size);
   }
+  // Calculate Runs and their coding
+  
   m_compressedBlockLength = headerLength;
 
   m_destination.resetCounter();

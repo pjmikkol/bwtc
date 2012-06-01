@@ -67,6 +67,9 @@ static const Probability kHalfProbability = kProbabilityScale >> 1;
 
 typedef unsigned char byte;
 
+/** Maximum number of starting points in inverse transform. */
+static const uint32 s_maxStartingPoints = 256;
+
 } // namespace bwtc
 
 /**

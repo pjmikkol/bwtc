@@ -70,7 +70,7 @@ void Preprocessor::buildStats(std::vector<byte>* data,
 }
 
 void Preprocessor::connect(const std::string& source_name) {
-  m_source = new InStream(source_name);
+  m_source = new RawInStream(source_name);
 }
 
 void Preprocessor::addBlockManager(BlockManager* manager) {
@@ -124,9 +124,7 @@ size_t Preprocessor::preprocess(std::vector<byte>& original, size_t length) {
       char c = m_preprocessingOptions[i];
       if(c == 'p') {
         PREPROCESS(PairReplacer, verbosity > 1, src, dst);
-      } /*else if(c == 's') {
-        PREPROCESS(SequenceReplacer, verbosity > 1, src, dst);
-        }*/
+      }
       std::swap(src, dst);
     }
   }

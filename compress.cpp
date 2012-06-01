@@ -77,7 +77,6 @@ void compress(const std::string& input_name, const std::string& output_name,
     //Transformer could have some memory manager..
     transformer->connect(block);
     transformer->buildStats();
-    encoder->writeBlockHeader(block->m_stats);
 
     /* The following way enables the calculation of transformation in 
      * several phases */
@@ -88,6 +87,8 @@ void compress(const std::string& input_name, const std::string& output_name,
                 << " starting points for inverse transform." << std::endl;
     }
     transformer->doTransform(LFpowers);
+
+    encoder->writeBlockHeader(block->m_stats);
     encoder->encodeData(block->begin(), block->m_stats, block->size());
 
 

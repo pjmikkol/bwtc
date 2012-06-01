@@ -76,7 +76,7 @@ class Preprocessor {
   size_t preprocess(std::vector<byte>& src, size_t length);
 
  protected:
-  InStream* m_source;
+  RawInStream* m_source;
   uint64 m_blockSize;
   BlockManager* m_blockManager;
   

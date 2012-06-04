@@ -36,7 +36,7 @@
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
 #include "Streams.hpp"
-
+ 
 namespace bwtc {
 
 /* Base class for all entropy encoders */

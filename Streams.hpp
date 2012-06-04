@@ -39,22 +39,21 @@
 namespace bwtc {
 
 /**
- * OutStream writes data into file or std::cout.
+ * RawOutStream writes data into file or std::cout.
  *
- * On the compression pipeline OutStream-object is located at the end of
- * the pipeline. It is owned by Encoder-object which feeds it with compressed
- * data.
+ * On the compression pipeline RawOutStream-object is located at the end of
+ * the pipeline. It is owned by Compressor-object which control the states of
+ * stream. The actual writes are done by EntropyEncoder.
  *
- * OutStream is also at the end of the decompression pipeline right after the
- * postprocessors.
+ * RawOutStream is also at the end of the decompression pipeline right after
+ * the postprocessors.
  *
- * @see Encoder
- * @see PostProcessor
+ * @see Compressor
  */
-class OutStream {
+class RawOutStream {
  public:
-  explicit OutStream(std::string file_name);
-  ~OutStream();
+  explicit RawOutStream(std::string file_name);
+  ~RawOutStream();
 
   /**
    * Writes given byte into target.
@@ -65,32 +64,9 @@ class OutStream {
 
   /**
    * Writes bytes from range [begin, end) to stream
-   *
-   * @param begin iterator to the start of the range to be written
-   * @param end iterator to the one past last of the range to be written
    */
-  void writeBlock(std::vector<byte>::const_iterator begin,
-                  std::vector<byte>::const_iterator end);
-  std::streampos getPos() const; 
-  void write48bits(uint64 to_written, std::streampos position);
-  void flush();
+  void writeBlock(byte *begin, byte *end);
 
- private:
-  std::string m_name;
-  std::ostream* m_to;
-  std::ofstream* m_outfile;
-  
-  OutStream& operator=(const OutStream& os);
-  OutStream(const OutStream& os);
-};
-
-class RawOutStream {
- public:
-  explicit RawOutStream(std::string file_name);
-  ~RawOutStream();
-
-  void writeByte(byte b);
-  void writeBlock(byte *begin, byte *end); // write [begin, end)
   long int getPos();
   void write48bits(uint64 to_written, long int position);
   void flush();
@@ -107,63 +83,16 @@ class RawOutStream {
   RawOutStream(const RawOutStream& os);
 };
 
-class InStream {
- public:
-  explicit InStream(const std::string& file_name);
-  ~InStream();
-  /* Copies block from stream to given char array.
-   * Returns the number of read chars. */
-  std::streamsize readBlock(byte* to, std::streamsize max_block_size);
-
-  inline bool readBit() {
-    if (m_bitsInBuffer == 0) {
-      m_buffer = static_cast<byte>(m_from->get());
-      m_bitsInBuffer = 8;
-    }
-    return (m_buffer >> --m_bitsInBuffer) & 1;
-  }
-
-  inline byte readByte() {
-    assert(m_bitsInBuffer < 8);
-    byte nextByte = static_cast<byte>(m_from->get());
-    m_buffer = (m_buffer << 8) | nextByte;
-    return (m_buffer >> m_bitsInBuffer) & 0xff;
-  }
-
-  inline void flushBuffer() {
-    m_bitsInBuffer = 0;
-  }
-  
-  uint64 read48bits();
-
-  bool compressedDataEnding() {
-    /* Quick workaround. For some mysterious reason there is single
-     * additional byte in the end of compressed file. It seems that
-     * BitEncoder is responsible for this. */
-    if (m_from->eof()) return true;
-    readByte();
-    if (m_from->eof()) return true;
-    m_from->unget();
-    return false;
-  }
-
- private:
-  std::string m_name;
-  std::istream* m_from;
-  std::ifstream* m_infile;
-  uint16 m_buffer;
-  byte m_bitsInBuffer;
-
-  InStream& operator=(const InStream& os);
-  InStream(const InStream& os);
-};
 
 struct RawInStream {
  public:
   explicit RawInStream(const std::string &file_name);
   ~RawInStream();
 
+  /* Copies block from stream to given byte array.
+   * Returns the number of read bytes. */
   uint64 readBlock(byte *to, uint64 max_block_size);
+
   inline bool readBit() {
     if (m_bitsInBuffer == 0) {
       m_buffer = static_cast<byte>(fetchByte());

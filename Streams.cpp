@@ -40,7 +40,7 @@
 
 namespace bwtc {
 
-RawOutStream::RawOutStream(std::string file_name)
+RawOutStream::RawOutStream(const std::string& file_name)
     :m_name(file_name) {
   m_buffer = new byte[kBufferSize];
   if (!m_buffer) {

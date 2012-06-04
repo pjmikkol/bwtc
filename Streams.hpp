@@ -52,7 +52,7 @@ namespace bwtc {
  */
 class RawOutStream {
  public:
-  explicit RawOutStream(std::string file_name);
+  explicit RawOutStream(const std::string& file_name);
   ~RawOutStream();
 
   /**
@@ -66,6 +66,8 @@ class RawOutStream {
    * Writes bytes from range [begin, end) to stream
    */
   void writeBlock(byte *begin, byte *end);
+
+  bool isStdout() const { return m_fileptr == stdout; }
 
   long int getPos();
   void write48bits(uint64 to_written, long int position);
@@ -112,6 +114,8 @@ struct RawInStream {
     m_bitsInBuffer = 0;
   }
   
+  bool isStdin() const { return m_fileptr == stdin; }
+
   uint64 read48bits();
 
   bool compressedDataEnding() {

@@ -66,7 +66,9 @@
  * BWT-block:
  * BWT-block contains header, trailer and entropy encoded data, which is
  * transformed. Header of BWT-block contains the size of the compressed BWT-
- * block and the size of uncompressed BWT-block (before precompression).
+ * block and the size of uncompressed BWT-block (before precompression). In
+ * addition header contains the data necessary to uncompress the block
+ * (written by entropy encoder).
  * Trailer of BWT-block contains the number of starting points used in inverse
  * and their positions.
  *
@@ -76,16 +78,32 @@
 #define BWTC_COMPRESSOR_HPP_
 
 #include "bwtransforms/BWTManager.hpp"
+#include "preprocessors/Preprocessor.hpp"
 #include "EntropyCoders.hpp"
+#include "Streams.hpp"
 
+#include <string>
 
 namespace bwtc {
 
 class Compressor {
  public:
+  Compressor(const std::string& in, const std::string& out, size_t memLimit);
+  Compressor(RawInStream* in, RawOutStream* out, size_t memLimit);
+  ~Compressor();
 
+  void setEntropyEncoder(char choice);
+  void setPreprocessor(const std::string& parameters);
+
+  void compress(size_t threads);
 
  private:
+  RawInStream *m_in;
+  RawOutStream *m_out;
+  EntropyEncoder *m_coder;
+  Preprocessor *m_preprocessor;
+  //BWTManager m_bwtmanager;
+  size_t m_memLimit;
 };
 
 } //namespace bwtc

@@ -47,7 +47,7 @@ class BWTBlock {
   }
 
   BWTBlock(byte *data, uint32 length, std::vector<uint32>& startingPoints)
-      : m_data(data), m_length(length), m_isTransformed(true) {
+      : m_begin(data), m_length(length), m_isTransformed(true) {
     std::swap(startingPoints, m_startingPoints);
   }
 

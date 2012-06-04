@@ -57,6 +57,7 @@ void SimpleWriteReadTest() {
   out.writeByte('b');
   out.writeByte('c');
   out.flush();
+
   bwtc::RawInStream in(test_fname);
   assert(in.readByte() == 'a');
   assert('b' == in.readByte());

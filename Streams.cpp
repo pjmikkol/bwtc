@@ -84,6 +84,7 @@ void RawOutStream::flush() {
     fwrite(m_buffer, 1, m_filled, m_fileptr);
     m_filled = 0;
   }
+  fflush(m_fileptr);
 }
 
 long int RawOutStream::getPos() {
@@ -179,7 +180,6 @@ int32 RawInStream::peekByte() {
     m_bigbuf_left = fread(m_bigbuf, 1, kBigbufSize, m_fileptr);
     if (m_bigbuf_left <= 0) return EOF;
   }
-  --m_bigbuf_left;
   return m_bigbuf[m_bigbuf_pos];
 }
 

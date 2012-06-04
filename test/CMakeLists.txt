@@ -34,11 +34,6 @@ set_tests_properties(SaisTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 add_executable(DivsufsortTest DivsufsortTest.cpp)
 target_link_libraries(DivsufsortTest bwtransforms)
 
-add_executable(StreamTest StreamTest.cpp)
-target_link_libraries(StreamTest common ${Boost_LIBRARIES})
-add_test(StreamTest ${EXECUTABLE_OUTPUT_PATH}/StreamTest "test_file")
-set_tests_properties(StreamTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
-
 add_executable(RawStreamTest RawStreamTest.cpp)
 target_link_libraries(RawStreamTest common ${Boost_LIBRARIES})
 add_test(RawStreamTest ${EXECUTABLE_OUTPUT_PATH}/RawStreamTest "test_file")

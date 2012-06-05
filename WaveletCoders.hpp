@@ -37,25 +37,28 @@
 #include "BitCoders.hpp"
 #include "probmodels/ProbabilityModel.hpp"
 #include "Streams.hpp"
+#include "BWTBlock.hpp"
 
 namespace bwtc {
 
 class WaveletEncoder : public EntropyEncoder {
  public:
-  WaveletEncoder(const std::string& destination, char prob_model);
+  WaveletEncoder(char prob_model);
   ~WaveletEncoder();
-  void writeGlobalHeader(char encoding);
-  void encodeData(const byte* data, std::vector<uint64>* stats,
-                  uint64 data_size);
-  void writeBlockHeader(std::vector<uint64>* stats);
 
-  void writePackedInteger(uint64 packed_integer);
+  void encodeData(const byte* data, std::vector<uint64>* stats,
+                  uint64 data_size, RawOutStream* out);
+  void writeBlockHeader(std::vector<uint64>* stats, RawOutStream* out);
+  void finishBlock(const std::vector<uint32>& LFpowers, RawOutStream* out);
+
+  size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
+                            RawOutStream* out);
+  
+  void writePackedInteger(uint64 packed_integer, RawOutStream* out);
   void endContextBlock();
-  int writeTrailer(const std::vector<uint32>& LFpowers);
-  void finishBlock(const std::vector<uint32>& LFpowers);
+  int writeTrailer(const std::vector<uint32>& LFpowers, RawOutStream* out);
 
  private:
-  RawOutStream* m_out;
   dcsbwt::BitEncoder m_destination;
   /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;
@@ -63,7 +66,7 @@ class WaveletEncoder : public EntropyEncoder {
   ProbabilityModel* m_integerProbModel;
   /** Probability model for bits coming after gaps. */
   ProbabilityModel* m_gapProbModel;
-  /*std::streampos*/ long int m_headerPosition;
+  long int m_headerPosition;
   uint64 m_compressedBlockLength;
  
   WaveletEncoder(const WaveletEncoder&);
@@ -75,9 +78,6 @@ class WaveletDecoder : public EntropyDecoder {
   WaveletDecoder(const std::string& source);
   WaveletDecoder(RawInStream* in, char decoder);
   ~WaveletDecoder();
-  /* It changes the used probability model automatically. */
-  void readGlobalHeader();
-  //void start() { m_source->start(); }
   /* If end symbol is encountered, then the most significant bit is activated */
   uint64 readPackedInteger();
   /* Allocates memory for block, reads and decodes it. */

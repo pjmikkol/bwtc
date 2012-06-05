@@ -1,5 +1,5 @@
 /**
- * @file BWTManager.hpp
+ * @file Decompressor.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -21,39 +21,35 @@
  *
  * @section DESCRIPTION
  *
- * Header for BWT-manager. The choice of BWT-algorithm is done in this
- * class. In future, if needed, the choice of the algorithm can be done in
- * fly based on the running times.
- *
+ * Implementation of Decompressor-class.
  */
 
-#ifndef BWTC_BWTMANAGER_HPP_
-#define BWTC_BWTMANAGER_HPP_
+#include "Decompressor.hpp"
 
-#include "../globaldefs.hpp"
-#include "../BWTBlock.hpp"
-#include "BWTransform.hpp"
-
-#include <vector>
+#include <string>
 
 namespace bwtc {
 
-class BWTManager {
- public:
-  BWTManager(char choice, uint32 startingPoints);
-  ~BWTManager();
+Decompressor::Decompressor(const std::string& in, const std::string& out)
+    : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
+      m_decoder(0), m_postprocessor(0) {}
 
-  void doTransform(std::vector<uint32>& LFpowers, BWTBlock& block);
+Decompressor::Decompressor(RawInStream* in, RawOutStream* out)
+    : m_in(in), m_out(out), m_decoder(0), m_postprocessor(0)
+{}
 
- private:
-  std::vector<BWTransform*> m_transformers;
-  uint32 startingPoints;
-  // TODO:
-  // Make MemoryManager, which handles the allocation of the space needed
-  // by the suffix arrays
+Decompressor::~Decompressor() {
+  delete m_in;
+  delete m_out;
+  delete m_decoder;
+  delete m_postprocessor;
+}
 
-};
+size_t Decompressor::readGlobalHeader() {
+  char entropyDecoder = static_cast<char>(m_in->readByte());
+  delete m_decoder;
+  m_decoder = giveEntropyDecoder(entropyDecoder);
+  return 1;
+}
 
-}  //namespace bwtc
-
-#endif
+} //namespace bwtc

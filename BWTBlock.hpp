@@ -58,7 +58,7 @@ class BWTBlock {
   }
 
   bool isTransformed() const { return m_isTransformed; }
-  uint32 length() const { return m_length; }
+  size_t size() const { return m_length; }
   byte* begin() { return m_begin; }
   const byte* begin() const { return m_begin; }
   

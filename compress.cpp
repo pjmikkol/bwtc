@@ -35,18 +35,11 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include "MainBlock.hpp"
-#include "BlockManager.hpp"
-#include "EntropyCoders.hpp"
-#include "preprocessors/Preprocessor.hpp"
-#include "Streams.hpp"
-#include "globaldefs.hpp"
-#include "bwtransforms/BWTransform.hpp"
-
+#include "Compressor.hpp"
 #include "Profiling.hpp"
 
 using bwtc::verbosity;
-
+/*
 void compress(const std::string& input_name, const std::string& output_name,
               uint64 block_size, const std::string& preproc, char encoding,
               uint32 startingPoints, char bwtAlgo)
@@ -78,8 +71,8 @@ void compress(const std::string& input_name, const std::string& output_name,
     transformer->connect(block);
     transformer->buildStats();
 
-    /* The following way enables the calculation of transformation in 
-     * several phases */
+    //The following way enables the calculation of transformation in 
+    //several phases
     std::vector<uint32> LFpowers;
     LFpowers.resize(startingPoints);
     if(verbosity > 1) {
@@ -112,6 +105,7 @@ void compress(const std::string& input_name, const std::string& output_name,
   delete encoder;
   delete transformer;
 }
+*/
 
 /* Notifier function for preprocessing option choice */
 void validatePreprocOption(const std::string& p) {
@@ -253,8 +247,12 @@ int main(int argc, char** argv) {
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
-  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
-
+  //  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
+  bwtc::Compressor compressor(input_name, output_name, block_size*6*1024, encoding);
+  compressor.setPreprocessor(preprocessing);
+  compressor.compress(1);
+  
+  
   PRINT_PROFILE_DATA
   return 0;
 }

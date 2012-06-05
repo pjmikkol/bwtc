@@ -36,6 +36,8 @@
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
 #include "Streams.hpp"
+#include "BWTBlock.hpp"
+#include "bwtransforms/BWTManager.hpp"
  
 namespace bwtc {
 
@@ -43,16 +45,13 @@ namespace bwtc {
 class EntropyEncoder {
  public:
   EntropyEncoder() {}
-  EntropyEncoder(const std::string& destination, char prob_model) {
-    (void) destination;
+  EntropyEncoder(char prob_model) {
     (void) prob_model;
   }
   virtual ~EntropyEncoder() {}
-  virtual void writeGlobalHeader(char encoding) = 0;
-  virtual void encodeData(const byte* data, std::vector<uint64>* stats,
-                          uint64 data_size) = 0;
-  virtual void writeBlockHeader(std::vector<uint64>* stats) = 0;
-  virtual void finishBlock(const std::vector<uint32>& LFpowers) = 0;
+
+  virtual size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
+                                    RawOutStream* out) = 0;
 
 #ifdef ENTROPY_PROFILER
   uint32 m_bytesForCharacters;
@@ -69,11 +68,10 @@ class EntropyDecoder {
     (void) source;
   }
   virtual ~EntropyDecoder() {}
-  virtual void readGlobalHeader() = 0;
   virtual std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers) = 0;
 };
 
-EntropyEncoder* giveEntropyEncoder(const std::string& destination, char prob_model);
+EntropyEncoder* giveEntropyEncoder(char prob_model);
 
 EntropyDecoder* giveEntropyDecoder(RawInStream* in, char decoder);
 

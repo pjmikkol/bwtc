@@ -22,7 +22,7 @@
  * @section DESCRIPTION
  *
  * Header for Compressor-class. The compressor is an abstraction of
- * an compression pipeline. It has 3 stages whic are illustrated in
+ * an compression pipeline. It has 3 stages which are illustrated in
  * the following diagram:
  *
  *  input -->  PRECOMPRESSION --> BWT --> ENTROPY CODING --> ouput
@@ -86,16 +86,26 @@
 
 namespace bwtc {
 
+struct Options {
+  Options(size_t memLimit_, char entropyCoder_) :
+      memLimit(memLimit_), entropyCoder(entropyCoder_) {}
+  Options(char entropyCoder_) : entropyCoder(entropyCoder_) {}
+  size_t memLimit;
+  char entropyCoder;
+};
+
 class Compressor {
  public:
-  Compressor(const std::string& in, const std::string& out, size_t memLimit);
-  Compressor(RawInStream* in, RawOutStream* out, size_t memLimit);
+  Compressor(const std::string& in, const std::string& out, size_t memLimit,
+             char entropyCoder);
+  Compressor(RawInStream* in, RawOutStream* out, size_t memLimit,
+             char entropyCoder);
   ~Compressor();
 
-  void setEntropyEncoder(char choice);
   void setPreprocessor(const std::string& parameters);
 
-  void compress(size_t threads);
+  size_t compress(size_t threads);
+  size_t writeGlobalHeader();
 
  private:
   RawInStream *m_in;
@@ -103,7 +113,7 @@ class Compressor {
   EntropyEncoder *m_coder;
   Preprocessor *m_preprocessor;
   //BWTManager m_bwtmanager;
-  size_t m_memLimit;
+  Options m_options;
 };
 
 } //namespace bwtc

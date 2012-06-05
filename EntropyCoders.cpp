@@ -37,32 +37,32 @@
 namespace bwtc {
 
 EntropyEncoder*
-giveEntropyEncoder(const std::string& destination, char encoder) {
-  if(encoder == 'H') {
+giveEntropyEncoder(char encoder) {
+  /*  if(encoder == 'H') {
     if(verbosity > 1) {
       std::clog << "Using Huffman encoder\n";
     }
     return new HuffmanEncoder(destination, encoder);
-  } else {
+    } else {*/
     if(verbosity > 1) {
       std::clog << "Using Wavelet tree encoder\n";
     }
-    return new WaveletEncoder(destination, encoder);
-  }
+    return new WaveletEncoder(encoder);
+    //}
 }
 
 EntropyDecoder* giveEntropyDecoder(RawInStream* in, char decoder) {
-  if(decoder == 'H') {
+  /*  if(decoder == 'H') {
     if(verbosity > 1) {
       std::clog << "Using Huffman decoder\n";
     }
     return new HuffmanDecoder(in);
-  } else {
+    } else {*/
     if(verbosity > 1) {
       std::clog << "Using Wavelet tree decoder\n";
     }
     return new WaveletDecoder(in, decoder);
-  }
+    //}
 }
 
 } // namespace bwtc

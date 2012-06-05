@@ -31,13 +31,16 @@
 namespace bwtc {
 
 Compressor::
-Compressor(const std::string& in, const std::string& out, size_t memLimit)
-    : m_in(new RawInStream(in)), m_out(new RawOutStream(out)), m_coder(0),
-      m_preprocessor(0), m_memLimit(memLimit) {}
+Compressor(const std::string& in, const std::string& out, size_t memLimit,
+           char entropyCoder)
+    : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
+      m_coder(giveEntropyEncoder(entropyCoder)),
+      m_preprocessor(0), m_options(memLimit, entropyCoder) {}
 
-Compressor::Compressor(RawInStream* in, RawOutStream* out, size_t memLimit)
-    : m_in(in), m_out(out), m_coder(0), m_preprocessor(0),
-      m_memLimit(memLimit) {}
+Compressor::Compressor(RawInStream* in, RawOutStream* out, size_t memLimit,
+                       char entropyCoder)
+    : m_in(in), m_out(out), m_coder(giveEntropyEncoder(entropyCoder)),
+      m_preprocessor(0), m_options(memLimit, entropyCoder) {}
 
 Compressor::~Compressor() {
   delete m_in;
@@ -46,9 +49,55 @@ Compressor::~Compressor() {
   delete m_preprocessor;
 }
 
-void Compressor::setEntropyEncoder(char choice) {
-  delete m_coder;
-  //m_coder = giveEntropyEncoder(choice);
+size_t Compressor::writeGlobalHeader() {
+  m_out->writeByte(static_cast<byte>(m_options.entropyCoder));
+  return 1;
+}
+
+void Compressor::setPreprocessor(const std::string& parameters) {
+  delete m_preprocessor;
+  m_preprocessor = new Preprocessor(parameters);
+}
+
+size_t Compressor::compress(size_t threads) {
+  size_t compressedSize = 0;
+  if(threads != 1) {
+    std::cerr << "Supporting only single thread!" << std::endl;
+    return 0;
+  }
+  compressedSize += writeGlobalHeader();
+
+  // More care should be paid for choosing the correct limits
+  size_t pbBlockSize = static_cast<size_t>(m_options.memLimit*0.72);
+  size_t bwtBlockSize = static_cast<size_t>(memLimit*0.18);
+  //std::vector<byte> temp(m_options.memLimit*0.24); for preprocessor
+
+  while(true) {
+    PrecompressorBlock *pb = m_preprocessor.readBlock(pbBlockSize);
+    if(pb->originalSize() == 0) {
+      delete pb;
+      break;
+    }
+    //Write pb-header: PrecompressorBlock or Compressor ?
+
+    std::vector<BWTBlock> bwtBlocks;
+    size_t begin = 0;
+    while(begin < pb->size()) {
+      bwtBlocks.push_back(pb->makeBlock(begin, bwtBlockSize));
+      begin += bwtBlocks.back().size();
+    }
+
+    for(size_t i = 0; i < bwtBlocks.size(); ++i) {
+      compressedSize += m_coder->
+          transformAndEncode(bwtBlocks[i], m_bwtManager, m_out);
+    }
+
+
+    delete pb;
+  }
+  
+  
+  return compressedSize;
 }
 
 } //namespace bwtc

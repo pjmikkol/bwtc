@@ -25,28 +25,29 @@
  */
 
 #include "Compressor.hpp"
+#include "PrecompressorBlock.hpp"
 
 #include <string>
 
 namespace bwtc {
 
 Compressor::
-Compressor(const std::string& in, const std::string& out, size_t memLimit,
-           char entropyCoder)
+Compressor(const std::string& in, const std::string& out,
+           const std::string& preprocessing, size_t memLimit, char entropyCoder)
     : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
-      m_coder(giveEntropyEncoder(entropyCoder)),
-      m_preprocessor(0), m_options(memLimit, entropyCoder) {}
+      m_coder(giveEntropyEncoder(entropyCoder)), m_precompressor(preprocessing),
+      m_options(memLimit, entropyCoder) {}
 
-Compressor::Compressor(RawInStream* in, RawOutStream* out, size_t memLimit,
-                       char entropyCoder)
+Compressor::
+Compressor(RawInStream* in, RawOutStream* out,
+           const std::string& preprocessing, size_t memLimit, char entropyCoder)
     : m_in(in), m_out(out), m_coder(giveEntropyEncoder(entropyCoder)),
-      m_preprocessor(0), m_options(memLimit, entropyCoder) {}
+      m_precompressor(preprocessing), m_options(memLimit, entropyCoder) {}
 
 Compressor::~Compressor() {
   delete m_in;
   delete m_out;
   delete m_coder;
-  delete m_preprocessor;
 }
 
 size_t Compressor::writeGlobalHeader() {
@@ -54,9 +55,9 @@ size_t Compressor::writeGlobalHeader() {
   return 1;
 }
 
-void Compressor::setPreprocessor(const std::string& parameters) {
-  delete m_preprocessor;
-  m_preprocessor = new Preprocessor(parameters);
+void Compressor::initializeBwtAlgorithm(char choice, uint32 startingPoints) {
+  m_bwtmanager.initialize(choice);
+  m_bwtmanager.setStartingPoints(startingPoints);
 }
 
 size_t Compressor::compress(size_t threads) {
@@ -69,11 +70,11 @@ size_t Compressor::compress(size_t threads) {
 
   // More care should be paid for choosing the correct limits
   size_t pbBlockSize = static_cast<size_t>(m_options.memLimit*0.72);
-  size_t bwtBlockSize = static_cast<size_t>(memLimit*0.18);
+  size_t bwtBlockSize = static_cast<size_t>(m_options.memLimit*0.18);
   //std::vector<byte> temp(m_options.memLimit*0.24); for preprocessor
 
   while(true) {
-    PrecompressorBlock *pb = m_preprocessor.readBlock(pbBlockSize);
+    PrecompressorBlock *pb = m_precompressor.readBlock(pbBlockSize, m_in);
     if(pb->originalSize() == 0) {
       delete pb;
       break;
@@ -81,15 +82,13 @@ size_t Compressor::compress(size_t threads) {
     //Write pb-header: PrecompressorBlock or Compressor ?
 
     std::vector<BWTBlock> bwtBlocks;
-    size_t begin = 0;
-    while(begin < pb->size()) {
-      bwtBlocks.push_back(pb->makeBlock(begin, bwtBlockSize));
-      begin += bwtBlocks.back().size();
-    }
+    pb->sliceIntoBlocks(bwtBlocks, bwtBlockSize);
 
     for(size_t i = 0; i < bwtBlocks.size(); ++i) {
       compressedSize += m_coder->
-          transformAndEncode(bwtBlocks[i], m_bwtManager, m_out);
+          transformAndEncode(bwtBlocks[i], m_bwtmanager, m_out);
+      //TODO: if optimizing memory usage now would be time to
+      //delete space allocated for bwtBlocks[i]
     }
 
 

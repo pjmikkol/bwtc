@@ -1,5 +1,5 @@
 /**
- * @file PrecompressorBlock.hpp
+ * @file Precompressor.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -21,36 +21,19 @@
  *
  * @section DESCRIPTION
  *
- * Header for Precompressor-block. The data of precompressor-block is first
- * read from the input stream. After precompression it is divided into
- * BWTBlocks which are then transformed and compressed independently.
+ * Implementation of precompressor.
  */
 
-#ifndef BWTC_PRECOMPRESSORBLOCK_HPP_
-#define BWTC_PRECOMPRESSORBLOCK_HPP_
 
-#include "globaldefs.hpp"
-#include "Streams.hpp"
-#include "BWTBlock.hpp"
-
-#include <vector>
+#include "Precompressor.hpp"
 
 namespace bwtc {
 
-class PrecompressorBlock {
- public:
-  PrecompressorBlock(RawInStream* in, size_t maxSize);
-  size_t originalSize() const { return m_originalSize; }
-  size_t size() const { return m_used; }
+Precompressor::Precompressor(const std::string& preprocessing)
+    : m_preprocessingOptions(preprocessing) {}
 
-  void sliceIntoBlocks(std::vector<BWTBlock>& blocks, uint32 blockSize);
-  
- private:
-  std::vector<byte> m_data;
-  size_t m_used;
-  size_t m_originalSize;
-};
+Precompressor::~Precompressor() {}
+
+
 
 } //namespace bwtc
-
-#endif

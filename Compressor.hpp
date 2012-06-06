@@ -78,7 +78,7 @@
 #define BWTC_COMPRESSOR_HPP_
 
 #include "bwtransforms/BWTManager.hpp"
-#include "preprocessors/Preprocessor.hpp"
+#include "preprocessors/Precompressor.hpp"
 #include "EntropyCoders.hpp"
 #include "Streams.hpp"
 
@@ -96,23 +96,24 @@ struct Options {
 
 class Compressor {
  public:
-  Compressor(const std::string& in, const std::string& out, size_t memLimit,
+  Compressor(const std::string& in, const std::string& out,
+             const std::string& preprocessing, size_t memLimit,
              char entropyCoder);
-  Compressor(RawInStream* in, RawOutStream* out, size_t memLimit,
+  Compressor(RawInStream* in, RawOutStream* out,
+             const std::string& preprocessing, size_t memLimit,
              char entropyCoder);
   ~Compressor();
 
-  void setPreprocessor(const std::string& parameters);
-
   size_t compress(size_t threads);
   size_t writeGlobalHeader();
+  void initializeBwtAlgorithm(char choice, uint32 startingPoints);
 
  private:
   RawInStream *m_in;
   RawOutStream *m_out;
   EntropyEncoder *m_coder;
-  Preprocessor *m_preprocessor;
-  //BWTManager m_bwtmanager;
+  Precompressor m_precompressor;
+  BWTManager m_bwtmanager;
   Options m_options;
 };
 

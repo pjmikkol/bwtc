@@ -50,7 +50,12 @@ class Divsufsorter : public BWTransform {
  public:
   Divsufsorter() {}
   virtual ~Divsufsorter() {}
-  virtual void doTransform(std::vector<uint32>& LFpowers) {
+  void doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) {
+    PROFILE("Divsufsorter::doTransform");
+    divbwt(begin, begin, 0, length, &LFpowers[0], LFpowers.size());
+  }
+
+  void doTransform(std::vector<uint32>& LFpowers) {
     PROFILE("Divsufsorter::doTransform");
     if(!m_currentBlock) return;
 

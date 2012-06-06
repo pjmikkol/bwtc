@@ -77,8 +77,7 @@ void WaveletDecoder::endContextBlock() {
 
 size_t WaveletEncoder::
 transformAndEncode(BWTBlock& block, BWTManager& bwtm, RawOutStream* out) {
-  std::vector<uint32> LFpowers;
-  bwtm.doTransform(LFpowers, block); // Also gather information about the runs
+  bwtm.doTransform(block); // Also gather information about the runs
   size_t bytes = 0;
   //TODO: find Integer coding
   //bytes += writeBlockHeader();

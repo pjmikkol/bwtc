@@ -1,5 +1,5 @@
 /**
- * @file PrecompressorBlock.hpp
+ * @file BWTBlock.cpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -21,36 +21,34 @@
  *
  * @section DESCRIPTION
  *
- * Header for Precompressor-block. The data of precompressor-block is first
- * read from the input stream. After precompression it is divided into
- * BWTBlocks which are then transformed and compressed independently.
+ * Implementation of BWT-block.
  */
 
-#ifndef BWTC_PRECOMPRESSORBLOCK_HPP_
-#define BWTC_PRECOMPRESSORBLOCK_HPP_
-
-#include "globaldefs.hpp"
-#include "Streams.hpp"
 #include "BWTBlock.hpp"
+#include "globaldefs.hpp"
 
 #include <vector>
 
 namespace bwtc {
 
-class PrecompressorBlock {
- public:
-  PrecompressorBlock(RawInStream* in, size_t maxSize);
-  size_t originalSize() const { return m_originalSize; }
-  size_t size() const { return m_used; }
+BWTBlock::BWTBlock(byte *data, uint32 length, bool isTransformed)
+    : m_begin(data), m_length(length), m_isTransformed(isTransformed) {}
 
-  void sliceIntoBlocks(std::vector<BWTBlock>& blocks, uint32 blockSize);
-  
- private:
-  std::vector<byte> m_data;
-  size_t m_used;
-  size_t m_originalSize;
-};
+BWTBlock::BWTBlock(const BWTBlock& b)
+    : m_begin(b.m_begin), m_length(b.m_length),
+      m_LFpowers(b.m_LFpowers), m_isTransformed(b.m_isTransformed) {}
+
+BWTBlock& BWTBlock::operator=(const BWTBlock& b) {
+  m_begin = b.m_begin;
+  m_length = b.m_length;
+  m_LFpowers = b.m_LFpowers;
+  m_isTransformed = b.m_isTransformed;
+}
+
+void BWTBlock::prepareLFpowers(uint32 startingPoints) {
+  if(m_length <= 256 || startingPoints == 0) m_LFpowers.resize(1);
+  else if(startingPoints <= 256) m_LFpowers.resize(startingPoints);
+  else m_LFpowers.resize(256);
+}
 
 } //namespace bwtc
-
-#endif

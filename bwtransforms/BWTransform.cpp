@@ -25,10 +25,11 @@
  */
 
 #include <cassert>
-
+#include <algorithm>
 #include <vector>
 
 #include "../globaldefs.hpp"
+#include "../BWTBlock.hpp"
 #include "BWTransform.hpp"
 #include "SA-IS-bwt.hpp"
 #include "Divsufsorter.hpp"
@@ -46,6 +47,12 @@ void BWTransform::buildStats() {
   stats[0] = 1;
   for(uint64 i = 0; i < m_currentBlock->size(); ++i)
     ++stats[(*m_currentBlock->m_block)[i] + 1];
+}
+
+void BWTransform::doTransform(BWTBlock& block) {
+  std::reverse(block.begin(), block.end());
+  doTransform(block.begin(), block.size(), block.LFpowers());
+  block.setTransformed(true);
 }
 
 std::vector<byte>* BWTransform::allocateMemory(uint64 size) {

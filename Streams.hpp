@@ -29,6 +29,7 @@
 #define BWTC_STREAM_HPP_
 
 #include <cstdio>
+#include <cassert>
 #include <iostream>
 #include <iterator>
 #include <string>

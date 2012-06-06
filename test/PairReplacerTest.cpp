@@ -67,6 +67,7 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   // size of replaced string == 10000+254
   std::vector<byte> result;
   result.resize(10254+20);
+  
   size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
   BOOST_CHECK_EQUAL(cSize,10254);
   uint32 gSize = grammar.writeGrammar(&result[10254]);

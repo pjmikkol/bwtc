@@ -40,18 +40,20 @@ namespace bwtc {
 
 class BWTManager {
  public:
-  BWTManager(char choice, uint32 startingPoints);
+  BWTManager();
+  BWTManager(uint32 startingPoints);
   ~BWTManager();
 
-  void doTransform(std::vector<uint32>& LFpowers, BWTBlock& block);
+  void doTransform(BWTBlock& block);
+  void initialize(char choice);
+  void setStartingPoints(uint32 startingPoints);
+  uint32 getStartingPoints() const;
 
+  static bool isValidChoice(char c);
+  
  private:
   std::vector<BWTransform*> m_transformers;
-  uint32 startingPoints;
-  // TODO:
-  // Make MemoryManager, which handles the allocation of the space needed
-  // by the suffix arrays
-
+  uint32 m_startingPoints;
 };
 
 }  //namespace bwtc

@@ -32,11 +32,13 @@
 #include <algorithm> // for reverse
 #include <vector>
 
+#include "../BWTBlock.hpp"
 #include "../MainBlock.hpp"
 #include "../globaldefs.hpp"
 
 namespace bwtc {
 
+// TODO: delete old stuff
 // If there is need for optimized memory management, then transformer
 // needs to be connected to some manager-object  
 
@@ -64,7 +66,10 @@ class BWTransform {
     std::reverse(m_currentBlock->begin(), m_currentBlock->end());
   }
   virtual void doTransform(std::vector<uint32>&) = 0;
+  virtual void doTransform(byte *begin, uint32 length, std::vector<uint32> LF) = 0;
   virtual void buildStats();
+
+  void doTransform(BWTBlock& block);
 
   virtual uint64 maxSizeInBytes(uint64 block_size) const = 0;
   virtual uint64 maxBlockSize(uint64 memory_budget) const = 0;

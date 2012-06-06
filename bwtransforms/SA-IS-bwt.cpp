@@ -39,6 +39,13 @@ namespace bwtc {
 
 SAISBWTransform::SAISBWTransform() {}
 
+void SAISBWTransform::
+doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) {
+  PROFILE("SAISBWTransform::doTransform");
+  std::vector<int> SA(length);
+  saisxx_bwt(begin, begin, &SA[0], (int)length, LFpowers);
+}
+
 void SAISBWTransform::doTransform(std::vector<uint32>& LFpowers) {
   PROFILE("SAISBWTransform::doTransform");
   if(!m_currentBlock) return;

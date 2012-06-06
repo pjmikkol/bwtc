@@ -37,6 +37,7 @@ namespace po = boost::program_options;
 
 #include "Compressor.hpp"
 #include "Profiling.hpp"
+#include "bwtransforms/BWTManager.hpp"
 
 using bwtc::verbosity;
 /*
@@ -151,7 +152,7 @@ void validateEncodingOption(char c) {
 
 /* Notifier function for encoding option choice */
 void validateBWTchoice(char c) {
-  if (c == 'd' || c == 's') return;
+  if (bwtc::BWTManager::isValidChoice(c)) return;
 
   class EncodingExc : public std::exception {
     virtual const char* what() const throw() {
@@ -187,10 +188,11 @@ int main(int argc, char** argv) {
         ("input-file", po::value<std::string>(&input_name),
          "file to compress, defaults to stdin")
         ("output-file", po::value<std::string>(&output_name),"target file")
-        ("bwt", po::value<char>(&bwtAlgo)->default_value('d')->notifier(&validateBWTchoice),
+        ("bwt", po::value<char>(&bwtAlgo)->default_value('a')->notifier(&validateBWTchoice),
          "BWT-algorithm to use:\n"
          "  d -- Yuta Mori's libdivsufsort\n"
-         "  s -- Yuta Mori's sais")
+         "  s -- Yuta Mori's sais\n"
+         "  a -- Chosen automatically from the algorithms above")
         ("prepr", po::value<std::string>(&preprocessing)->default_value("")->
          notifier(&validatePreprocOption),
          "preprocessor options:\n"
@@ -248,8 +250,8 @@ int main(int argc, char** argv) {
   if (stdin)  input_name = "";
 
   //  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
-  bwtc::Compressor compressor(input_name, output_name, block_size*6*1024, encoding);
-  compressor.setPreprocessor(preprocessing);
+  bwtc::Compressor compressor(input_name, output_name, preprocessing, block_size*6*1024, encoding);
+  compressor.initializeBwtAlgorithm(bwtAlgo, startingPoints);
   compressor.compress(1);
   
   

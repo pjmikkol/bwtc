@@ -37,19 +37,9 @@ namespace bwtc {
 
 class BWTBlock {
  public:
-  BWTBlock(byte *data, uint32 length, uint32 startingPoints=1)
-      : m_begin(data), m_length(length), m_isTransformed(false) {
-    if(m_length <= 256)
-      startingPoints = 1;
-    if(startingPoints > s_maxStartingPoints)
-      startingPoints = s_maxStartingPoints;
-    m_startingPoints.resize(startingPoints);
-  }
-
-  BWTBlock(byte *data, uint32 length, std::vector<uint32>& startingPoints)
-      : m_begin(data), m_length(length), m_isTransformed(true) {
-    std::swap(startingPoints, m_startingPoints);
-  }
+  BWTBlock(byte *data, uint32 length, bool isTransformed);
+  BWTBlock(const BWTBlock& b);
+  BWTBlock& operator=(const BWTBlock& b);
 
   /**This should only be used by BWTransform-/InverseBWT-classes. */
   void setTransformed(bool transformed) {
@@ -61,12 +51,20 @@ class BWTBlock {
   size_t size() const { return m_length; }
   byte* begin() { return m_begin; }
   const byte* begin() const { return m_begin; }
+  byte* end() { return m_begin + m_length; }
+  const byte* end() const { return m_begin + m_length; }
+  std::vector<uint32>& LFpowers() { return m_LFpowers; }
+
+  void prepareLFpowers(uint32 startingPoints);
+
   
  private:
   byte *m_begin;
   uint32 m_length;
-  std::vector<uint32> m_startingPoints;
+  std::vector<uint32> m_LFpowers;
   bool m_isTransformed;
+
+  BWTBlock();
 };
 
 } //namespace bwtc

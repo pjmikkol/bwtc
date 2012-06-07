@@ -1,5 +1,5 @@
 /**
- * @file PrecompressorBlock.hpp
+ * @file Precompressor.hpp
  * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
@@ -21,36 +21,41 @@
  *
  * @section DESCRIPTION
  *
- * Header for Precompressor-block. The data of precompressor-block is first
- * read from the input stream. After precompression it is divided into
- * BWTBlocks which are then transformed and compressed independently.
+ * Header for precompressor.
  */
 
-#ifndef BWTC_PRECOMPRESSORBLOCK_HPP_
-#define BWTC_PRECOMPRESSORBLOCK_HPP_
+#ifndef BWTC_PRECOMPRESSOR_HPP_
+#define BWTC_PRECOMPRESSOR_HPP_
 
-#include "globaldefs.hpp"
-#include "Streams.hpp"
-#include "BWTBlock.hpp"
+#include <iostream> /* for std::streamsize*/
+#include <string>
 
-#include <vector>
+#include "../globaldefs.hpp"
+#include "../Streams.hpp"
+#include "../PrecompressorBlock.hpp"
 
 namespace bwtc {
 
-class PrecompressorBlock {
+class Precompressor {
  public:
-  PrecompressorBlock(size_t maxSize, RawInStream* in);
-  size_t originalSize() const { return m_originalSize; }
-  size_t size() const { return m_used; }
+  Precompressor(const std::string& prepr);
+  ~Precompressor();
 
-  void sliceIntoBlocks(std::vector<BWTBlock>& blocks, uint32 blockSize);
-  
+  /* Reads and preprocesses data to byte array */
+  PrecompressorBlock* readBlock(size_t blockSize, RawInStream* in);
+
+  // TODO: give also the temporary memory to parameter (to be able
+  // precompress in-place)
+  size_t preprocess(std::vector<byte>& src, size_t length);
+
  private:
-  std::vector<byte> m_data;
-  size_t m_used;
-  size_t m_originalSize;
+  Precompressor& operator=(const Precompressor& p);
+  Precompressor(const Precompressor&);
+
+  std::string m_preprocessingOptions;
 };
 
-} //namespace bwtc
+} // namespace bwtc
+
 
 #endif

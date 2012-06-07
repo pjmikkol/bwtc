@@ -24,11 +24,14 @@
  * Implementation of Precompressor-block.
  */
 
+#include "globaldefs.hpp"
 #include "PrecompressorBlock.hpp"
 
 namespace bwtc {
 
-PrecompressorBlock::PrecompressorBlock(RawInStream* in, size_t maxSize) {
+PrecompressorBlock::PrecompressorBlock(size_t maxSize, RawInStream* in) {
+  m_data.resize(maxSize);
+  uint64 read = in->readBlock(&m_data[0], maxSize);
   
 }
 

@@ -24,8 +24,8 @@
  * Implementation of precompressor.
  */
 
-
 #include "Precompressor.hpp"
+#include "../Streams.hpp"
 
 namespace bwtc {
 
@@ -34,6 +34,8 @@ Precompressor::Precompressor(const std::string& preprocessing)
 
 Precompressor::~Precompressor() {}
 
-
+PrecompressorBlock* Precompressor::readBlock(size_t blockSize, RawInStream* in) {
+  PrecompressorBlock *result = new PrecompressorBlock(blockSize, in);
+}
 
 } //namespace bwtc

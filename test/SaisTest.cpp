@@ -52,27 +52,6 @@ int SufCmp(byte *str, uint32 s1, uint32 s2, unsigned n) {
   else return 1;
 }
 
-void testSA_IS() {
-  unsigned size = (rand() & 0x0000FFFF) + 1;
-  byte *str = new byte[size+1];
-  for(unsigned i = 0; i < size + 1; ++i) {
-    str[i] = rand() & 0xFF;
-  }
-  if(size > 255) {
-    for(unsigned i = 0; i < 256; ++i)
-      str[i] = i;
-  }
-  str[size] = 0;
-  uint32 *SA = new uint32[size+1];
-  sa_is::SA_IS_ZeroInclude(str, SA, size + 1, 256);
-  for(unsigned i = 1; i < size; ++i) {
-    assert(SufCmp(str, SA[i], SA[i+1], size) < 0);
-    assert(SA[i] < size);
-  }
-  std::cout << "." << std::flush;
-  assert(SA[0] == size);
-}
-
 void test_sais() {
   int size = (rand() & 0x0000FFFF) + 1;
   byte *str = new byte[size+1];
@@ -90,20 +69,6 @@ void test_sais() {
   assert(SA[0] == size);
 }
 
-void SimpleTest(char *arg) {
-  uint32 len = strlen(arg);
-  byte *str = new byte[len+1];
-  strcpy((char*)str, arg);
-  uint32 *SA = new uint32[len+1];
-  sa_is::SA_IS(str, SA, len + 1, 256);
-  for(uint32 i = 0; i < len + 1; ++i) {
-    if(SA[i] > 0) std::cout << str[SA[i] - 1];
-    else std::cout << '$';
-  }
-  std::cout << "\n";
-  delete [] SA;
-  delete [] str;
-}
 
 void BwtSaisTest(char *arg) {
   int len = strlen(arg);
@@ -130,13 +95,9 @@ void BwtSaisTest(char *arg) {
 int main(int argc, char** argv) {
   using namespace tests;
   if(argc > 1) {
-    SimpleTest(argv[1]);
     BwtSaisTest(argv[1]);
   }
   srand( time(NULL));
-  for(int i = 0; i < 10; ++i) {
-    testSA_IS();
-  }
   for(int i = 0; i < 10; ++i) {
     test_sais();
   }

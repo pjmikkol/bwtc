@@ -50,6 +50,13 @@ void BWTManager::doTransform(BWTBlock& block) {
   m_transformers[0]->doTransform(block);
 }
 
+void BWTManager::doTransform(BWTBlock& block, uint32 *freqs) {
+  assert(!block.isTransformed());
+  block.prepareLFpowers(m_startingPoints);
+  //Something more sophisticated here if choosing algorithm automatically:
+  m_transformers[0]->doTransform(block, freqs);
+}
+
 void BWTManager::setStartingPoints(uint32 startingPoints) {
   if(startingPoints < 1) startingPoints = 1;
   else if(startingPoints > 256) startingPoints = 256;

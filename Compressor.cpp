@@ -73,6 +73,9 @@ size_t Compressor::compress(size_t threads) {
   size_t bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*0.18),
                                  static_cast<size_t>(0x80000000 - 2));
 
+  if(m_precompressor.options().size() == 0) pbBlockSize = bwtBlockSize;
+  
+
   size_t preBlocks = 0;
   size_t bwtBlocks = 0;
   while(true) {

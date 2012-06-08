@@ -46,6 +46,13 @@ doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) {
   saisxx_bwt(begin, begin, &SA[0], (int)length, LFpowers);
 }
 
+void SAISBWTransform::
+doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers, uint32 *freqs) {
+  PROFILE("SAISBWTransform::doTransform");
+  std::vector<int> SA(length);
+  saisxx_bwt(begin, begin, &SA[0], (int)length, LFpowers, 256, freqs);
+}
+
 void SAISBWTransform::doTransform(std::vector<uint32>& LFpowers) {
   PROFILE("SAISBWTransform::doTransform");
   if(!m_currentBlock) return;

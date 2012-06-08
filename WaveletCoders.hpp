@@ -46,9 +46,9 @@ class WaveletEncoder : public EntropyEncoder {
   WaveletEncoder(char prob_model);
   ~WaveletEncoder();
 
-  void encodeData(const byte* data, std::vector<uint64>* stats,
-                  uint64 data_size, RawOutStream* out);
-  void writeBlockHeader(std::vector<uint64>* stats, RawOutStream* out);
+  void encodeData(const byte* data, const std::vector<uint32>& stats,
+                    RawOutStream* out);
+  void writeBlockHeader(std::vector<uint32>& stats, RawOutStream* out);
   void finishBlock(const std::vector<uint32>& LFpowers, RawOutStream* out);
 
   size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,

@@ -54,6 +54,7 @@ class SAISBWTransform : public BWTransform {
   SAISBWTransform();
   virtual ~SAISBWTransform() {}
   void doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers);
+  void doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers, uint32* freqs);
   void doTransform(std::vector<uint32>& LFpowers);
 
   /* The following values aren't correct */

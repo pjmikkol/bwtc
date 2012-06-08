@@ -60,6 +60,17 @@ void BWTransform::doTransform(BWTBlock& block) {
   *block.end() = next;
 }
 
+void BWTransform::doTransform(BWTBlock& block, uint32 freqs[256]) {
+  std::reverse(block.begin(), block.end());
+  byte next = *block.end();
+  *block.end() = 0;
+
+  doTransform(block.begin(), block.size() + 1, block.LFpowers(), freqs);
+  block.setTransformed(true);
+
+  *block.end() = next;
+}
+
 std::vector<byte>* BWTransform::allocateMemory(uint64 size) {
   return new std::vector<byte>(size);
 }

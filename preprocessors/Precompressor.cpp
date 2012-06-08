@@ -39,7 +39,7 @@ Precompressor::~Precompressor() {}
 PrecompressorBlock*
 Precompressor::readBlock(size_t blockSize, RawInStream* in) const {
   PrecompressorBlock *result = new PrecompressorBlock(blockSize, in);
-  precompress(*result);
+  if(result->originalSize() > 0) precompress(*result);
   return result;
 }
 
@@ -74,8 +74,10 @@ void Precompressor::precompress(PrecompressorBlock& block) const {
     src = dst;
   }
   block.setSize(length);
-  if(verbosity > 0) {
-    std::clog << "Size of precompressed block is " << length << std::endl;
+  if(verbosity > 1) {
+    std::clog << "Size of precompressed block is "
+              << ((double)length/block.originalSize())
+              << " of original." << std::endl;
   }
 
 }

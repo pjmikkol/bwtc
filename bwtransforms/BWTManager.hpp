@@ -45,6 +45,7 @@ class BWTManager {
   ~BWTManager();
 
   void doTransform(BWTBlock& block);
+  void doTransform(BWTBlock& block, uint32 *freqs);
   void initialize(char choice);
   void setStartingPoints(uint32 startingPoints);
   uint32 getStartingPoints() const;

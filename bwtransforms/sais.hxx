@@ -796,7 +796,6 @@ index_type i, pidx;
   if(0 <= pidx) {
     for(i = 0; i < pidx; ++i) { U[i] = (char_type)A[i]; }
     for(i += 1; i < n; ++i) { U[i-1] = (char_type)A[i]; }
-    pidx += 1;
     /*    U[0] = T[n - 1];
     for(i = 0; i < pidx; ++i) { U[i + 1] = (char_type)A[i]; }
     for(i += 1; i < n; ++i) { U[i] = (char_type)A[i]; }
@@ -805,7 +804,44 @@ index_type i, pidx;
       if(i != pidx) U[i] = (char_type)A[i];
     }*/
   }
-  //return pidx;
+}
+
+template<typename string_type, typename sarray_type, typename index_type>
+void
+saisxx_bwt(string_type T, string_type U, sarray_type A, index_type n,
+           std::vector<uint32>& LFpowers, index_type k, uint32 *freqs) {
+typedef typename std::iterator_traits<sarray_type>::value_type savalue_type;
+typedef typename std::iterator_traits<string_type>::value_type char_type;
+index_type i, pidx;
+  assert((std::numeric_limits<index_type>::min)() < 0);
+  assert((std::numeric_limits<savalue_type>::min)() < 0);
+  assert((std::numeric_limits<savalue_type>::max)() == (std::numeric_limits<index_type>::max)());
+  assert((std::numeric_limits<savalue_type>::min)() == (std::numeric_limits<index_type>::min)());
+  if((n < 0) || (k <= 0)) { LFpowers[0] = -1; }
+  if(n <= 1) { if(n == 1) { U[0] = T[0]; } LFpowers[0] = 0; }
+  if(LFpowers.size() == 1) {
+    LFpowers[0] = pidx = saisxx_private::suffixsort(T, A, 0, n, k, true);
+  } else {
+    pidx = saisxx_private::suffixsort(T, A, 0, n, k, true, LFpowers);
+  }
+
+  if(0 <= pidx) {
+    for(i = 0; i < pidx; ++i) {
+      U[i] = (char_type)A[i];
+      ++freqs[U[i]];
+    }
+    for(i += 1; i < n; ++i) {
+      U[i-1] = (char_type)A[i];
+      ++freqs[U[i-1]];
+    }
+    /*    U[0] = T[n - 1];
+    for(i = 0; i < pidx; ++i) { U[i + 1] = (char_type)A[i]; }
+    for(i += 1; i < n; ++i) { U[i] = (char_type)A[i]; }
+    pidx += 1;
+    for(i = 0; i < n; ++i) {
+      if(i != pidx) U[i] = (char_type)A[i];
+    }*/
+  }
 }
 
 

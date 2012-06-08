@@ -77,13 +77,14 @@ void WaveletDecoder::endContextBlock() {
 
 size_t WaveletEncoder::
 transformAndEncode(BWTBlock& block, BWTManager& bwtm, RawOutStream* out) {
-  bwtm.doTransform(block); // Also gather information about the runs
-  size_t bytes = 0;
+  std::vector<uint32> characterFrequencies(256, 0);
+  bwtm.doTransform(block, &characterFrequencies[0]); // Also gather information about the runs
   //TODO: find Integer coding
-  //bytes += writeBlockHeader();
-  //bytes += encodeData(block.begin(), stats, block.size());
-  //bytes += finishBlock(LFpowers, out);
-  return bytes;
+  m_destination.connect(out);
+  writeBlockHeader(characterFrequencies, out);
+  encodeData(block.begin(), characterFrequencies, out);
+  finishBlock(block.LFpowers(), out);
+  return m_compressedBlockLength + 6; //Also bytes for the compressedSize
 }
 
 int WaveletEncoder::
@@ -132,15 +133,14 @@ writeTrailer(const std::vector<uint32>& LFpowers, RawOutStream* out) {
 
 //At the moment we lose at worst case 7 bits when writing the shape of
 //wavelet tree
-void WaveletEncoder::encodeData(const byte* block, std::vector<uint64>* stats,
-                                uint64 block_size, RawOutStream* out)
+void WaveletEncoder::
+encodeData(const byte* block, const std::vector<uint32>& stats, RawOutStream* out)
 {
   PROFILE("WaveletEncoder::encodeData");
-  (void) block_size;
   size_t beg = 0;
-  for(size_t i = 0; i < stats->size(); ++i) {
-    if((*stats)[i] == 0) continue;
-    WaveletTree<std::vector<bool> > wavelet(&block[beg], (*stats)[i]);
+  for(size_t i = 0; i < stats.size(); ++i) {
+    if(stats[i] == 0) continue;
+    WaveletTree<std::vector<bool> > wavelet(&block[beg], stats[i]);
 
     int bytes;
     writePackedInteger(utils::packInteger(wavelet.bitsInRoot(), &bytes), out);
@@ -175,7 +175,7 @@ void WaveletEncoder::encodeData(const byte* block, std::vector<uint64>* stats,
     m_bytesForRuns += wavelet.m_bytesForRuns;
 #endif
     
-    beg += (*stats)[i];
+    beg += stats[i];
     endContextBlock();
   }
 }
@@ -196,14 +196,14 @@ finishBlock(const std::vector<uint32>& LFpowers, RawOutStream* out) {
  * - lengths of the sections which are encoded with same wavelet tree*
  *********************************************************************/
 void WaveletEncoder::
-writeBlockHeader(std::vector<uint64>* stats, RawOutStream* out) {
+writeBlockHeader(std::vector<uint32>& stats, RawOutStream* out) {
   uint64 headerLength = 0;
   m_headerPosition = out->getPos();
   for (unsigned i = 0; i < 6; ++i) out->writeByte(0x00); //fill 48 bits
 
   /* Deduce sections for separate encoding. At the moment uses not-so-well
    * thought heuristic. */
-  std::vector<uint64> temp; std::vector<uint64>& s = *stats;
+  std::vector<uint32> temp; std::vector<uint32>& s = stats;
   size_t sum = 0;
   for(size_t i = 0; i < s.size(); ++i) {
     sum += s[i];
@@ -227,13 +227,13 @@ writeBlockHeader(std::vector<uint64>* stats, RawOutStream* out) {
   assert(s.size() == temp.size());
   assert(temp.size() <= 256);
 
-  for (size_t i = 0; i < stats->size(); ++i) {
+  for (size_t i = 0; i < stats.size(); ++i) {
     int bytes;
-    uint64 packed_cblock_size = utils::packInteger((*stats)[i], &bytes);
+    uint64 packed_cblock_size = utils::packInteger(stats[i], &bytes);
     headerLength += bytes;
     writePackedInteger(packed_cblock_size, out);
   }
-  // Calculate Runs and their coding
+  // TODO: Calculate Runs and their coding
   
   m_compressedBlockLength = headerLength;
 

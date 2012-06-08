@@ -88,6 +88,11 @@ saidx_t
 divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n,
        unsigned *LFpowers, unsigned nLFpowers);
 
+DIVSUFSORT_API
+saidx_t
+divbwtf(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n,
+        unsigned *LFpowers, unsigned nLFpowers, unsigned *freqs);
+
 /**
  * Returns the version of the divsufsort library.
  * @return The version number string.

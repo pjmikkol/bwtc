@@ -485,6 +485,60 @@ divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n,
   return pidx;
 }
 
+saidx_t
+divbwtf(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n,
+        unsigned *LFpowers, unsigned nLFpowers, unsigned freqs[256]) {
+  saidx_t *B;
+  saidx_t *bucket_A, *bucket_B;
+  saidx_t m, pidx, i;
+
+  /* Check arguments. */
+  if((T == NULL) || (U == NULL) || (n < 0)) { return -1; }
+  else if(n <= 1) { if(n == 1) { U[0] = T[0]; } return n; }
+
+  if((B = A) == NULL) { B = (saidx_t *)malloc((size_t)(n + 1) * sizeof(saidx_t)); }
+  bucket_A = (saidx_t *)malloc(BUCKET_A_SIZE * sizeof(saidx_t));
+  bucket_B = (saidx_t *)malloc(BUCKET_B_SIZE * sizeof(saidx_t));
+
+  /* Burrows-Wheeler Transform. */
+  if((B != NULL) && (bucket_A != NULL) && (bucket_B != NULL)) {
+    m = sort_typeBstar(T, B, bucket_A, bucket_B, n);
+    if(nLFpowers > 1) {
+      pidx = construct_BWT(T, B, bucket_A, bucket_B, n, m, LFpowers, nLFpowers);
+      LFpowers[0] = pidx;
+    } else {
+      pidx = construct_BWT_orig(T, B, bucket_A, bucket_B, n, m);
+      *LFpowers = pidx;
+    }
+
+    for(i = 0; i < pidx; ++i) {
+      U[i] = (sauchar_t)B[i];
+      ++freqs[U[i]];
+    }
+    for(i += 1; i < n; ++i) {
+      U[i-1] = (sauchar_t)B[i];
+      ++freqs[U[i-1]];
+    }
+    
+    /* Copy to output string. 
+    for(i = 0; i < n; ++i)
+      if(i != pidx) U[i] = (sauchar_t)B[i];*/
+    /*
+    U[0] = T[n - 1];
+    for(i = 0; i < pidx; ++i) { U[i + 1] = (sauchar_t)B[i]; }
+    for(i += 1; i < n; ++i) { U[i] = (sauchar_t)B[i]; }
+    pidx += 1;*/
+  } else {
+    pidx = -2;
+  }
+
+  free(bucket_B);
+  free(bucket_A);
+  if(A == NULL) { free(B); }
+
+  return pidx;
+}
+
 const char *
 divsufsort_version(void) {
   return 0;

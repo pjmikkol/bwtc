@@ -48,6 +48,8 @@ class Precompressor {
   // precompress in-place)
   void precompress(PrecompressorBlock& block) const;
 
+  const std::string options() const { return m_preprocessingOptions; }
+  
  private:
   Precompressor& operator=(const Precompressor& p);
   Precompressor(const Precompressor&);

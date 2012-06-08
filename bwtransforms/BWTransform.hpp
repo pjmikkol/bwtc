@@ -67,9 +67,11 @@ class BWTransform {
   }
   virtual void doTransform(std::vector<uint32>&) = 0;
   virtual void doTransform(byte *begin, uint32 length, std::vector<uint32> LF) = 0;
+  virtual void doTransform(byte *begin, uint32 length, std::vector<uint32> LF, uint32 freqs[256]) = 0;
   virtual void buildStats();
 
   void doTransform(BWTBlock& block);
+  void doTransform(BWTBlock& block, uint32 freqs[256]);
 
   virtual uint64 maxSizeInBytes(uint64 block_size) const = 0;
   virtual uint64 maxBlockSize(uint64 memory_budget) const = 0;

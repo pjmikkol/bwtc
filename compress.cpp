@@ -165,7 +165,7 @@ void validateBWTchoice(char c) {
 
 
 int main(int argc, char** argv) {
-  uint64 block_size;
+  uint64 mem;
   char encoding, bwtAlgo;
   std::string input_name, output_name, preprocessing;
   bool stdout, stdin;
@@ -178,8 +178,8 @@ int main(int argc, char** argv) {
         ("help,h", "print help message")
         ("stdin,i", "input from standard in")
         ("stdout,c", "output to standard out")
-        ("block,b", po::value<uint64>(&block_size)->default_value(100000),
-         "Block size for compression (in kB)")
+        ("mem,m", po::value<uint64>(&mem)->default_value(100),
+         "Maximum memory to use (in MB)")
         ("starts,s", po::value<uint32>(&startingPoints)->default_value(8)->
          notifier(&validateStartingPoints),
          "Starting points for decompression (more means faster decompression).")
@@ -241,16 +241,16 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if (verbosity > 0) {
-    std::clog << "Block size = " << block_size <<  "kB" << std::endl;
+  if (verbosity > 2) {
+    std::clog << "Maximum memory to use = " << mem <<  "MB" << std::endl;
   }
-  if (block_size <= 0) block_size = 1;
+  if (mem <= 0) mem = 1;
 
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
 
   //  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
-  bwtc::Compressor compressor(input_name, output_name, preprocessing, block_size*6*1024, encoding);
+  bwtc::Compressor compressor(input_name, output_name, preprocessing, mem*1000000, encoding);
   compressor.initializeBwtAlgorithm(bwtAlgo, startingPoints);
   compressor.compress(1);
   

@@ -32,6 +32,8 @@
 #include "globaldefs.hpp"
 #include "Streams.hpp"
 #include "BWTBlock.hpp"
+#include "preprocessors/Grammar.hpp"
+#include "Streams.hpp"
 
 #include <vector>
 
@@ -42,11 +44,20 @@ class PrecompressorBlock {
   PrecompressorBlock(size_t maxSize, RawInStream* in);
   size_t originalSize() const { return m_originalSize; }
   size_t size() const { return m_used; }
+  void setSize(size_t size);
+  size_t slices() const { return m_bwtBlocks.size(); }
+  byte* begin() { return &m_data[0]; }
+  Grammar& grammar() { return m_grammar; }
 
-  void sliceIntoBlocks(std::vector<BWTBlock>& blocks, uint32 blockSize);
-  
+  void sliceIntoBlocks(size_t blockSize);
+  BWTBlock& getSlice(int i);
+
+  size_t writeBlockHeader(RawOutStream* out) const;
+
  private:
+  Grammar m_grammar;
   std::vector<byte> m_data;
+  std::vector<BWTBlock> m_bwtBlocks;
   size_t m_used;
   size_t m_originalSize;
 };

@@ -70,25 +70,29 @@ size_t Compressor::compress(size_t threads) {
 
   // More care should be paid for choosing the correct limits
   size_t pbBlockSize = static_cast<size_t>(m_options.memLimit*0.72);
-  size_t bwtBlockSize = static_cast<size_t>(m_options.memLimit*0.18);
-  //std::vector<byte> temp(m_options.memLimit*0.24); for preprocessor
+  size_t bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*0.18),
+                                 static_cast<size_t>(0x80000000 - 2));
 
+  size_t preBlocks = 0;
+  size_t bwtBlocks = 0;
   while(true) {
     PrecompressorBlock *pb = m_precompressor.readBlock(pbBlockSize, m_in);
     if(pb->originalSize() == 0) {
       delete pb;
       break;
     }
-    //Write pb-header: PrecompressorBlock or Compressor ?
+    pb->sliceIntoBlocks(bwtBlockSize);
+    ++preBlocks;
+    bwtBlocks += pb->slices();
+    //Write pb-header: PrecompressorBlock
+    compressedSize += pb->writeBlockHeader(m_out);
 
-    std::vector<BWTBlock> bwtBlocks;
-    pb->sliceIntoBlocks(bwtBlocks, bwtBlockSize);
-
-    for(size_t i = 0; i < bwtBlocks.size(); ++i) {
+    for(size_t i = 0; i < pb->slices(); ++i) {
       compressedSize += m_coder->
-          transformAndEncode(bwtBlocks[i], m_bwtmanager, m_out);
-      //TODO: if optimizing memory usage now would be time to
-      //delete space allocated for bwtBlocks[i]
+          transformAndEncode(pb->getSlice(i), m_bwtmanager, m_out);
+      //TODO: if optimizing overall memory usage now would be time to
+      //delete space allocated for i:th slice. However the worst case
+      //stays the same
     }
 
 

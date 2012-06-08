@@ -42,17 +42,17 @@ class Precompressor {
   ~Precompressor();
 
   /* Reads and preprocesses data to byte array */
-  PrecompressorBlock* readBlock(size_t blockSize, RawInStream* in);
+  PrecompressorBlock* readBlock(size_t blockSize, RawInStream* in) const;
 
   // TODO: give also the temporary memory to parameter (to be able
   // precompress in-place)
-  size_t preprocess(std::vector<byte>& src, size_t length);
+  void precompress(PrecompressorBlock& block) const;
 
  private:
   Precompressor& operator=(const Precompressor& p);
   Precompressor(const Precompressor&);
 
-  std::string m_preprocessingOptions;
+  const std::string m_preprocessingOptions;
 };
 
 } // namespace bwtc

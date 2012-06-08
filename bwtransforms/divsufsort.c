@@ -463,9 +463,12 @@ divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n,
       *LFpowers = pidx;
     }
 
-    /* Copy to output string. */
+    for(i = 0; i < pidx; ++i) { U[i] = (sauchar_t)B[i]; }
+    for(i += 1; i < n; ++i) { U[i-1] = (sauchar_t)B[i]; }
+    
+    /* Copy to output string. 
     for(i = 0; i < n; ++i)
-      if(i != pidx) U[i] = (sauchar_t)B[i];
+      if(i != pidx) U[i] = (sauchar_t)B[i];*/
     /*
     U[0] = T[n - 1];
     for(i = 0; i < pidx; ++i) { U[i + 1] = (sauchar_t)B[i]; }

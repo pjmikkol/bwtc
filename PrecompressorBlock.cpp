@@ -26,23 +26,47 @@
 
 #include "globaldefs.hpp"
 #include "PrecompressorBlock.hpp"
+#include "Streams.hpp"
+
+#include <cassert>
 
 namespace bwtc {
 
 PrecompressorBlock::PrecompressorBlock(size_t maxSize, RawInStream* in) {
-  m_data.resize(maxSize);
+  m_data.resize(maxSize+1);
   uint64 read = in->readBlock(&m_data[0], maxSize);
+  m_data.resize(read+1);
+  m_originalSize = m_used = read;
+}
+
+void PrecompressorBlock::setSize(size_t size) {
+  assert(size > 0);
+  m_used = size;
+  m_data.resize(size+1);
+}
+
+size_t PrecompressorBlock::writeBlockHeader(RawOutStream* out) const {
   
 }
 
-void PrecompressorBlock::
-sliceIntoBlocks(std::vector<BWTBlock>& blocks, uint32 blockSize) {
+void PrecompressorBlock::sliceIntoBlocks(size_t blockSize) {
+  //Have at least one additional byte for the sentinel of BWT
+  assert(m_used < m_data.size());
+  assert(blockSize < (0x80000000 - 2));
+  m_bwtBlocks.clear();
   size_t begin = 0;
   while(begin < m_used) {
-    uint32 bSize = std::min((size_t)blockSize, m_used - begin);
-    blocks.push_back(BWTBlock(&m_data[begin], bSize, false));
+    uint32 bSize = std::min(blockSize, m_used - begin);
+    m_bwtBlocks.push_back(BWTBlock(&m_data[begin], bSize, false));
     begin += bSize;
   }
+}
+
+
+BWTBlock& PrecompressorBlock::getSlice(int i) {
+  assert(i >= 0);
+  assert((size_t)i < m_bwtBlocks.size());
+  return m_bwtBlocks[i];
 }
 
 } //namespace bwtc

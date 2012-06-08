@@ -51,8 +51,13 @@ void BWTransform::buildStats() {
 
 void BWTransform::doTransform(BWTBlock& block) {
   std::reverse(block.begin(), block.end());
-  doTransform(block.begin(), block.size(), block.LFpowers());
+  byte next = *block.end();
+  *block.end() = 0;
+
+  doTransform(block.begin(), block.size() + 1, block.LFpowers());
   block.setTransformed(true);
+
+  *block.end() = next;
 }
 
 std::vector<byte>* BWTransform::allocateMemory(uint64 size) {

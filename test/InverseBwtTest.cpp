@@ -51,10 +51,11 @@ inline int my_random(int p, int r) {
 void test(byte *t, uint32 n) {
   std::vector<byte> v(n + 1);
   std::copy(t, t + n, v.begin());
-  BWTransform* transform = giveTransformer('a');
+  BWTransform* transform = giveTransformer('d');
   InverseBWTransform* inverse_transform = giveInverseTransformer();
 
   std::vector<byte> data(t, t+n);
+  std::reverse(data.begin(), data.end());
   data.push_back(0);
 
   std::vector<uint32> LFpowers;
@@ -65,7 +66,7 @@ void test(byte *t, uint32 n) {
   transform->doTransform(&data[0], n+1, LFpowers);
 
   std::vector<byte> *original =
-      inverse_transform->doTransform(&data[0], n, LFpowers);
+      inverse_transform->doTransform(&data[0], n+1, LFpowers);
 
   bool ok = true;
   if (original->size() != n) ok = false;

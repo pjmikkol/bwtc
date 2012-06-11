@@ -794,15 +794,9 @@ index_type i, pidx;
   }
 
   if(0 <= pidx) {
-    for(i = 0; i < pidx; ++i) { U[i] = (char_type)A[i]; }
-    for(i += 1; i < n; ++i) { U[i-1] = (char_type)A[i]; }
-    /*    U[0] = T[n - 1];
-    for(i = 0; i < pidx; ++i) { U[i + 1] = (char_type)A[i]; }
-    for(i += 1; i < n; ++i) { U[i] = (char_type)A[i]; }
-    pidx += 1;
     for(i = 0; i < n; ++i) {
       if(i != pidx) U[i] = (char_type)A[i];
-    }*/
+    }
   }
 }
 
@@ -826,21 +820,12 @@ index_type i, pidx;
   }
 
   if(0 <= pidx) {
-    for(i = 0; i < pidx; ++i) {
-      U[i] = (char_type)A[i];
-      ++freqs[U[i]];
-    }
-    for(i += 1; i < n; ++i) {
-      U[i-1] = (char_type)A[i];
-      ++freqs[U[i-1]];
-    }
-    /*    U[0] = T[n - 1];
-    for(i = 0; i < pidx; ++i) { U[i + 1] = (char_type)A[i]; }
-    for(i += 1; i < n; ++i) { U[i] = (char_type)A[i]; }
-    pidx += 1;
     for(i = 0; i < n; ++i) {
-      if(i != pidx) U[i] = (char_type)A[i];
-    }*/
+      if(i != pidx) {
+        U[i] = (char_type)A[i];
+        ++freqs[U[i]];
+      }
+    }
   }
 }
 

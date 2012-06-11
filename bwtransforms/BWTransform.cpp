@@ -44,6 +44,8 @@ void BWTransform::doTransform(BWTBlock& block) {
   doTransform(block.begin(), block.size() + 1, block.LFpowers());
   block.setTransformed(true);
 
+  *(block.begin() + block.LFpowers()[0]) = *block.end();
+  
   *block.end() = next;
 }
 
@@ -55,6 +57,9 @@ void BWTransform::doTransform(BWTBlock& block, uint32 freqs[256]) {
   doTransform(block.begin(), block.size() + 1, block.LFpowers(), freqs);
   block.setTransformed(true);
 
+  *(block.begin() + block.LFpowers()[0]) = *block.end();
+
+  
   *block.end() = next;
 }
 

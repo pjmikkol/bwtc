@@ -83,6 +83,7 @@ int main(int argc, char **argv) {
   BWTransform* transform = giveTransformer('a');
 
   std::vector<byte> data(t, t+n);
+  std::reverse(data.begin(), data.end());
   data.push_back(0);
 
   std::vector<uint32> LFpowers;
@@ -100,7 +101,7 @@ int main(int argc, char **argv) {
   clock_t time_start = clock();
   fprintf(stderr,"Inverse transform... ");
   std::vector<byte> *original =
-      inverse_transform->doTransform(&data[0], n, LFpowers);
+      inverse_transform->doTransform(&data[0], n+1, LFpowers);
   fprintf(stderr,"DONE\n");
   clock_t time_end = clock();
 

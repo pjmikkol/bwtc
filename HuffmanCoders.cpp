@@ -35,7 +35,6 @@
 #include <vector>
 #include <map> // for entropy profiling
 
-#include "MainBlock.hpp"
 #include "HuffmanCoders.hpp"
 #include "globaldefs.hpp"
 #include "Utils.hpp"
@@ -142,7 +141,7 @@ size_t HuffmanDecoder::deserializeShape(RawInStream &input, uint32 *clen) {
 }
 
 /******************************************************************************
- *            Encoding and decoding single MainBlock                          *
+ *            Encoding and decoding single BWTBlock                           *
  *----------------------------------------------------------------------------*
  * Following functions handle encoding and decoding of the main blocks.       *
  * Also block header-format is specified here.                                *
@@ -680,7 +679,7 @@ uint64 HuffmanDecoder::readPackedInteger() {
   if (packed_integer == 0x80) return kEndSymbol;
   return packed_integer;
 }
-/*********** Encoding and decoding single MainBlock-section ends ********/
+/*********** Encoding and decoding single BWTBlock-section ends ********/
 
 HuffmanDecoder::HuffmanDecoder(const std::string& source) :
     m_in(new RawInStream(source)) {}

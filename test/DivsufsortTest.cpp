@@ -33,7 +33,6 @@
 
 #include "../globaldefs.hpp"
 #include "../bwtransforms/divsufsort.h"
-#include "../MainBlock.hpp"
 
 #undef NDEBUG
 
@@ -43,7 +42,7 @@ using bwtc::byte;
 
 namespace tests {
 
-void BwtSaisTest(char *arg) {
+void BwtDivSufTest(char *arg) {
   int len = strlen(arg);
   byte *str = new byte[len+1];
   byte *res = new byte[len+1];
@@ -69,6 +68,6 @@ void BwtSaisTest(char *arg) {
 int main(int argc, char** argv) {
   using namespace tests;
   if(argc > 1) {
-    BwtSaisTest(argv[1]);
+    BwtDivSufTest(argv[1]);
   }
 }

@@ -37,8 +37,6 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include "MainBlock.hpp"
-#include "BlockManager.hpp"
 #include "preprocessors/Precompressor.hpp"
 #include "Streams.hpp"
 #include "Utils.hpp"

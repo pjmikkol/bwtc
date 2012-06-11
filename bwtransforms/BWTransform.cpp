@@ -36,19 +36,6 @@
 
 namespace bwtc {
 
-/* We assume that the context-block of sentinel char is at the front of
- * transform i.e. sentinel char is the smallest character in alphabet.
- */
-//TODO: Allow to take array from preprocessor to parameter since they have
-//      already built stats
-void BWTransform::buildStats() {
-  std::vector<uint64>& stats = *m_currentBlock->m_stats;
-  std::fill(stats.begin(), stats.end(), 0);
-  stats[0] = 1;
-  for(uint64 i = 0; i < m_currentBlock->size(); ++i)
-    ++stats[(*m_currentBlock->m_block)[i] + 1];
-}
-
 void BWTransform::doTransform(BWTBlock& block) {
   std::reverse(block.begin(), block.end());
   byte next = *block.end();
@@ -69,10 +56,6 @@ void BWTransform::doTransform(BWTBlock& block, uint32 freqs[256]) {
   block.setTransformed(true);
 
   *block.end() = next;
-}
-
-std::vector<byte>* BWTransform::allocateMemory(uint64 size) {
-  return new std::vector<byte>(size);
 }
 
 BWTransform* giveTransformer(char transform) {

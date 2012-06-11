@@ -31,7 +31,6 @@
 #include "BWTransform.hpp"
 #include "SA-IS-bwt.hpp"
 #include "sais.hxx"
-#include "../MainBlock.hpp"
 #include "../globaldefs.hpp"
 #include "../Profiling.hpp"
 
@@ -40,32 +39,18 @@ namespace bwtc {
 SAISBWTransform::SAISBWTransform() {}
 
 void SAISBWTransform::
-doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) {
+doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) const {
   PROFILE("SAISBWTransform::doTransform");
   std::vector<int> SA(length);
   saisxx_bwt(begin, begin, &SA[0], (int)length, LFpowers);
 }
 
 void SAISBWTransform::
-doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers, uint32 *freqs) {
+doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers,
+            uint32 *freqs) const {
   PROFILE("SAISBWTransform::doTransform");
   std::vector<int> SA(length);
   saisxx_bwt(begin, begin, &SA[0], (int)length, LFpowers, 256, freqs);
-}
-
-void SAISBWTransform::doTransform(std::vector<uint32>& LFpowers) {
-  PROFILE("SAISBWTransform::doTransform");
-  if(!m_currentBlock) return;
-
-  int block_size = m_currentBlock->size();
-  m_currentBlock->append(0);
-  byte *block = m_currentBlock->begin();
-  /* Whole transformation is done in single pass. */
-  m_currentBlock = 0;
-
-  //std::vector<byte> *result = allocateMemory(block_size + 1);
-  std::vector<int> suffix_array(block_size + 1);
-  saisxx_bwt(block, block, &suffix_array[0], block_size + 1, LFpowers);
 }
 
 } //namespace bwtc

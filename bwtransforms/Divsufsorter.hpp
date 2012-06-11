@@ -50,28 +50,18 @@ class Divsufsorter : public BWTransform {
  public:
   Divsufsorter() {}
   virtual ~Divsufsorter() {}
-  void doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) {
+
+  void
+  doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) const {
     PROFILE("Divsufsorter::doTransform");
     divbwt(begin, begin, 0, length, &LFpowers[0], LFpowers.size());
   }
 
-  void doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers, uint32 *freqs) {
+  void
+  doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers,
+              uint32 *freqs) const {
     PROFILE("Divsufsorter::doTransform");
     divbwtf(begin, begin, 0, length, &LFpowers[0], LFpowers.size(), freqs);
-  }
-
-  void doTransform(std::vector<uint32>& LFpowers) {
-    PROFILE("Divsufsorter::doTransform");
-    if(!m_currentBlock) return;
-
-    int blockSize = m_currentBlock->size();
-    m_currentBlock->append(0);
-    byte *block = m_currentBlock->begin();
-
-    m_currentBlock = 0;
-    //std::vector<byte> *result = allocateMemory(blockSize);
-    divbwt(block, block, 0, blockSize + 1, &LFpowers[0], LFpowers.size());
-    //return result;
   }
 
   /* The following values aren't correct */

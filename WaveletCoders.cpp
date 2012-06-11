@@ -32,7 +32,6 @@
 #include <string>
 #include <vector>
 
-#include "MainBlock.hpp"
 #include "WaveletCoders.hpp"
 #include "globaldefs.hpp"
 #include "Utils.hpp"

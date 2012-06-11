@@ -30,7 +30,6 @@
 #include <numeric> // for std::accumulate
 #include <vector>
 
-#include "MainBlock.hpp"
 #include "Coders.hpp"
 #include "globaldefs.hpp"
 #include "Utils.hpp"

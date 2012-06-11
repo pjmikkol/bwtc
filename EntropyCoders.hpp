@@ -32,7 +32,6 @@
 #include <string>
 #include <vector>
 
-#include "MainBlock.hpp"
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
 #include "Streams.hpp"

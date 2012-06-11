@@ -33,8 +33,6 @@
 #include <string>
 #include <vector>
 
-#include "../MainBlock.hpp"
-#include "../BlockManager.hpp"
 #include "../globaldefs.hpp"
 #include "../preprocessors/Precompressor.hpp"
 #include "../Streams.hpp"

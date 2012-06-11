@@ -81,17 +81,17 @@ int main(int argc, char **argv) {
   std::vector<byte> v(n + 1);
   std::copy(t, t + n, v.begin());
   BWTransform* transform = giveTransformer('a');
-  MainBlock* data;
+
+  std::vector<byte> data(t, t+n);
+
   std::vector<uint32> LFpowers;
   LFpowers.resize(starting_positions);
-  data = new MainBlock(&v, NULL, (uint64)n);
-  transform->connect(data);
 
   fprintf(stderr,"Forward transform... ");
-  transform->doTransform(LFpowers);
+  transform->doTransform(&data[0], n, LFpowers);
   fprintf(stderr,"DONE\n");
 
-  MainBlock* result = data;
+  // Now result is in data
   delete transform;
   delete[] t;
     
@@ -99,12 +99,11 @@ int main(int argc, char **argv) {
   clock_t time_start = clock();
   fprintf(stderr,"Inverse transform... ");
   std::vector<byte> *original =
-      inverse_transform->doTransform(data->begin(), data->size(), LFpowers);
+      inverse_transform->doTransform(&data[0], n, LFpowers);
   fprintf(stderr,"DONE\n");
   clock_t time_end = clock();
 
   delete inverse_transform;
-  delete data;
 
   t = new byte[n];
   if (!t) {

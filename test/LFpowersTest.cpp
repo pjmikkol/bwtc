@@ -36,7 +36,6 @@
 #include <algorithm>
 
 #include "../globaldefs.hpp"
-#include "../MainBlock.hpp"
 #include "../bwtransforms/BWTransform.hpp"
 #include "../bwtransforms/SA-IS-bwt.hpp"
 #include "../bwtransforms/sais.hxx"
@@ -107,13 +106,11 @@ void test(int testcases, int max_n, int max_sigma) {
     // get LF powers using sais
     int starting_positions = my_random(1, n);
     BWTransform* transform = giveTransformer('d');
-    MainBlock* data;
-    data = new MainBlock(&v, NULL, (uint64)n);
-    transform->connect(data);
+
+    std::vector<byte> data(&v[0], &v[n]);
     std::vector<uint32> LFpowers;
     LFpowers.resize(starting_positions);
-    transform->doTransform(LFpowers);
-    MainBlock* result = data;
+    transform->doTransform(&data[0], n, LFpowers);
 
     // get the same LF powers just from LF array
     int *LFpow = new int[n + 1];
@@ -176,7 +173,6 @@ void test(int testcases, int max_n, int max_sigma) {
     delete[] bwt;
     delete[] LF;
     delete transform;
-    delete result;
     delete[] LFpow;
   }
 }

@@ -33,7 +33,6 @@
 #include <vector>
 
 #include "EntropyCoders.hpp"
-#include "MainBlock.hpp"
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
 #include "Streams.hpp"

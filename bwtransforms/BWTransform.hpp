@@ -33,7 +33,6 @@
 #include <vector>
 
 #include "../BWTBlock.hpp"
-#include "../MainBlock.hpp"
 #include "../globaldefs.hpp"
 
 namespace bwtc {
@@ -44,31 +43,19 @@ namespace bwtc {
 
 /**
  * For implementing new algorithm for Burrows-Wheeler Transform one needs to
- * inherit BWTransform.
- *
- * Transform will be used in the following way:
- *
- *   BWTransform* tranform = GiveTransformer(...);
- *   MainBlock* data; uint64 eob_byte;
- *   transform->Connect(data);
- *   transform->buildStats();
- *   transform->DoTransform(&eob_byte) {
- *     ...do something with stats and a transformed string
- *
+ * inherit BWTransform. After that BWTManager has to be modified.
  */
 class BWTransform {
  public:
-  BWTransform() : m_currentBlock(NULL) {}
+  BWTransform() {}
   virtual ~BWTransform() {}
   
-  virtual void connect(MainBlock* block) {
-    m_currentBlock = block;
-    std::reverse(m_currentBlock->begin(), m_currentBlock->end());
-  }
-  virtual void doTransform(std::vector<uint32>&) = 0;
-  virtual void doTransform(byte *begin, uint32 length, std::vector<uint32> LF) = 0;
-  virtual void doTransform(byte *begin, uint32 length, std::vector<uint32> LF, uint32 freqs[256]) = 0;
-  virtual void buildStats();
+  virtual
+  void doTransform(byte *begin, uint32 length, std::vector<uint32> LF) const = 0;
+
+  virtual
+  void doTransform(byte *begin, uint32 length, std::vector<uint32> LF,
+                   uint32 freqs[256]) const = 0;
 
   void doTransform(BWTBlock& block);
   void doTransform(BWTBlock& block, uint32 freqs[256]);
@@ -76,11 +63,6 @@ class BWTransform {
   virtual uint64 maxSizeInBytes(uint64 block_size) const = 0;
   virtual uint64 maxBlockSize(uint64 memory_budget) const = 0;
   virtual uint64 suggestedBlockSize(uint64 memory_budget) const = 0;
-
- protected:
-  // If some later stage we want to implement external memory manager ...
-  virtual std::vector<byte>* allocateMemory(uint64 block_size);
-  MainBlock* m_currentBlock;
 
  private:
   BWTransform(const BWTransform&);

@@ -53,17 +53,18 @@ void test(byte *t, uint32 n) {
   std::copy(t, t + n, v.begin());
   BWTransform* transform = giveTransformer('a');
   InverseBWTransform* inverse_transform = giveInverseTransformer();
-  MainBlock* data;
+
+  std::vector<byte> data(t, t+n);
+
   std::vector<uint32> LFpowers;
   int starting_points = my_random(1, 256);
   LFpowers.resize(starting_points);
-  data = new MainBlock(&v, NULL, (uint64)n);
-  transform->connect(data);
+
   //std::vector<byte>* result =
-  transform->doTransform(LFpowers);
-  MainBlock *result = data;
+  transform->doTransform(&data[0], n, LFpowers);
+
   std::vector<byte> *original =
-      inverse_transform->doTransform(data->begin(), data->size(), LFpowers);
+      inverse_transform->doTransform(&data[0], n, LFpowers);
 
   bool ok = true;
   if (original->size() != n) ok = false;
@@ -82,7 +83,7 @@ void test(byte *t, uint32 n) {
     fprintf(stderr,"\n");
     fprintf(stderr,"returned = ");
     for (uint32 j = 0; j < n; ++j) {
-      fprintf(stderr,"%c", result->begin()[j]);
+      fprintf(stderr,"%c", data[j]);
     }
     fprintf(stderr,"\n");
     exit(1);
@@ -91,7 +92,6 @@ void test(byte *t, uint32 n) {
   delete original;
   delete transform;
   delete inverse_transform;
-  delete data;
 }
 
 void test_random(int testcases, int max_n, int max_sigma) {  

@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   fseek(f, 0, SEEK_SET);
   byte *t = new byte[n];
   size_t have_read = fread(t, 1, n, f);
-  assert(have_read == n);
+  assert((long)have_read == n);
   fclose(f);
   fprintf(stderr, "File size = %lu bytes.\n", n);
   
@@ -100,8 +100,7 @@ int main(int argc, char **argv) {
   InverseBWTransform* inverse_transform = giveInverseTransformer();
   clock_t time_start = clock();
   fprintf(stderr,"Inverse transform... ");
-  std::vector<byte> *original =
-      inverse_transform->doTransform(&data[0], n+1, LFpowers);
+  inverse_transform->doTransform(&data[0], n+1, LFpowers);
   fprintf(stderr,"DONE\n");
   clock_t time_end = clock();
 
@@ -118,15 +117,12 @@ int main(int argc, char **argv) {
     exit(1);
   }
   have_read = fread(t, 1, n, f);
-  assert(have_read == n);
+  assert((long)have_read == n);
   fclose(f);
 
   bool correct = true;
-  if (original->size() != (uint32)n) {
-    correct = false;
-  }
   for (int j = 0; j < n; ++j) {
-    if ((*original)[j] != t[j]) {
+    if (data[j] != t[j]) {
       correct = false;
       break;
     }
@@ -138,7 +134,6 @@ int main(int argc, char **argv) {
   }
   fprintf(stderr,"Inversing time: %5.2Lf s\n", ((long double)(time_end - time_start)) / CLOCKS_PER_SEC);
 
-  delete original;
   delete[] t;
 
   return 0;

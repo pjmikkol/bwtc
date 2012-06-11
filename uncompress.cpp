@@ -74,19 +74,17 @@ void decompress(const std::string& input_name, const std::string& output_name,
                 << "inverse transform." << std::endl;
     }
     ++blocks;
-    std::vector<byte>* unbwt_block = transformer->doTransform(&(*bwt_block)[0],
-                                                              bwt_block->size(),
-                                                              LFpowers);
-    delete bwt_block;
+
+    transformer->doTransform(&(*bwt_block)[0], bwt_block->size(), LFpowers);
 
     bwtc::PostProcessor postProcessor(verbosity > 1);
-    postProcessor.postProcess(unbwt_block);
-    //out.writeBlock(unbwt_block->begin(), unbwt_block->end());
-    byte *unbwt_block_ptr = &(*unbwt_block)[0];
-    out.writeBlock(unbwt_block_ptr, unbwt_block_ptr + ((size_t)unbwt_block->size()));
+    postProcessor.postProcess(bwt_block);
+    byte *bwt_block_ptr = &(*bwt_block)[0];
+    out.writeBlock(bwt_block_ptr, bwt_block_ptr + ((size_t)bwt_block->size()));
 
     out.flush();
-    delete unbwt_block;
+    delete bwt_block;
+
   }
   if (verbosity > 0) {
     std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";

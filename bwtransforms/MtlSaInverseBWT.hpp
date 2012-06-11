@@ -43,9 +43,9 @@ class MtlSaInverseBWTransform : public InverseBWTransform {
   MtlSaInverseBWTransform() {}
   virtual ~MtlSaInverseBWTransform() {}
   virtual uint64 maxBlockSize(uint64 memory_budget) const;
-  virtual std::vector<byte>* doTransform(const byte* source_bwt,
-                                         uint64 bwt_size,
-                                         const std::vector<uint32> &LFpowers);
+  virtual void doTransform(byte* source_bwt,
+                           uint32 bwt_size,
+                           const std::vector<uint32> &LFpowers);
 };
 
 } //namespace bwtc

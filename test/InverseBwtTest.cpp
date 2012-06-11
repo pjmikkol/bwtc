@@ -62,16 +62,12 @@ void test(byte *t, uint32 n) {
   int starting_points = my_random(1, std::min(256, (int)n));
   LFpowers.resize(starting_points);
 
-  //std::vector<byte>* result =
   transform->doTransform(&data[0], n+1, LFpowers);
-
-  std::vector<byte> *original =
-      inverse_transform->doTransform(&data[0], n+1, LFpowers);
+  inverse_transform->doTransform(&data[0], n+1, LFpowers);
 
   bool ok = true;
-  if (original->size() != n) ok = false;
   for (uint32 j = 0; j < n; ++j) {
-    if ((*original)[j] != t[j]) {
+    if (data[j] != t[j]) {
       ok = false;
       break;
     }
@@ -91,7 +87,6 @@ void test(byte *t, uint32 n) {
     exit(1);
   }
 
-  delete original;
   delete transform;
   delete inverse_transform;
 }
@@ -120,13 +115,13 @@ void test_random(int testcases, int max_n, int max_sigma) {
 
 int main() {
   srand(time(0) + getpid());
-  test_random(1000000,    3, 256);
-  test_random(1000000,   10, 256);
-  test_random(100000,   100, 256);
-  test_random(100000,  1000, 256);
-  test_random(10000,  10000, 256);
-  test_random(10000, 100000, 256);
-  test_random(1000, 1000000, 256);
+  test_random(100000,    3, 256);
+  test_random(100000,   10, 256);
+  test_random(10000,   100, 256);
+  test_random(10000,  1000, 256);
+  test_random(1000,  10000, 256);
+  test_random(1000, 100000, 256);
+  test_random(100, 1000000, 256);
   fprintf(stderr,"All tests passed.\n");
   return 0;
 }

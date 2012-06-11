@@ -52,8 +52,8 @@ uint64 FastInverseBWTransform::maxBlockSize(uint64 memory_budget) const {
   return memory_budget / sizeof(uint32);
 }
 
-std::vector<byte>* FastInverseBWTransform::doTransform(
-    const byte* bwt, uint64 bwt_size, const std::vector<uint32>& LFpowers)
+void FastInverseBWTransform::doTransform(
+    byte* bwt, uint32 bwt_size, const std::vector<uint32>& LFpowers)
 {
   PROFILE("FastInverseBWTransform::doTransform");
   uint32 eob_position = LFpowers[0];
@@ -110,7 +110,6 @@ std::vector<byte>* FastInverseBWTransform::doTransform(
   // it is likely that the cycle ends prematurely.
   // In this case, we return false.
   //assert(index == bwt_size);
-  return result;
 }
 
 } //namespace bwtc

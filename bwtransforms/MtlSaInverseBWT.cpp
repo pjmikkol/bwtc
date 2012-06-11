@@ -243,8 +243,8 @@ void computeData(const byte *bwt, uint64 bwt_size, uint32 *data,
   }
 }
 
-std::vector<byte>* MtlSaInverseBWTransform::doTransform(const byte* bwt,
-    uint64 bwt_size, const std::vector<uint32> &LFpowers) {
+void MtlSaInverseBWTransform::doTransform(byte* bwt, uint32 bwt_size,
+    const std::vector<uint32> &LFpowers) {
   PROFILE("MtlSaInverseBWTransform::doTransform");
   assert(bwt_size >= 2);
   assert(LFpowers.size() > 0);
@@ -267,9 +267,8 @@ std::vector<byte>* MtlSaInverseBWTransform::doTransform(const byte* bwt,
   uint32 *data = new uint32[3 * ((bwt_size + 1) / 2)];
   computeData(bwt, bwt_size, data, eob_position);
 
-  std::vector<byte> *result = allocateMemory(bwt_size - 1);
   uint32 *data_ptr = &data[0];
-  byte *result_ptr = &(*result)[0];
+  byte *result_ptr = bwt;
   uint32 starting_positions = LFpowers.size();
   uint32 block_size = bwt_size / starting_positions;
   uint32 to_restore = bwt_size - 1;
@@ -360,7 +359,6 @@ std::vector<byte>* MtlSaInverseBWTransform::doTransform(const byte* bwt,
   }
 
   delete[] data;
-  return result;
 }
 
 } //namespace bwtc

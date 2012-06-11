@@ -39,7 +39,7 @@ namespace po = boost::program_options;
 
 #include "MainBlock.hpp"
 #include "BlockManager.hpp"
-#include "preprocessors/Preprocessor.hpp"
+#include "preprocessors/Precompressor.hpp"
 #include "Streams.hpp"
 #include "Utils.hpp"
 #include "globaldefs.hpp"
@@ -48,36 +48,9 @@ namespace po = boost::program_options;
 
 using bwtc::verbosity;
 
-void writeGlobalHeader(const std::string& preproc, 
-    bwtc::RawOutStream *out) {
-  // bitpatterns in encoding of preprocessing:
-  // 001 -- run, 010 -- pairAndrun, 011 -- pair,  100 -- sequence, 000 -- end 
-  bwtc::uint16 b = 0;
-  size_t bits = 0;
-  for(size_t i = 0; i < preproc.size(); ++i) {
-    if(preproc[i] == 'p') b = (b << 3) | 3;
-    else if (preproc[i] == 'r') b = (b << 3) | 1;
-    else if (preproc[i] == 'c') b = (b << 3) | 2;
-    else if (preproc[i] == 's') b = (b << 3) | 4;
-    bits += 3;
-
-    if(bits >= 8) {
-      out->writeByte(b >> (bits - 8));
-      b &= ((1 << (bits - 8)) - 1);
-      bits -= 8;
-    }
-  }
-  if(preproc.size() == 0) {
-    out->writeByte(static_cast<bwtc::byte>(0));
-  } else if(bits == 8) {
-    out->writeByte(static_cast<bwtc::byte>(b & 0xff));
-    out->writeByte(static_cast<bwtc::byte>(0));
-  } else if (bits <= 5){
-    out->writeByte(static_cast<bwtc::byte>((b << (8 - bits)) & 0xff));
-  } else {
-    out->writeByte(static_cast<bwtc::byte>((b << (8 - bits)) & 0xff));
-    out->writeByte(static_cast<bwtc::byte>(0));
-  }
+void writeGlobalHeader(bwtc::RawOutStream *out) {
+  //Could probably write some information to the header
+  out->writeByte(0x77);
 }
 
 void writePackedInteger(bwtc::uint64 packed_integer, bwtc::RawOutStream *out) {
@@ -99,20 +72,26 @@ void preprocess(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::Preprocessor preprocessor(block_size, preproc);
-  preprocessor.connect(input_name);
-
-  bwtc::BlockManager block_manager(block_size + 5*preproc.size(), 1);
-  preprocessor.addBlockManager(&block_manager);
+  bwtc::RawInStream in(input_name);
+  
+  bwtc::Precompressor preprocessor(preproc);
 
   bwtc::RawOutStream out(output_name);
-  writeGlobalHeader(preproc, &out);
+
+  writeGlobalHeader(&out);
 
   unsigned blocks = 0;
   bwtc::uint64 last_s = 0;
-  while( bwtc::MainBlock* block = preprocessor.readBlock() ) {
+  while(bwtc::PrecompressorBlock* block = preprocessor.readBlock(block_size, &in)) {
+    if(block->originalSize() == 0) {
+      delete block;
+      break;
+    }
+
     ++blocks;
 
+    //TODO: Fix postprocess.cpp
+    block->writeBlockHeader(&out); //write Grammar
     // Simplified encoder->writeBlockHeader(..).
     bwtc::uint64 current_block_size = block->size();
     int bytes;
@@ -121,7 +100,7 @@ void preprocess(const std::string& input_name, const std::string& output_name,
     writePackedInteger(packed_current_block_size, &out);
     out.writeBlock(block->begin(), block->end());
 
-    last_s = block->m_filled;
+    last_s = block->originalSize();
     delete block;
   }
 

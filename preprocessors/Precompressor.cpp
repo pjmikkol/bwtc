@@ -31,6 +31,8 @@
 
 namespace bwtc {
 
+Precompressor::Precompressor() {}
+
 Precompressor::Precompressor(const std::string& preprocessing)
     : m_preprocessingOptions(preprocessing) {}
 

@@ -10,8 +10,7 @@ find_package(Boost COMPONENTS system filesystem)
 link_directories(${Boost_LIBRARY_DIR} ${OBJECT_FILE_PATH})
 include_directories(${Boost_INCLUDE_DIR})
 
-set(BOOST_UNIT_TESTS UtilsTest PrimeSequenceDetectorTest MaskSequenceDetectorTest
-  WaveletTest PairReplacerTest)
+set(BOOST_UNIT_TESTS UtilsTest WaveletTest PairReplacerTest)
 
 foreach(program ${BOOST_UNIT_TESTS})
   add_executable(${program} ${program}.cpp)
@@ -39,13 +38,10 @@ target_link_libraries(RawStreamTest common ${Boost_LIBRARIES})
 add_test(RawStreamTest ${EXECUTABLE_OUTPUT_PATH}/RawStreamTest "test_file")
 set_tests_properties(RawStreamTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
-add_executable(PreprocessorTest PreprocessorTest.cpp)
-target_link_libraries(PreprocessorTest common preprocessors)
-add_test(PreprocessorTest ${EXECUTABLE_OUTPUT_PATH}/PreprocessorTest "test_file")
-set_tests_properties(PreprocessorTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
-
-add_executable(LongSequencesTest LongSequencesTest.cpp)
-target_link_libraries(LongSequencesTest common preprocessors)
+add_executable(PrecompressorTest PrecompressorTest.cpp)
+target_link_libraries(PrecompressorTest common preprocessors)
+add_test(PrecompressorTest ${EXECUTABLE_OUTPUT_PATH}/PrecompressorTest "test_file")
+set_tests_properties(PrecompressorTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
 
 add_executable(InverseBwtTest InverseBwtTest.cpp)
 target_link_libraries(InverseBwtTest common bwtransforms)

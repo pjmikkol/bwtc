@@ -38,6 +38,7 @@ namespace bwtc {
 
 class Precompressor {
  public:
+  Precompressor();
   Precompressor(const std::string& prepr);
   ~Precompressor();
 

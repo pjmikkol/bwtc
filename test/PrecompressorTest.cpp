@@ -36,7 +36,9 @@
 #include "../MainBlock.hpp"
 #include "../BlockManager.hpp"
 #include "../globaldefs.hpp"
-#include "../preprocessors/Preprocessor.hpp"
+#include "../preprocessors/Precompressor.hpp"
+#include "../Streams.hpp"
+#include "../PrecompressorBlock.hpp"
 
 #undef NDEBUG
 
@@ -55,20 +57,20 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   std::vector<char> data(fsize, 't');
   std::copy(data.begin(), data.end(), std::ostream_iterator<char>(f));
   f.flush(); f.close();
-  /* Then the actual test */
-  bwtc::Preprocessor prepr(block_size);
-  prepr.connect(test_fname);
-  bwtc::BlockManager bm(block_size, 1);
-  prepr.addBlockManager(&bm);
   
+  /* Then the actual test */
+  bwtc::Precompressor prepr;
+  bwtc::RawInStream in(test_fname);
+
   int blocks = 0;
   std::streamsize total = 0;
-  while (bwtc::MainBlock* b = prepr.readBlock()) {
+  while (true) {
+    bwtc::PrecompressorBlock* b = prepr.readBlock(block_size, &in);
+    if(b->originalSize() == 0) break;
     blocks++;
-    total += b->size();
+    total += b->originalSize();
     delete b;
   }
-  total -= blocks;
   assert(total == fsize);
   assert( blocks == (fsize / (block_size-1)) + 1 ||
           fsize % blocks == 0 ||
@@ -95,6 +97,6 @@ int main(int argc, char **argv) {
   }
   tests::test_fname = argv[1];
   tests::TestDefaultPreProcBlockReads();
-  std::cout << "Preprocessor passed all tests\n";
+  std::cout << "Precompressor passed all tests\n";
   return 0;
 }

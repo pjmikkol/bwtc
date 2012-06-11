@@ -47,6 +47,9 @@ class PrecompressorBlock {
   void setSize(size_t size);
   size_t slices() const { return m_bwtBlocks.size(); }
   byte* begin() { return &m_data[0]; }
+  const byte* begin() const { return &m_data[0]; }
+  byte* end() { return &m_data[m_used]; }
+  const byte* end() const { return &m_data[m_used]; }
   Grammar& grammar() { return m_grammar; }
 
   void sliceIntoBlocks(size_t blockSize);

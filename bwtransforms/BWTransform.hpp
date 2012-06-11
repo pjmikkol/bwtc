@@ -51,10 +51,10 @@ class BWTransform {
   virtual ~BWTransform() {}
   
   virtual
-  void doTransform(byte *begin, uint32 length, std::vector<uint32> LF) const = 0;
+  void doTransform(byte *begin, uint32 length, std::vector<uint32>& LF) const = 0;
 
   virtual
-  void doTransform(byte *begin, uint32 length, std::vector<uint32> LF,
+  void doTransform(byte *begin, uint32 length, std::vector<uint32>& LF,
                    uint32 freqs[256]) const = 0;
 
   void doTransform(BWTBlock& block);

@@ -52,13 +52,13 @@ class Divsufsorter : public BWTransform {
   virtual ~Divsufsorter() {}
 
   void
-  doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) const {
+  doTransform(byte *begin, uint32 length, std::vector<uint32>& LFpowers) const {
     PROFILE("Divsufsorter::doTransform");
     divbwt(begin, begin, 0, length, &LFpowers[0], LFpowers.size());
   }
 
   void
-  doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers,
+  doTransform(byte *begin, uint32 length, std::vector<uint32>& LFpowers,
               uint32 *freqs) const {
     PROFILE("Divsufsorter::doTransform");
     divbwtf(begin, begin, 0, length, &LFpowers[0], LFpowers.size(), freqs);

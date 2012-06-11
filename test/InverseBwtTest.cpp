@@ -55,13 +55,14 @@ void test(byte *t, uint32 n) {
   InverseBWTransform* inverse_transform = giveInverseTransformer();
 
   std::vector<byte> data(t, t+n);
+  data.push_back(0);
 
   std::vector<uint32> LFpowers;
-  int starting_points = my_random(1, 256);
+  int starting_points = my_random(1, std::min(256, (int)n));
   LFpowers.resize(starting_points);
 
   //std::vector<byte>* result =
-  transform->doTransform(&data[0], n, LFpowers);
+  transform->doTransform(&data[0], n+1, LFpowers);
 
   std::vector<byte> *original =
       inverse_transform->doTransform(&data[0], n, LFpowers);

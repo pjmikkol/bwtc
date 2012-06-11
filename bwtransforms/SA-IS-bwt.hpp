@@ -54,10 +54,10 @@ class SAISBWTransform : public BWTransform {
   SAISBWTransform();
   virtual ~SAISBWTransform() {}
   void
-  doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers) const;
+  doTransform(byte *begin, uint32 length, std::vector<uint32>& LFpowers) const;
 
   void
-  doTransform(byte *begin, uint32 length, std::vector<uint32> LFpowers,
+  doTransform(byte *begin, uint32 length, std::vector<uint32>& LFpowers,
               uint32* freqs) const;
 
   /* The following values aren't correct */

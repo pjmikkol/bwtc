@@ -61,7 +61,8 @@ void test(int testcases, int max_n, int max_sigma) {
     int n = my_random(1, max_n);
     byte *t = new byte[n];
     for (int j = 0; j < n; ++j) {
-      t[j] = my_random(0, max_sigma - 1);
+      //t[j] = my_random(0, max_sigma - 1);
+      t[j] = my_random(65, 90);
     }
     std::vector<byte> v(n + 1);
     std::copy(t, t + n, v.begin());
@@ -105,12 +106,14 @@ void test(int testcases, int max_n, int max_sigma) {
 
     // get LF powers using sais
     int starting_positions = my_random(1, n);
-    BWTransform* transform = giveTransformer('d');
+    BWTransform* transform = giveTransformer('s');
 
-    std::vector<byte> data(&v[0], &v[n]);
+    std::vector<byte> data(t, t+n);
+    data.push_back(0);
+
     std::vector<uint32> LFpowers;
     LFpowers.resize(starting_positions);
-    transform->doTransform(&data[0], n, LFpowers);
+    transform->doTransform(&data[0], n+1, LFpowers);
 
     // get the same LF powers just from LF array
     int *LFpow = new int[n + 1];

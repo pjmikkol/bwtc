@@ -83,12 +83,13 @@ int main(int argc, char **argv) {
   BWTransform* transform = giveTransformer('a');
 
   std::vector<byte> data(t, t+n);
+  data.push_back(0);
 
   std::vector<uint32> LFpowers;
   LFpowers.resize(starting_positions);
 
   fprintf(stderr,"Forward transform... ");
-  transform->doTransform(&data[0], n, LFpowers);
+  transform->doTransform(&data[0], n+1, LFpowers);
   fprintf(stderr,"DONE\n");
 
   // Now result is in data

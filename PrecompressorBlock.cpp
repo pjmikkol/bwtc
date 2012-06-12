@@ -27,31 +27,61 @@
 #include "globaldefs.hpp"
 #include "PrecompressorBlock.hpp"
 #include "Streams.hpp"
+#include "Utils.hpp"
 
 #include <cassert>
+#include <cstdlib>
 
 namespace bwtc {
 
-PrecompressorBlock::PrecompressorBlock(size_t maxSize, InStream* in) {
-  m_data.resize(maxSize+1);
-  uint64 read = in->readBlock(&m_data[0], maxSize);
-  m_data.resize(read+1);
+PrecompressorBlock::PrecompressorBlock(size_t size)
+    : m_data((byte*)malloc(sizeof(byte)*(size+1))), m_used(0),
+      m_originalSize(size), m_reserved(size+1) {}
+
+PrecompressorBlock::PrecompressorBlock(size_t maxSize, InStream* in)
+    : m_data((byte*)malloc(sizeof(byte)*(maxSize+1))), m_used(0),
+      m_originalSize(0), m_reserved(maxSize+1)
+{
+  uint64 read = in->readBlock(m_data, maxSize);
+  m_data = (byte*)realloc(m_data, sizeof(byte)*(read+1));
   m_originalSize = m_used = read;
+}
+
+PrecompressorBlock::~PrecompressorBlock() {
+  free(m_data);
 }
 
 void PrecompressorBlock::setSize(size_t size) {
   assert(size > 0);
   m_used = size;
-  m_data.resize(size+1);
+  m_reserved = size+1;
+  m_data = (byte*)realloc(m_data, sizeof(byte)*(m_reserved));
 }
 
 size_t PrecompressorBlock::writeBlockHeader(OutStream* out) const {
-  
+  size_t bytes = 0;
+  {
+    int bytesNeeded;
+    uint64 packedSize = utils::packInteger(originalSize(), &bytesNeeded);
+    for(int i = 0; i < bytesNeeded; ++i) {
+      out->writeByte(packedSize & 0xff);
+      packedSize >>= 8;
+    }
+    bytes += bytesNeeded;
+  }
+  //TODO: writeGrammar
+  return bytes;
+}
+
+PrecompressorBlock* PrecompressorBlock::readBlockHeader(InStream* in) {
+  size_t bytes;
+  size_t originalSize = utils::readPackedInteger(*in, bytes);
+  PrecompressorBlock* pb = new PrecompressorBlock(originalSize);
 }
 
 void PrecompressorBlock::sliceIntoBlocks(size_t blockSize) {
   //Have at least one additional byte for the sentinel of BWT
-  assert(m_used < m_data.size());
+  assert(m_used < m_reserved);
   assert(blockSize < (0x80000000 - 2));
   m_bwtBlocks.clear();
   size_t begin = 0;

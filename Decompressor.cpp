@@ -27,6 +27,7 @@
 #include "Decompressor.hpp"
 #include "Streams.hpp"
 #include "preprocessors/Postprocessor.hpp"
+#include "Profiling.hpp"
 
 #include <string>
 
@@ -50,6 +51,25 @@ size_t Decompressor::readGlobalHeader() {
   delete m_decoder;
   m_decoder = giveEntropyDecoder(entropyDecoder);
   return 1;
+}
+
+size_t Decompressor::decompress(size_t threads) {
+  PROFILE("Decompressor::decompress");
+  if(threads != 1) {
+    std::cerr << "Supporting only single thread!" << std::endl;
+    return 0;
+  }
+
+  size_t decompressedSize = readGlobalHeader();
+
+  size_t preBlocks = 0, bwtBlocks = 0;
+  while(true) {
+    PrecompressorBlock *pb = PrecompressorBlock::readBlockHeader(m_in);
+    if(pb->originalSize() == 0) break;
+    ++preBlocks;
+    decompressedSize += pb->originalSize();
+  }
+  
 }
 
 } //namespace bwtc

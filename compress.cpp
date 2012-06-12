@@ -40,73 +40,6 @@ namespace po = boost::program_options;
 #include "bwtransforms/BWTManager.hpp"
 
 using bwtc::verbosity;
-/*
-void compress(const std::string& input_name, const std::string& output_name,
-              uint64 block_size, const std::string& preproc, char encoding,
-              uint32 startingPoints, char bwtAlgo)
-{
-  PROFILE("TOTAL_compression_time");
-
-  if (verbosity > 1) {
-    if (input_name != "") std::clog << "Input: " << input_name << std::endl;
-    else std::clog << "Input: stdin" << std::endl;
-    if (output_name != "") std::clog << "Output: " << output_name << std::endl;
-    else std::clog << "Output: stdout" << std::endl;
-  }
-  bwtc::Preprocessor preprocessor(block_size, preproc);
-  preprocessor.connect(input_name);
-
-  bwtc::BlockManager block_manager(block_size + 5*preproc.size() + 1, 1);
-  preprocessor.addBlockManager(&block_manager);
-
-  bwtc::BWTransform* transformer = bwtc::giveTransformer(bwtAlgo);
-
-  bwtc::EntropyEncoder *encoder = bwtc::giveEntropyEncoder(output_name, encoding);
-  encoder->writeGlobalHeader(encoding);
-
-  unsigned blocks = 0;
-  uint64 last_s = 0;
-  while( bwtc::MainBlock* block = preprocessor.readBlock() ) {
-    ++blocks;
-    //Transformer could have some memory manager..
-    transformer->connect(block);
-    transformer->buildStats();
-
-    //The following way enables the calculation of transformation in 
-    //several phases
-    std::vector<uint32> LFpowers;
-    LFpowers.resize(startingPoints);
-    if(verbosity > 1) {
-      std::clog << "Writing " << startingPoints
-                << " starting points for inverse transform." << std::endl;
-    }
-    transformer->doTransform(LFpowers);
-
-    encoder->writeBlockHeader(block->m_stats);
-    encoder->encodeData(block->begin(), block->m_stats, block->size());
-
-
-    encoder->finishBlock(LFpowers);
-    last_s = block->m_filled;
-    delete block;
-  }
-
-#ifdef ENTROPY_PROFILER
-  if(encoding != 'H') {
-    std::cout << "kBytes for characters " << (encoder->m_bytesForCharacters/1024.0)
-              << std::endl << "kBytes for runs " << (encoder->m_bytesForRuns/1024.0)
-              << std::endl;
-  }
-#endif
-  
-  if (verbosity > 0) {
-    std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
-    std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
-  }
-  delete encoder;
-  delete transformer;
-}
-*/
 
 /* Notifier function for preprocessing option choice */
 void validatePreprocOption(const std::string& p) {
@@ -231,7 +164,6 @@ int main(int argc, char** argv) {
     stdin  = varmap.count("stdin") != 0;
     // TODO: Check that the block-size is OK
   } /* try-block */
-
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << std::endl;
     return 1;

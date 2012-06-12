@@ -64,13 +64,12 @@ void Compressor::initializeBwtAlgorithm(char choice, uint32 startingPoints) {
 
 size_t Compressor::compress(size_t threads) {
   PROFILE("Compressor::compress");
-
-  size_t compressedSize = 0;
   if(threads != 1) {
     std::cerr << "Supporting only single thread!" << std::endl;
     return 0;
   }
-  compressedSize += writeGlobalHeader();
+
+  size_t compressedSize = writeGlobalHeader();
 
   // More care should be paid for choosing the correct limits
   size_t pbBlockSize = static_cast<size_t>(m_options.memLimit*0.72);
@@ -80,8 +79,7 @@ size_t Compressor::compress(size_t threads) {
   if(m_precompressor.options().size() == 0) pbBlockSize = bwtBlockSize;
   
 
-  size_t preBlocks = 0;
-  size_t bwtBlocks = 0;
+  size_t preBlocks = 0, bwtBlocks = 0;
   while(true) {
     PrecompressorBlock *pb = m_precompressor.readBlock(pbBlockSize, m_in);
     if(pb->originalSize() == 0) {

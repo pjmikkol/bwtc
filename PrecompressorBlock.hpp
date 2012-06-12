@@ -35,21 +35,24 @@
 #include "preprocessors/Grammar.hpp"
 #include "Streams.hpp"
 
+#include <cstdlib>
 #include <vector>
 
 namespace bwtc {
 
 class PrecompressorBlock {
  public:
+  PrecompressorBlock(size_t size);
   PrecompressorBlock(size_t maxSize, InStream* in);
+  ~PrecompressorBlock();
   size_t originalSize() const { return m_originalSize; }
   size_t size() const { return m_used; }
   void setSize(size_t size);
   size_t slices() const { return m_bwtBlocks.size(); }
-  byte* begin() { return &m_data[0]; }
-  const byte* begin() const { return &m_data[0]; }
-  byte* end() { return &m_data[m_used]; }
-  const byte* end() const { return &m_data[m_used]; }
+  byte* begin() { return m_data; }
+  const byte* begin() const { return m_data; }
+  byte* end() { return m_data + m_used; }
+  const byte* end() const { return m_data + m_used; }
   Grammar& grammar() { return m_grammar; }
 
   void sliceIntoBlocks(size_t blockSize);
@@ -57,12 +60,17 @@ class PrecompressorBlock {
 
   size_t writeBlockHeader(OutStream* out) const;
 
+  static PrecompressorBlock* readBlockHeader(InStream* in);
+  
  private:
   Grammar m_grammar;
-  std::vector<byte> m_data;
+  //std::vector<byte> m_data;
+  byte *m_data;
   std::vector<BWTBlock> m_bwtBlocks;
   size_t m_used;
   size_t m_originalSize;
+  /**Memory reserved for block.*/
+  size_t m_reserved;
 };
 
 } //namespace bwtc

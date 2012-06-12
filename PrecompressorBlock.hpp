@@ -41,7 +41,7 @@ namespace bwtc {
 
 class PrecompressorBlock {
  public:
-  PrecompressorBlock(size_t maxSize, RawInStream* in);
+  PrecompressorBlock(size_t maxSize, InStream* in);
   size_t originalSize() const { return m_originalSize; }
   size_t size() const { return m_used; }
   void setSize(size_t size);
@@ -55,7 +55,7 @@ class PrecompressorBlock {
   void sliceIntoBlocks(size_t blockSize);
   BWTBlock& getSlice(int i);
 
-  size_t writeBlockHeader(RawOutStream* out) const;
+  size_t writeBlockHeader(OutStream* out) const;
 
  private:
   Grammar m_grammar;

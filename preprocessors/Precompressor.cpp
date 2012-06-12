@@ -39,7 +39,7 @@ Precompressor::Precompressor(const std::string& preprocessing)
 Precompressor::~Precompressor() {}
 
 PrecompressorBlock*
-Precompressor::readBlock(size_t blockSize, RawInStream* in) const {
+Precompressor::readBlock(size_t blockSize, InStream* in) const {
   PrecompressorBlock *result = new PrecompressorBlock(blockSize, in);
   if(result->originalSize() > 0) precompress(*result);
   return result;

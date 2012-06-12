@@ -99,7 +99,7 @@ class Compressor {
   Compressor(const std::string& in, const std::string& out,
              const std::string& preprocessing, size_t memLimit,
              char entropyCoder);
-  Compressor(RawInStream* in, RawOutStream* out,
+  Compressor(InStream* in, OutStream* out,
              const std::string& preprocessing, size_t memLimit,
              char entropyCoder);
   ~Compressor();
@@ -109,8 +109,8 @@ class Compressor {
   void initializeBwtAlgorithm(char choice, uint32 startingPoints);
 
  private:
-  RawInStream *m_in;
-  RawOutStream *m_out;
+  InStream *m_in;
+  OutStream *m_out;
   EntropyEncoder *m_coder;
   Precompressor m_precompressor;
   BWTManager m_bwtmanager;

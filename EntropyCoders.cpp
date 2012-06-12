@@ -51,7 +51,7 @@ giveEntropyEncoder(char encoder) {
     //}
 }
 
-EntropyDecoder* giveEntropyDecoder(RawInStream* in, char decoder) {
+EntropyDecoder* giveEntropyDecoder(InStream* in, char decoder) {
   /*  if(decoder == 'H') {
     if(verbosity > 1) {
       std::clog << "Using Huffman decoder\n";

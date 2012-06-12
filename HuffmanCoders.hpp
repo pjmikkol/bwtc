@@ -53,7 +53,7 @@ class HuffmanEncoder : public EntropyEncoder {
   void finishBlock(const std::vector<uint32>& LFpowers);
 
  private:
-  RawOutStream* m_out;
+  OutStream* m_out;
   std::streampos m_headerPosition;
   uint64 m_compressedBlockLength;
 
@@ -65,7 +65,7 @@ class HuffmanEncoder : public EntropyEncoder {
 class HuffmanDecoder : public EntropyDecoder {
  public:
   HuffmanDecoder(const std::string& source);
-  HuffmanDecoder(RawInStream *in);
+  HuffmanDecoder(InStream *in);
   ~HuffmanDecoder();
   void readGlobalHeader();
   uint64 readPackedInteger();
@@ -73,9 +73,9 @@ class HuffmanDecoder : public EntropyDecoder {
   uint64 readBlockHeader(std::vector<uint64>* stats);
 
  private:
-  RawInStream* m_in;
+  InStream* m_in;
 
-  size_t deserializeShape(RawInStream &input, uint32 *clen);
+  size_t deserializeShape(InStream &input, uint32 *clen);
   HuffmanDecoder(const HuffmanDecoder&);
   HuffmanDecoder& operator=(const HuffmanDecoder&);
 };

@@ -22,7 +22,7 @@
  *
  * @section DESCRIPTION
  *
- * Header for InStream, OutStream, RawInStream and RawOutStream.
+ * Header for OutStream and InStream.
  */
 
 #ifndef BWTC_STREAM_HPP_
@@ -40,21 +40,21 @@
 namespace bwtc {
 
 /**
- * RawOutStream writes data into file or std::cout.
+ * OutStream writes data into file or std::cout.
  *
- * On the compression pipeline RawOutStream-object is located at the end of
+ * On the compression pipeline OutStream-object is located at the end of
  * the pipeline. It is owned by Compressor-object which control the states of
  * stream. The actual writes are done by EntropyEncoder.
  *
- * RawOutStream is also at the end of the decompression pipeline right after
+ * OutStream is also at the end of the decompression pipeline right after
  * the postprocessors.
  *
  * @see Compressor
  */
-class RawOutStream {
+class OutStream {
  public:
-  explicit RawOutStream(const std::string& file_name);
-  ~RawOutStream();
+  explicit OutStream(const std::string& file_name);
+  ~OutStream();
 
   /**
    * Writes given byte into target.
@@ -82,15 +82,15 @@ class RawOutStream {
   uint32 m_filled;
   byte *m_buffer;
 
-  RawOutStream& operator=(const RawOutStream& os);
-  RawOutStream(const RawOutStream& os);
+  OutStream& operator=(const OutStream& os);
+  OutStream(const OutStream& os);
 };
 
 
-struct RawInStream {
+struct InStream {
  public:
-  explicit RawInStream(const std::string &file_name);
-  ~RawInStream();
+  explicit InStream(const std::string &file_name);
+  ~InStream();
 
   /* Copies block from stream to given byte array.
    * Returns the number of read bytes. */
@@ -144,8 +144,8 @@ struct RawInStream {
 
   int fetchByte();
   int peekByte();
-  RawInStream& operator=(const RawInStream& os);
-  RawInStream(const RawInStream& os);
+  InStream& operator=(const InStream& os);
+  InStream(const InStream& os);
 };
 
 } //namespace bwtc

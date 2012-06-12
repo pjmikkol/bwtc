@@ -53,14 +53,14 @@ void decompress(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::RawInStream* in = new bwtc::RawInStream(input_name);
+  bwtc::InStream* in = new bwtc::InStream(input_name);
   char dec = static_cast<char>(in->readByte());
   
   bwtc::EntropyDecoder *decoder = bwtc::giveEntropyDecoder(in, dec);
 
   bwtc::PostProcessor postProcessor(verbosity > 0);
 
-  bwtc::RawOutStream out(output_name);
+  bwtc::OutStream out(output_name);
 
   bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
 

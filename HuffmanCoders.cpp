@@ -43,7 +43,7 @@
 namespace bwtc {
 
 HuffmanEncoder::HuffmanEncoder(const std::string& destination, char prob_model)
-    : m_out(new RawOutStream(destination)),
+    : m_out(new OutStream(destination)),
       m_headerPosition(0), m_compressedBlockLength(0) {
   (void) prob_model;
 }
@@ -109,7 +109,7 @@ void HuffmanEncoder::serializeShape(uint32 *clen, std::vector<bool> &vec) {
     utils::unaryCode(vec, maxLen - clen[symbols[i]] + 1);
 }
 
-size_t HuffmanDecoder::deserializeShape(RawInStream &input, uint32 *clen) {
+size_t HuffmanDecoder::deserializeShape(InStream &input, uint32 *clen) {
   size_t maxSym = input.readByte();
   size_t symbols = input.readByte();
   if(symbols == 0) symbols = 256;
@@ -682,9 +682,9 @@ uint64 HuffmanDecoder::readPackedInteger() {
 /*********** Encoding and decoding single BWTBlock-section ends ********/
 
 HuffmanDecoder::HuffmanDecoder(const std::string& source) :
-    m_in(new RawInStream(source)) {}
+    m_in(new InStream(source)) {}
 
-HuffmanDecoder::HuffmanDecoder(RawInStream* in) :
+HuffmanDecoder::HuffmanDecoder(InStream* in) :
     m_in(in) {}
 
 HuffmanDecoder::~HuffmanDecoder() {

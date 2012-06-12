@@ -63,7 +63,7 @@ class BitEncoder {
   BitEncoder();
   ~BitEncoder();
 
-  void connect(bwtc::RawOutStream* out) { m_output = out; }
+  void connect(bwtc::OutStream* out) { m_output = out; }
   //TODO: Figure out what Disconnect should do if needed
   //bwtc::OutStream* Disconnect() { return output_.Disconnect(); }
 
@@ -86,7 +86,7 @@ class BitEncoder {
   uint32 m_low;
   uint32 m_high;
   uint64 m_counter;
-  bwtc::RawOutStream* m_output;
+  bwtc::OutStream* m_output;
 
   inline void emitByte(unsigned char byte) {
     m_output->writeByte(byte);
@@ -105,7 +105,7 @@ class BitDecoder {
   ~BitDecoder();
 
   /* The compressed data is read from an InStreamBuffer. */
-  void connect(bwtc::RawInStream* in) { m_input = in; }
+  void connect(bwtc::InStream* in) { m_input = in; }
   //TODO: Do we need Disconnect()?
   //bwtc::InStream* Disconnect() { return input_.Disconnect(); }
 
@@ -123,7 +123,7 @@ class BitDecoder {
   uint32 m_low;
   uint32 m_high;
   uint32 m_next;
-  bwtc::RawInStream* m_input;
+  bwtc::InStream* m_input;
 
   byte readByte() { return m_input->readByte(); }
   BitDecoder(const BitDecoder&);

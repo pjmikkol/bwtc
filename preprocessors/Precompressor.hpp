@@ -43,7 +43,7 @@ class Precompressor {
   ~Precompressor();
 
   /* Reads and preprocesses data to byte array */
-  PrecompressorBlock* readBlock(size_t blockSize, RawInStream* in) const;
+  PrecompressorBlock* readBlock(size_t blockSize, InStream* in) const;
 
   // TODO: give also the temporary memory to parameter (to be able
   // precompress in-place)

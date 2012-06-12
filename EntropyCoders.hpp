@@ -50,7 +50,7 @@ class EntropyEncoder {
   virtual ~EntropyEncoder() {}
 
   virtual size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
-                                    RawOutStream* out) = 0;
+                                    OutStream* out) = 0;
 
 #ifdef ENTROPY_PROFILER
   uint32 m_bytesForCharacters;
@@ -72,7 +72,7 @@ class EntropyDecoder {
 
 EntropyEncoder* giveEntropyEncoder(char prob_model);
 
-EntropyDecoder* giveEntropyDecoder(RawInStream* in, char decoder);
+EntropyDecoder* giveEntropyDecoder(InStream* in, char decoder);
 
 } // namespace bwtc
 

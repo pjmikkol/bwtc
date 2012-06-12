@@ -28,6 +28,7 @@
 #include "../preprocessors/PairReplacer.hpp"
 #include "../preprocessors/Grammar.hpp"
 #include "../preprocessors/Postprocessor.hpp"
+#include "../Streams.hpp"
 
 #define BOOST_TEST_MODULE 
 #define BOOST_TEST_DYN_LINK

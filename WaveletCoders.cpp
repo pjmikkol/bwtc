@@ -75,7 +75,7 @@ void WaveletDecoder::endContextBlock() {
 }
 
 size_t WaveletEncoder::
-transformAndEncode(BWTBlock& block, BWTManager& bwtm, RawOutStream* out) {
+transformAndEncode(BWTBlock& block, BWTManager& bwtm, OutStream* out) {
   std::vector<uint32> characterFrequencies(256, 0);
   bwtm.doTransform(block, &characterFrequencies[0]); // Also gather information about the runs
   //TODO: find Integer coding
@@ -87,7 +87,7 @@ transformAndEncode(BWTBlock& block, BWTManager& bwtm, RawOutStream* out) {
 }
 
 int WaveletEncoder::
-writeTrailer(const std::vector<uint32>& LFpowers, RawOutStream* out) {
+writeTrailer(const std::vector<uint32>& LFpowers, OutStream* out) {
   int bytes = 1;
   byte s = (byte)(LFpowers.size()-1);
   out->writeByte(s);
@@ -133,7 +133,7 @@ writeTrailer(const std::vector<uint32>& LFpowers, RawOutStream* out) {
 //At the moment we lose at worst case 7 bits when writing the shape of
 //wavelet tree
 void WaveletEncoder::
-encodeData(const byte* block, const std::vector<uint32>& stats, RawOutStream* out)
+encodeData(const byte* block, const std::vector<uint32>& stats, OutStream* out)
 {
   PROFILE("WaveletEncoder::encodeData");
   size_t beg = 0;
@@ -180,7 +180,7 @@ encodeData(const byte* block, const std::vector<uint32>& stats, RawOutStream* ou
 }
 
 void WaveletEncoder::
-finishBlock(const std::vector<uint32>& LFpowers, RawOutStream* out) {
+finishBlock(const std::vector<uint32>& LFpowers, OutStream* out) {
   m_compressedBlockLength += m_destination.counter();
   m_compressedBlockLength +=  writeTrailer(LFpowers, out);
   out->write48bits(m_compressedBlockLength, m_headerPosition);
@@ -195,7 +195,7 @@ finishBlock(const std::vector<uint32>& LFpowers, RawOutStream* out) {
  * - lengths of the sections which are encoded with same wavelet tree*
  *********************************************************************/
 void WaveletEncoder::
-writeBlockHeader(std::vector<uint32>& stats, RawOutStream* out) {
+writeBlockHeader(std::vector<uint32>& stats, OutStream* out) {
   uint64 headerLength = 0;
   m_headerPosition = out->getPos();
   for (unsigned i = 0; i < 6; ++i) out->writeByte(0x00); //fill 48 bits
@@ -241,7 +241,7 @@ writeBlockHeader(std::vector<uint32>& stats, RawOutStream* out) {
 
 /* Integer is written in reversal fashion so that it can be read easier.*/
 void WaveletEncoder::
-writePackedInteger(uint64 packed_integer, RawOutStream* out) {
+writePackedInteger(uint64 packed_integer, OutStream* out) {
   do {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
@@ -330,14 +330,14 @@ uint64 WaveletDecoder::readPackedInteger() {
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
 WaveletDecoder::WaveletDecoder(const std::string& source) :
-    m_in(new RawInStream(source)), m_probModel(0),
+    m_in(new InStream(source)), m_probModel(0),
     m_integerProbModel(giveModelForIntegerCodes()),
     m_gapProbModel(giveModelForGaps())
 {
   m_source.connect(m_in);
 }
 
-WaveletDecoder::WaveletDecoder(RawInStream* in, char decoder) :
+WaveletDecoder::WaveletDecoder(InStream* in, char decoder) :
     m_in(in), m_probModel(giveProbabilityModel(decoder)),
     m_integerProbModel(giveModelForIntegerCodes()),
     m_gapProbModel(giveModelForGaps())

@@ -26,6 +26,7 @@
 
 #include "Compressor.hpp"
 #include "PrecompressorBlock.hpp"
+#include "Streams.hpp"
 
 #include <string>
 
@@ -34,12 +35,12 @@ namespace bwtc {
 Compressor::
 Compressor(const std::string& in, const std::string& out,
            const std::string& preprocessing, size_t memLimit, char entropyCoder)
-    : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
+    : m_in(new InStream(in)), m_out(new OutStream(out)),
       m_coder(giveEntropyEncoder(entropyCoder)), m_precompressor(preprocessing),
       m_options(memLimit, entropyCoder) {}
 
 Compressor::
-Compressor(RawInStream* in, RawOutStream* out,
+Compressor(InStream* in, OutStream* out,
            const std::string& preprocessing, size_t memLimit, char entropyCoder)
     : m_in(in), m_out(out), m_coder(giveEntropyEncoder(entropyCoder)),
       m_precompressor(preprocessing), m_options(memLimit, entropyCoder) {}
@@ -87,7 +88,7 @@ size_t Compressor::compress(size_t threads) {
     pb->sliceIntoBlocks(bwtBlockSize);
     ++preBlocks;
     bwtBlocks += pb->slices();
-    //Write pb-header: PrecompressorBlock
+
     compressedSize += pb->writeBlockHeader(m_out);
 
     for(size_t i = 0; i < pb->slices(); ++i) {

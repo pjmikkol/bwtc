@@ -47,7 +47,7 @@ namespace po = boost::program_options;
 
 using bwtc::verbosity;
 
-std::string readGlobalHeader(bwtc::RawInStream *in) {
+std::string readGlobalHeader(bwtc::InStream *in) {
   std::string preproc;
   size_t bitsLeft = 0;
   size_t bitsInCode = 0;
@@ -75,7 +75,7 @@ std::string readGlobalHeader(bwtc::RawInStream *in) {
   return preproc;
 }
 
-uint64 readPackedInteger(bwtc::RawInStream *in) {
+uint64 readPackedInteger(bwtc::InStream *in) {
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
 
@@ -101,7 +101,7 @@ void postprocess(const std::string& input_name, const std::string& output_name,
     else std::clog << "Output: stdout" << std::endl;
   }
 
-  bwtc::RawInStream in(input_name);
+  bwtc::InStream in(input_name);
   std::string postproc = readGlobalHeader(&in);
   std::reverse(postproc.begin(), postproc.end());
   bwtc::PostProcessor postProcessor(verbosity > 0);
@@ -111,7 +111,7 @@ void postprocess(const std::string& input_name, const std::string& output_name,
               << std::endl;
   }
 
-  bwtc::RawOutStream out(output_name);
+  bwtc::OutStream out(output_name);
 
   unsigned blocks = 0;
   while (!in.compressedDataEnding()) {

@@ -22,7 +22,7 @@
  *
  * @section DESCRIPTION
  *
- * Testing of RawInStream and RawOutStream.
+ * Testing of InStream and OutStream.
  *
  */
 
@@ -52,13 +52,13 @@ void WriteToFile(const std::string& fname, unsigned characters);
 void TestFileSize(const std::string& fname, unsigned characters);
 
 void SimpleWriteReadTest() {
-  bwtc::RawOutStream out(test_fname);
+  bwtc::OutStream out(test_fname);
   out.writeByte('a');
   out.writeByte('b');
   out.writeByte('c');
   out.flush();
 
-  bwtc::RawInStream in(test_fname);
+  bwtc::InStream in(test_fname);
   assert(in.readByte() == 'a');
   assert('b' == in.readByte());
   assert('c' == in.readByte());
@@ -67,7 +67,7 @@ void SimpleWriteReadTest() {
 
 /*********** begin: BlockFileWriteTest ***********/
 void WriteToFile(const std::string& fname, unsigned characters) {
-  bwtc::RawOutStream f(fname);
+  bwtc::OutStream f(fname);
   std::vector<byte> data(characters,'a');
   byte *data_ptr = &data[0];
   f.writeBlock(data_ptr, data_ptr + (int)data.size());
@@ -78,7 +78,7 @@ void TestFileSize(const std::string& fname, unsigned characters) {
   assert(fs::file_size(file) == characters);
 }
 
-/* Test case for simple writing with the RawOutStream-object*/
+/* Test case for simple writing with the OutStream-object*/
 void BlockFileWriteTest() {
   for (int i = 1; i < 10; i++) {
     unsigned int characters = 2000*i*i;
@@ -90,7 +90,7 @@ void BlockFileWriteTest() {
 
 
 void WriteToStreamTest() {
-  bwtc::RawOutStream f("");
+  bwtc::OutStream f("");
   std::string str = std::string("test\n");
   std::vector<byte> data(str.begin(), str.end());
   byte *data_ptr = &data[0];
@@ -99,7 +99,7 @@ void WriteToStreamTest() {
 }
 
 void EmptyWriteTest() {
-  bwtc::RawOutStream f(test_fname);
+  bwtc::OutStream f(test_fname);
   std::vector<byte> data(0);
   byte *data_ptr = &data[0];
   f.writeBlock(data_ptr, data_ptr + (int)data.size());
@@ -108,13 +108,13 @@ void EmptyWriteTest() {
 
 /*********** begin: ReadFromFileTest ***********/
 void WriteAndRead(long fsize, long bsize) {  
-  bwtc::RawOutStream o(test_fname);
+  bwtc::OutStream o(test_fname);
   std::vector<byte> data(fsize, 'b');
   //o.writeBlock(data.begin(), data.end());
   byte *data_ptr = &data[0];
   o.writeBlock(data_ptr, data_ptr + (int)data.size());
   o.flush();
-  bwtc::RawInStream f(test_fname);
+  bwtc::InStream f(test_fname);
   std::vector<byte> block(bsize);
   long total = 0;
   while (std::streamsize read = f.readBlock(&block[0], 1000)) total += read;

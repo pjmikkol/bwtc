@@ -46,12 +46,12 @@ namespace po = boost::program_options;
 
 using bwtc::verbosity;
 
-void writeGlobalHeader(bwtc::RawOutStream *out) {
+void writeGlobalHeader(bwtc::OutStream *out) {
   //Could probably write some information to the header
   out->writeByte(0x77);
 }
 
-void writePackedInteger(bwtc::uint64 packed_integer, bwtc::RawOutStream *out) {
+void writePackedInteger(bwtc::uint64 packed_integer, bwtc::OutStream *out) {
   do {
     bwtc::byte to_written = static_cast<bwtc::byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
@@ -70,11 +70,11 @@ void preprocess(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::RawInStream in(input_name);
+  bwtc::InStream in(input_name);
   
   bwtc::Precompressor preprocessor(preproc);
 
-  bwtc::RawOutStream out(output_name);
+  bwtc::OutStream out(output_name);
 
   writeGlobalHeader(&out);
 

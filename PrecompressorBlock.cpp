@@ -32,7 +32,7 @@
 
 namespace bwtc {
 
-PrecompressorBlock::PrecompressorBlock(size_t maxSize, RawInStream* in) {
+PrecompressorBlock::PrecompressorBlock(size_t maxSize, InStream* in) {
   m_data.resize(maxSize+1);
   uint64 read = in->readBlock(&m_data[0], maxSize);
   m_data.resize(read+1);
@@ -45,7 +45,7 @@ void PrecompressorBlock::setSize(size_t size) {
   m_data.resize(size+1);
 }
 
-size_t PrecompressorBlock::writeBlockHeader(RawOutStream* out) const {
+size_t PrecompressorBlock::writeBlockHeader(OutStream* out) const {
   
 }
 

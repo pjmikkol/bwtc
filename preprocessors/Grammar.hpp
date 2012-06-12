@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "../globaldefs.hpp"
+#include "../Streams.hpp"
 
 namespace bwtc {
 
@@ -121,6 +122,17 @@ class Grammar {
                         const std::vector<byte>& newSpecials,
                         std::vector<uint16>& nextSpecialPairs);
   
+  /*  uint32 writeGrammar(RawOutStream* dst) const;
+  uint32 writeRightSides(RawOutStream* dst) const;
+  uint32 writeFreedSymbols(RawOutStream* dst) const;
+  uint32 writeSpecialSymbols(RawOutStream* dst) const;
+  uint32 writeNumberOfSpecialSymbols(RawOutStream* dst) const;
+  uint32 writeLengthsOfRules(RawOutStream* dst) const;
+  uint32 writeVariables(RawOutStream* dst) const;
+  uint32 writeVariableFlags(RawOutStream* dst) const;
+  uint32 writeNumberOfRules(RawOutStream* dst) const;
+  */
+
   uint32 writeGrammar(byte* dst) const;
   uint32 writeRightSides(byte* dst) const;
   uint32 writeFreedSymbols(byte* dst) const;

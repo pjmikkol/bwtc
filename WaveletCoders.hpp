@@ -46,16 +46,16 @@ class WaveletEncoder : public EntropyEncoder {
   ~WaveletEncoder();
 
   void encodeData(const byte* data, const std::vector<uint32>& stats,
-                    RawOutStream* out);
-  void writeBlockHeader(std::vector<uint32>& stats, RawOutStream* out);
-  void finishBlock(const std::vector<uint32>& LFpowers, RawOutStream* out);
+                  OutStream* out);
+  void writeBlockHeader(std::vector<uint32>& stats, OutStream* out);
+  void finishBlock(const std::vector<uint32>& LFpowers, OutStream* out);
 
   size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
-                            RawOutStream* out);
+                            OutStream* out);
   
-  void writePackedInteger(uint64 packed_integer, RawOutStream* out);
+  void writePackedInteger(uint64 packed_integer, OutStream* out);
   void endContextBlock();
-  int writeTrailer(const std::vector<uint32>& LFpowers, RawOutStream* out);
+  int writeTrailer(const std::vector<uint32>& LFpowers, OutStream* out);
 
  private:
   dcsbwt::BitEncoder m_destination;
@@ -75,7 +75,7 @@ class WaveletEncoder : public EntropyEncoder {
 class WaveletDecoder : public EntropyDecoder {
  public:
   WaveletDecoder(const std::string& source);
-  WaveletDecoder(RawInStream* in, char decoder);
+  WaveletDecoder(InStream* in, char decoder);
   ~WaveletDecoder();
   /* If end symbol is encountered, then the most significant bit is activated */
   uint64 readPackedInteger();
@@ -87,7 +87,7 @@ class WaveletDecoder : public EntropyDecoder {
   void endContextBlock();
 
  private:
-  RawInStream* m_in;
+  InStream* m_in;
   dcsbwt::BitDecoder m_source;
   /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;

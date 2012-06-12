@@ -38,7 +38,7 @@
 namespace bwtc {
 
 Encoder::Encoder(const std::string& destination, char prob_model)
-    : m_out(new RawOutStream(destination)), m_destination(new dcsbwt::BitEncoder()),
+    : m_out(new OutStream(destination)), m_destination(new dcsbwt::BitEncoder()),
       m_probModel(giveProbabilityModel(prob_model)), m_headerPosition(0),
       m_compressedBlockLength(0), m_currentStatHandled(0),
       m_currentStatIndex(0)
@@ -266,14 +266,14 @@ uint64 Decoder::readPackedInteger() {
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
 Decoder::Decoder(const std::string& source, char prob_model)
-    : m_in(new RawInStream(source)), m_source(new dcsbwt::BitDecoder()),
+    : m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
       m_probModel(giveProbabilityModel(prob_model))
 {
   m_source->connect(m_in);
 }
 
 Decoder::Decoder(const std::string& source) :
-    m_in(new RawInStream(source)), m_source(new dcsbwt::BitDecoder()),
+    m_in(new InStream(source)), m_source(new dcsbwt::BitDecoder()),
     m_probModel(0)
 {
   m_source->connect(m_in);

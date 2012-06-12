@@ -61,18 +61,18 @@ class OutStream {
    *
    *@param b byte to be written
    */
-  void writeByte(byte b);
+  virtual void writeByte(byte b);
 
   /**
    * Writes bytes from range [begin, end) to stream
    */
-  void writeBlock(byte *begin, byte *end);
+  virtual void writeBlock(byte *begin, byte *end);
 
   bool isStdout() const { return m_fileptr == stdout; }
 
-  long int getPos();
-  void write48bits(uint64 to_written, long int position);
-  void flush();
+  virtual long int getPos();
+  virtual void write48bits(uint64 to_written, long int position);
+  virtual void flush();
 
  private:
   static const uint32 kBufferSize = 1 << 16; // 64KB

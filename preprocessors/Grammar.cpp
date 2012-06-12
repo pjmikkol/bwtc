@@ -158,6 +158,24 @@ void Grammar::printRules() const {
 }
 
 
+uint32 Grammar::writeGrammar(OutStream* out) const {
+  uint32 bytes = writeNumberOfRules(out);
+  if(m_rules.size() > 0) {
+    
+  }
+  return bytes;
+}
+
+uint32 Grammar::writeNumberOfRules(OutStream* out) const {
+  int bytesNeeded;
+  uint64 packedLength = utils::packInteger(m_rules.size(), &bytesNeeded);
+  for(int i = 0; i < bytesNeeded; ++i) {
+    out->writeByte(packedLength & 0xff);
+    packedLength >>= 8;
+  }
+  return bytesNeeded;
+}
+
 uint32 Grammar::writeGrammar(byte* dst) const {
   uint32 s = 0;
   if(m_rules.size() > 0) {

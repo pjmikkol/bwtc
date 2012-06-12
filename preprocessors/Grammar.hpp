@@ -122,16 +122,16 @@ class Grammar {
                         const std::vector<byte>& newSpecials,
                         std::vector<uint16>& nextSpecialPairs);
   
-  /*  uint32 writeGrammar(RawOutStream* dst) const;
-  uint32 writeRightSides(RawOutStream* dst) const;
-  uint32 writeFreedSymbols(RawOutStream* dst) const;
-  uint32 writeSpecialSymbols(RawOutStream* dst) const;
-  uint32 writeNumberOfSpecialSymbols(RawOutStream* dst) const;
-  uint32 writeLengthsOfRules(RawOutStream* dst) const;
-  uint32 writeVariables(RawOutStream* dst) const;
-  uint32 writeVariableFlags(RawOutStream* dst) const;
-  uint32 writeNumberOfRules(RawOutStream* dst) const;
-  */
+  uint32 writeGrammar(OutStream* dst) const;
+  uint32 writeNumberOfRules(OutStream* dst) const;
+  uint32 writeVariableFlags(OutStream* dst) const;
+  uint32 writeVariables(OutStream* dst) const;
+  uint32 writeLengthsOfRules(OutStream* dst) const;
+  uint32 writeNumberOfSpecialSymbols(OutStream* dst) const;
+  uint32 writeSpecialSymbols(OutStream* dst) const;
+  uint32 writeFreedSymbols(OutStream* dst) const;  
+  uint32 writeRightSides(OutStream* dst) const;
+  
 
   uint32 writeGrammar(byte* dst) const;
   uint32 writeRightSides(byte* dst) const;

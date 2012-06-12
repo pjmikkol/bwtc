@@ -50,17 +50,14 @@ class Decompressor {
   Decompressor(RawInStream* in, RawOutStream* out);
   ~Decompressor();
 
-  void setPreprocessor(const std::string& parameters);
-
   size_t decompress(size_t threads);
   size_t readGlobalHeader();
 
  private:
-  RawInStream *m_in;
-  RawOutStream *m_out;
+  InStream *m_in;
+  OutStream *m_out;
   EntropyDecoder *m_decoder;
-  Postprocessor *m_postprocessor;
-  //BWTManager m_bwtmanager;
+  Postprocessor m_postprocessor;
 };
 
 } //namespace bwtc

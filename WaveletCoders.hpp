@@ -47,15 +47,15 @@ class WaveletEncoder : public EntropyEncoder {
 
   void encodeData(const byte* data, const std::vector<uint32>& stats,
                   OutStream* out);
-  void writeBlockHeader(std::vector<uint32>& stats, OutStream* out);
-  void finishBlock(const std::vector<uint32>& LFpowers, OutStream* out);
+  void writeBlockHeader(const BWTBlock& b, std::vector<uint32>& stats,
+                        OutStream* out);
+  void finishBlock(OutStream* out);
 
   size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
                             OutStream* out);
   
   void writePackedInteger(uint64 packed_integer, OutStream* out);
   void endContextBlock();
-  int writeTrailer(const std::vector<uint32>& LFpowers, OutStream* out);
 
  private:
   dcsbwt::BitEncoder m_destination;

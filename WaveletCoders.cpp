@@ -79,39 +79,14 @@ transformAndEncode(BWTBlock& block, BWTManager& bwtm, OutStream* out) {
   std::vector<uint32> characterFrequencies(256, 0);
   bwtm.doTransform(block, &characterFrequencies[0]); // Also gather information about the runs
 
-  block.writeHeader(out);
-
   //TODO: find Integer coding
   m_destination.connect(out);
-  writeBlockHeader(characterFrequencies, out);
+  writeBlockHeader(block, characterFrequencies, out);
   encodeData(block.begin(), characterFrequencies, out);
-  finishBlock(block.LFpowers(), out);
+  finishBlock(out);
   return m_compressedBlockLength + 6; //Also bytes for the compressedSize
 }
 
-int WaveletEncoder::
-writeTrailer(const std::vector<uint32>& LFpowers, OutStream* out) {
-  int bytes = 1;
-  byte s = (byte)(LFpowers.size()-1);
-  out->writeByte(s);
-  int bitsLeft = 8;
-  for(size_t i = 0; i < LFpowers.size(); ++i) {
-    for(int j = 30; j >= 0; --j) {
-      s = (s << 1) | ((LFpowers[i] >> j) & 0x1);
-      --bitsLeft;
-      if(bitsLeft == 0) {
-        out->writeByte(s);
-        bitsLeft = 8;
-        ++bytes;
-      }
-    }
-  }
-  if(bitsLeft < 8) {
-    out->writeByte(s << bitsLeft);
-    ++bytes;
-  }
-  return bytes;
-}
 
 /******************************************************************************
  *            Encoding and decoding single MainBlock                          *
@@ -183,9 +158,8 @@ encodeData(const byte* block, const std::vector<uint32>& stats, OutStream* out)
 }
 
 void WaveletEncoder::
-finishBlock(const std::vector<uint32>& LFpowers, OutStream* out) {
+finishBlock(OutStream* out) {
   m_compressedBlockLength += m_destination.counter();
-  m_compressedBlockLength +=  writeTrailer(LFpowers, out);
   out->write48bits(m_compressedBlockLength, m_headerPosition);
 }
 
@@ -198,11 +172,14 @@ finishBlock(const std::vector<uint32>& LFpowers, OutStream* out) {
  * - lengths of the sections which are encoded with same wavelet tree*
  *********************************************************************/
 void WaveletEncoder::
-writeBlockHeader(std::vector<uint32>& stats, OutStream* out) {
+writeBlockHeader(const BWTBlock& block, std::vector<uint32>& stats,
+                 OutStream* out) {
   uint64 headerLength = 0;
   m_headerPosition = out->getPos();
   for (unsigned i = 0; i < 6; ++i) out->writeByte(0x00); //fill 48 bits
 
+  headerLength += block.writeHeader(out);
+  
   /* Deduce sections for separate encoding. At the moment uses not-so-well
    * thought heuristic. */
   std::vector<uint32> temp; std::vector<uint32>& s = stats;

@@ -38,6 +38,7 @@ namespace bwtc {
 
 class BWTBlock {
  public:
+  BWTBlock();
   BWTBlock(byte *data, uint32 length, bool isTransformed);
   BWTBlock(const BWTBlock& b);
   BWTBlock& operator=(const BWTBlock& b);
@@ -56,16 +57,17 @@ class BWTBlock {
   const byte* end() const { return m_begin + m_length; }
   std::vector<uint32>& LFpowers() { return m_LFpowers; }
 
+  void setBegin(byte* begin);
+  void setLength(uint32 length);
+
   void prepareLFpowers(uint32 startingPoints);
-  void writeHeader(OutStream *out) const;
+  size_t writeHeader(OutStream *out) const;
   
  private:
   byte *m_begin;
   uint32 m_length;
   std::vector<uint32> m_LFpowers;
   bool m_isTransformed;
-
-  BWTBlock();
 };
 
 } //namespace bwtc

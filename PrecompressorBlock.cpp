@@ -60,23 +60,37 @@ void PrecompressorBlock::setSize(size_t size) {
 
 size_t PrecompressorBlock::writeBlockHeader(OutStream* out) const {
   size_t bytes = 0;
-  {
+  size_t integersToPack[] = {originalSize(), slices() };
+
+  for(size_t i = 0; i < sizeof(integersToPack)/sizeof(size_t); ++i) {
     int bytesNeeded;
-    uint64 packedSize = utils::packInteger(originalSize(), &bytesNeeded);
+    uint64 packedInteger = utils::packInteger(integersToPack[i], &bytesNeeded);
     for(int i = 0; i < bytesNeeded; ++i) {
-      out->writeByte(packedSize & 0xff);
-      packedSize >>= 8;
+      out->writeByte(packedInteger & 0xff);
+      packedInteger >>= 8;
     }
     bytes += bytesNeeded;
   }
+  
   //TODO: writeGrammar
   return bytes;
+}
+
+size_t PrecompressorBlock::writeEmptyHeader(OutStream* out) {
+  out->writeByte(0);
+  return 1;
 }
 
 PrecompressorBlock* PrecompressorBlock::readBlockHeader(InStream* in) {
   size_t bytes;
   size_t originalSize = utils::readPackedInteger(*in, bytes);
   PrecompressorBlock* pb = new PrecompressorBlock(originalSize);
+  if(originalSize != 0) {
+    size_t blocks = utils::readPackedInteger(*in, bytes);
+    pb->m_bwtBlocks.resize(blocks);
+    //Read grammar
+  }
+  return pb;
 }
 
 void PrecompressorBlock::sliceIntoBlocks(size_t blockSize) {

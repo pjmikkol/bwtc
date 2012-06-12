@@ -65,9 +65,21 @@ size_t Decompressor::decompress(size_t threads) {
   size_t preBlocks = 0, bwtBlocks = 0;
   while(true) {
     PrecompressorBlock *pb = PrecompressorBlock::readBlockHeader(m_in);
-    if(pb->originalSize() == 0) break;
+    if(pb->originalSize() == 0) {
+      delete pb;
+      break;
+    }
     ++preBlocks;
     decompressedSize += pb->originalSize();
+    bwtBlocks += pb->slices();
+    size_t processed = 0;
+    for(size_t i = 0; i < pb->slices(); ++i) {
+      pb->getSlice(i).setBegin(pb->begin() + processed);
+      //decode
+      //ibwt
+    }
+
+    delete pb;
   }
   
 }

@@ -103,7 +103,8 @@ size_t Compressor::compress(size_t threads) {
 
     delete pb;
   }
-  
+  compressedSize += PrecompressorBlock::writeEmptyHeader(m_out);
+
   return compressedSize;
 }
 

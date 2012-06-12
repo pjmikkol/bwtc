@@ -48,7 +48,6 @@ class PrecompressorBlock {
   size_t originalSize() const { return m_originalSize; }
   size_t size() const { return m_used; }
   void setSize(size_t size);
-  size_t slices() const { return m_bwtBlocks.size(); }
   byte* begin() { return m_data; }
   const byte* begin() const { return m_data; }
   byte* end() { return m_data + m_used; }
@@ -57,9 +56,11 @@ class PrecompressorBlock {
 
   void sliceIntoBlocks(size_t blockSize);
   BWTBlock& getSlice(int i);
+  size_t slices() const { return m_bwtBlocks.size(); }
 
   size_t writeBlockHeader(OutStream* out) const;
 
+  static size_t writeEmptyHeader(OutStream* out);
   static PrecompressorBlock* readBlockHeader(InStream* in);
   
  private:

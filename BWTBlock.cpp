@@ -32,6 +32,9 @@
 
 namespace bwtc {
 
+BWTBlock::BWTBlock()
+    : m_begin(0), m_length(0), m_isTransformed(true) {}
+
 BWTBlock::BWTBlock(byte *data, uint32 length, bool isTransformed)
     : m_begin(data), m_length(length), m_isTransformed(isTransformed) {}
 
@@ -46,13 +49,41 @@ BWTBlock& BWTBlock::operator=(const BWTBlock& b) {
   m_isTransformed = b.m_isTransformed;
 }
 
-void BWTBlock::writeHeader(OutStream* out) const {
+void BWTBlock::setBegin(byte* begin) {
+  m_begin = begin;
+}
+
+void BWTBlock::setLength(uint32 length) {
+  m_length = length;
+}
+
+size_t BWTBlock::writeHeader(OutStream* out) const {
   if(verbosity > 2) {
     std::clog << "Writing " << m_LFpowers.size() << " starting points."
               << std::endl;
   }
-  //TODO: write them
+  size_t bytes = 1;
+  byte s = (byte)(m_LFpowers.size()-1);
+  out->writeByte(s);
+  int bitsLeft = 8;
+  for(size_t i = 0; i < m_LFpowers.size(); ++i) {
+    for(int j = 30; j >= 0; --j) {
+      s = (s << 1) | ((m_LFpowers[i] >> j) & 0x1);
+      --bitsLeft;
+      if(bitsLeft == 0) {
+        out->writeByte(s);
+        bitsLeft = 8;
+        ++bytes;
+      }
+    }
+  }
+  if(bitsLeft < 8) {
+    out->writeByte(s << bitsLeft);
+    ++bytes;
+  }
+  return bytes;
 }
+
 
 void BWTBlock::prepareLFpowers(uint32 startingPoints) {
   if(m_length <= 256 || startingPoints == 0) m_LFpowers.resize(1);

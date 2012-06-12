@@ -29,6 +29,7 @@
 #define BWTC_BWTBLOCK_HPP_
 
 #include "globaldefs.hpp"
+#include "Streams.hpp"
 
 #include <cassert>
 #include <vector>
@@ -56,7 +57,7 @@ class BWTBlock {
   std::vector<uint32>& LFpowers() { return m_LFpowers; }
 
   void prepareLFpowers(uint32 startingPoints);
-
+  void writeHeader(OutStream *out) const;
   
  private:
   byte *m_begin;

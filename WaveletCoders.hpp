@@ -42,7 +42,7 @@ namespace bwtc {
 
 class WaveletEncoder : public EntropyEncoder {
  public:
-  WaveletEncoder(char prob_model);
+  WaveletEncoder(char probModel);
   ~WaveletEncoder();
 
   void encodeData(const byte* data, const std::vector<uint32>& stats,
@@ -74,20 +74,19 @@ class WaveletEncoder : public EntropyEncoder {
 
 class WaveletDecoder : public EntropyDecoder {
  public:
-  WaveletDecoder(const std::string& source);
-  WaveletDecoder(InStream* in, char decoder);
+  WaveletDecoder();
+  WaveletDecoder(char probModel);
   ~WaveletDecoder();
   /* If end symbol is encountered, then the most significant bit is activated */
-  uint64 readPackedInteger();
+  uint64 readPackedInteger(InStream *in);
   /* Allocates memory for block, reads and decodes it. */
-  std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers);
+  std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers, InStream* in);
   /* Returns length of the compressed sequence and stores lengths of the context
    * blocks into stats-array.*/
-  uint64 readBlockHeader(std::vector<uint64>* stats);
+  uint64 readBlockHeader(std::vector<uint64>* stats, InStream* in);
   void endContextBlock();
 
  private:
-  InStream* m_in;
   dcsbwt::BitDecoder m_source;
   /** Probability model for internal nodes in wavelet tree. */
   ProbabilityModel* m_probModel;

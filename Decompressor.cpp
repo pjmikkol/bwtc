@@ -25,24 +25,24 @@
  */
 
 #include "Decompressor.hpp"
+#include "Streams.hpp"
+#include "preprocessors/Postprocessor.hpp"
 
 #include <string>
 
 namespace bwtc {
 
 Decompressor::Decompressor(const std::string& in, const std::string& out)
-    : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
-      m_decoder(0), m_postprocessor(0) {}
+    : m_in(new InStream(in)), m_out(new OutStream(out)),
+      m_decoder(0), m_postprocessor(verbosity > 1) {}
 
-Decompressor::Decompressor(RawInStream* in, RawOutStream* out)
-    : m_in(in), m_out(out), m_decoder(0), m_postprocessor(0)
-{}
+Decompressor::Decompressor(InStream* in, OutStream* out)
+    : m_in(in), m_out(out), m_decoder(0), m_postprocessor(verbosity > 1) {}
 
 Decompressor::~Decompressor() {
   delete m_in;
   delete m_out;
   delete m_decoder;
-  delete m_postprocessor;
 }
 
 size_t Decompressor::readGlobalHeader() {

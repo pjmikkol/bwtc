@@ -56,9 +56,9 @@ void decompress(const std::string& input_name, const std::string& output_name,
   bwtc::InStream* in = new bwtc::InStream(input_name);
   char dec = static_cast<char>(in->readByte());
   
-  bwtc::EntropyDecoder *decoder = bwtc::giveEntropyDecoder(in, dec);
+  bwtc::EntropyDecoder *decoder = bwtc::giveEntropyDecoder(dec);
 
-  bwtc::PostProcessor postProcessor(verbosity > 0);
+  bwtc::Postprocessor postProcessor(verbosity > 0);
 
   bwtc::OutStream out(output_name);
 
@@ -67,7 +67,7 @@ void decompress(const std::string& input_name, const std::string& output_name,
   unsigned blocks = 0;
 
   std::vector<uint32> LFpowers;
-  while (std::vector<byte>* bwt_block = decoder->decodeBlock(LFpowers)) {
+  while (std::vector<byte>* bwt_block = decoder->decodeBlock(LFpowers, in)) {
 
     if(verbosity > 1) {
       std::clog << "Read " << LFpowers.size() << " starting points for "
@@ -77,7 +77,7 @@ void decompress(const std::string& input_name, const std::string& output_name,
 
     transformer->doTransform(&(*bwt_block)[0], bwt_block->size(), LFpowers);
 
-    bwtc::PostProcessor postProcessor(verbosity > 1);
+    bwtc::Postprocessor postProcessor(verbosity > 1);
     postProcessor.postProcess(bwt_block);
     byte *bwt_block_ptr = &(*bwt_block)[0];
     out.writeBlock(bwt_block_ptr, bwt_block_ptr + ((size_t)bwt_block->size()));

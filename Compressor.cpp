@@ -27,6 +27,7 @@
 #include "Compressor.hpp"
 #include "PrecompressorBlock.hpp"
 #include "Streams.hpp"
+#include "Profiling.hpp"
 
 #include <string>
 
@@ -62,6 +63,8 @@ void Compressor::initializeBwtAlgorithm(char choice, uint32 startingPoints) {
 }
 
 size_t Compressor::compress(size_t threads) {
+  PROFILE("Compressor::compress");
+
   size_t compressedSize = 0;
   if(threads != 1) {
     std::cerr << "Supporting only single thread!" << std::endl;
@@ -102,7 +105,6 @@ size_t Compressor::compress(size_t threads) {
 
     delete pb;
   }
-  
   
   return compressedSize;
 }

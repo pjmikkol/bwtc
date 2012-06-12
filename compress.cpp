@@ -91,7 +91,7 @@ void compress(const std::string& input_name, const std::string& output_name,
     delete block;
   }
 
-#ifdef ENTROPY_PROFILER  
+#ifdef ENTROPY_PROFILER
   if(encoding != 'H') {
     std::cout << "kBytes for characters " << (encoder->m_bytesForCharacters/1024.0)
               << std::endl << "kBytes for runs " << (encoder->m_bytesForRuns/1024.0)
@@ -248,6 +248,14 @@ int main(int argc, char** argv) {
 
   if (stdout) output_name = "";
   if (stdin)  input_name = "";
+
+  if (verbosity > 1) {
+    if (input_name != "") std::clog << "Input: " << input_name << std::endl;
+    else std::clog << "Input: stdin" << std::endl;
+    if (output_name != "") std::clog << "Output: " << output_name << std::endl;
+    else std::clog << "Output: stdout" << std::endl;
+  }
+
 
   //  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
   bwtc::Compressor compressor(input_name, output_name, preprocessing, mem*1000000, encoding);

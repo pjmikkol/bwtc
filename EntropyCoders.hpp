@@ -67,12 +67,13 @@ class EntropyDecoder {
     (void) source;
   }
   virtual ~EntropyDecoder() {}
-  virtual std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers) = 0;
+  virtual std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers,
+                                         InStream* in) = 0;
 };
 
-EntropyEncoder* giveEntropyEncoder(char prob_model);
+EntropyEncoder* giveEntropyEncoder(char encoder);
 
-EntropyDecoder* giveEntropyDecoder(InStream* in, char decoder);
+EntropyDecoder* giveEntropyDecoder(char decoder);
 
 } // namespace bwtc
 

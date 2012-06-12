@@ -33,7 +33,7 @@
 
 namespace bwtc {
 
-class PostProcessor {
+class Postprocessor {
  public:
   struct Replacement {
     Replacement();
@@ -46,7 +46,7 @@ class PostProcessor {
     bool isPair;
   };
 
-  PostProcessor(bool verbose);
+  Postprocessor(bool verbose);
 
   void uncompress(const byte* from, size_t length, std::vector<byte>& to);
   void postProcess(std::vector<byte> *data);

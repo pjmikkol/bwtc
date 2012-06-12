@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
 
   result.resize(cSize+gSize);
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i)
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(pairOfSame) {
   
   grammar.printRules();
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i)
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(twoForFree) {
   
   grammar.printRules();
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i)
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(simpleSpecialScenario) {
   result.resize(cSize+gSize);
   grammar.printRules();
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i)
@@ -244,7 +244,7 @@ BOOST_AUTO_TEST_CASE(freeVariableFromReplacements) {
   result.resize(cSize+gSize);
   grammar.printRules();
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i)
@@ -283,7 +283,7 @@ BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
 
   result.resize(cSize+gSize);
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i) 
@@ -331,7 +331,7 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
 
   result.resize(cSize+gSize);
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i) 
@@ -375,7 +375,7 @@ BOOST_AUTO_TEST_CASE(MoreReplacements) {
   grammar.printRules();
   result.resize(cSize+gSize);
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i) 
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
 
   grammar.printRules();
 
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&res2);
   BOOST_CHECK_EQUAL(res2.size(), data.size());
   for(size_t i = 0; i < res2.size(); ++i) 
@@ -481,7 +481,7 @@ BOOST_AUTO_TEST_CASE(NewSpecialOnRightSide) {
 
   grammar.printRules();
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result);
   BOOST_CHECK_EQUAL(result.size(), data.size());
   for(size_t i = 0; i < result.size(); ++i) 
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(twoRounds) {
   result[1].resize(cSize+gSize);
   grammar.printRules();
   
-  PostProcessor post(true);
+  Postprocessor post(true);
   post.postProcess(&result[1]);
   BOOST_CHECK_EQUAL(result[1].size(), data.size());
   for(size_t i = 0; i < result[1].size(); ++i) 

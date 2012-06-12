@@ -104,7 +104,7 @@ void postprocess(const std::string& input_name, const std::string& output_name,
   bwtc::InStream in(input_name);
   std::string postproc = readGlobalHeader(&in);
   std::reverse(postproc.begin(), postproc.end());
-  bwtc::PostProcessor postProcessor(verbosity > 0);
+  bwtc::Postprocessor postProcessor(verbosity > 0);
 
   if(verbosity > 1) {
     std::clog << "Postprocessor initiated with parameter: " << postproc

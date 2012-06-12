@@ -51,7 +51,7 @@ giveEntropyEncoder(char encoder) {
     //}
 }
 
-EntropyDecoder* giveEntropyDecoder(InStream* in, char decoder) {
+EntropyDecoder* giveEntropyDecoder(char decoder) {
   /*  if(decoder == 'H') {
     if(verbosity > 1) {
       std::clog << "Using Huffman decoder\n";
@@ -61,7 +61,7 @@ EntropyDecoder* giveEntropyDecoder(InStream* in, char decoder) {
     if(verbosity > 1) {
       std::clog << "Using Wavelet tree decoder\n";
     }
-    return new WaveletDecoder(in, decoder);
+    return new WaveletDecoder(decoder);
     //}
 }
 

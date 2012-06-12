@@ -26,6 +26,7 @@
 
 #include "BWTBlock.hpp"
 #include "globaldefs.hpp"
+#include "Streams.hpp"
 
 #include <vector>
 
@@ -43,6 +44,14 @@ BWTBlock& BWTBlock::operator=(const BWTBlock& b) {
   m_length = b.m_length;
   m_LFpowers = b.m_LFpowers;
   m_isTransformed = b.m_isTransformed;
+}
+
+void BWTBlock::writeHeader(OutStream* out) const {
+  if(verbosity > 2) {
+    std::clog << "Writing " << m_LFpowers.size() << " starting points."
+              << std::endl;
+  }
+  //TODO: write them
 }
 
 void BWTBlock::prepareLFpowers(uint32 startingPoints) {

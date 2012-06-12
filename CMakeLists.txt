@@ -43,7 +43,7 @@ add_subdirectory(${BWTRANSFORMS_SRC_DIR})
 add_subdirectory(${PROBMODELS_SRC_DIR})
 
 set(COMPRESSOR_SRC compress.cpp Compressor.cpp)
-set(DECOMPRESSOR_SRC uncompress.cpp)
+set(DECOMPRESSOR_SRC uncompress.cpp Decompressor.cpp)
 set(PREPROCESSOR_SRC preprocess.cpp)
 set(POSTPROCESSOR_SRC postprocess.cpp)
 

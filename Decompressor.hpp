@@ -39,6 +39,7 @@
 #include "Compressor.hpp"
 #include "EntropyCoders.hpp"
 #include "Streams.hpp"
+#include "preprocessors/Postprocessor.hpp"
 
 #include <string>
 
@@ -47,7 +48,7 @@ namespace bwtc {
 class Decompressor {
  public:
   Decompressor(const std::string& in, const std::string& out);
-  Decompressor(RawInStream* in, RawOutStream* out);
+  Decompressor(InStream* in, OutStream* out);
   ~Decompressor();
 
   size_t decompress(size_t threads);

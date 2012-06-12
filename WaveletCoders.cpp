@@ -78,6 +78,9 @@ size_t WaveletEncoder::
 transformAndEncode(BWTBlock& block, BWTManager& bwtm, OutStream* out) {
   std::vector<uint32> characterFrequencies(256, 0);
   bwtm.doTransform(block, &characterFrequencies[0]); // Also gather information about the runs
+
+  block.writeHeader(out);
+
   //TODO: find Integer coding
   m_destination.connect(out);
   writeBlockHeader(characterFrequencies, out);
@@ -249,23 +252,25 @@ writePackedInteger(uint64 packed_integer, OutStream* out) {
   } while (packed_integer);
 }
 
-uint64 WaveletDecoder::readBlockHeader(std::vector<uint64>* stats) {
-  uint64 compressed_length = m_in->read48bits();
-  byte sections = m_in->readByte();
+uint64
+WaveletDecoder::readBlockHeader(std::vector<uint64>* stats, InStream* in) {
+  uint64 compressed_length = in->read48bits();
+  byte sections = in->readByte();
   size_t sects = (sections == 0) ? 256 : sections;
   for(size_t i = 0; i < sects; ++i) {
-    uint64 value = readPackedInteger();
+    uint64 value = readPackedInteger(in);
     stats->push_back(utils::unpackInteger(value));
   }
   return compressed_length;
 }
 
-std::vector<byte>* WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
+std::vector<byte>*
+WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers, InStream* in) {
   PROFILE("WaveletDecoder::decodeBlock");
-  if(m_in->compressedDataEnding()) return 0;
+  if(in->compressedDataEnding()) return 0;
 
   std::vector<uint64> context_lengths;
-  uint64 compr_len = readBlockHeader(&context_lengths);
+  uint64 compr_len = readBlockHeader(&context_lengths, in);
 
   if (verbosity > 2) {
     std::clog << "Size of compressed block = " << compr_len << "\n";
@@ -279,13 +284,13 @@ std::vector<byte>* WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
 
   for(size_t i = 0; i < context_lengths.size(); ++i) {
     if(context_lengths[i] == 0) continue;
-    size_t rootSize = utils::unpackInteger(readPackedInteger());
+    size_t rootSize = utils::unpackInteger(readPackedInteger(in));
 
     WaveletTree<std::vector<bool> > wavelet;
 
-    size_t bits = wavelet.readShape(*m_in);
+    size_t bits = wavelet.readShape(*in);
 
-    m_in->flushBuffer();
+    in->flushBuffer();
     m_source.start();
     //wavelet.decodeTree(rootSize, m_source, *m_probModel);
     wavelet.decodeTreeBF(rootSize, m_source, *m_probModel, *m_integerProbModel,
@@ -300,19 +305,19 @@ std::vector<byte>* WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
     endContextBlock();
   }
   
-  uint32 LFpows = m_in->readByte()+1;
+  uint32 LFpows = in->readByte()+1;
   LFpowers.resize(LFpows);
   for(uint32 i = 0; i < LFpows; ++i) {
     uint32 pos = 0;
     for(uint32 j = 0; j < 31; ++j)
-      pos = (pos << 1) | (m_in->readBit() ? 1 : 0);
+      pos = (pos << 1) | (in->readBit() ? 1 : 0);
     LFpowers[i] = pos;
   }
-  m_in->flushBuffer();
+  in->flushBuffer();
   return data;
 }
 
-uint64 WaveletDecoder::readPackedInteger() {
+uint64 WaveletDecoder::readPackedInteger(InStream* in) {
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
 
@@ -320,7 +325,7 @@ uint64 WaveletDecoder::readPackedInteger() {
   bool bits_left = true;
   int i;
   for(i = 0; bits_left; ++i) {
-    uint64 read = static_cast<uint64>(m_in->readByte());
+    uint64 read = static_cast<uint64>(in->readByte());
     bits_left = (read & kEndMask) != 0;
     packed_integer |= (read << i*8);
   }
@@ -329,24 +334,18 @@ uint64 WaveletDecoder::readPackedInteger() {
 }
 /*********** Encoding and decoding single MainBlock-section ends ********/
 
-WaveletDecoder::WaveletDecoder(const std::string& source) :
-    m_in(new InStream(source)), m_probModel(0),
-    m_integerProbModel(giveModelForIntegerCodes()),
+WaveletDecoder::WaveletDecoder() :
+    m_probModel(0), m_integerProbModel(giveModelForIntegerCodes()),
     m_gapProbModel(giveModelForGaps())
-{
-  m_source.connect(m_in);
-}
+{}
 
-WaveletDecoder::WaveletDecoder(InStream* in, char decoder) :
-    m_in(in), m_probModel(giveProbabilityModel(decoder)),
+WaveletDecoder::WaveletDecoder(char decoder) :
+    m_probModel(giveProbabilityModel(decoder)),
     m_integerProbModel(giveModelForIntegerCodes()),
     m_gapProbModel(giveModelForGaps())
-{
-  m_source.connect(m_in);
-}
+{}
 
 WaveletDecoder::~WaveletDecoder() {
-  delete m_in;
   delete m_probModel;
   delete m_integerProbModel;
   delete m_gapProbModel;

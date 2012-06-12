@@ -41,29 +41,29 @@
 
 namespace bwtc {
 
-PostProcessor::Replacement::Replacement()
+Postprocessor::Replacement::Replacement()
     : length(0), replacement(0), isPair(false) {}
 
-PostProcessor::Replacement::Replacement(uint32 len, uint16 repl, bool pair)
+Postprocessor::Replacement::Replacement(uint32 len, uint16 repl, bool pair)
     : length(len), replacement(repl), isPair(pair) {}
 
-PostProcessor::Replacement::Replacement(const Replacement& r)
+Postprocessor::Replacement::Replacement(const Replacement& r)
     : length(r.length), replacement(r.replacement), isPair(r.isPair) {}
 
-PostProcessor::Replacement&
-PostProcessor::Replacement::operator=(const PostProcessor::Replacement& r) {
+Postprocessor::Replacement&
+Postprocessor::Replacement::operator=(const Postprocessor::Replacement& r) {
   length = r.length;
   replacement = r.replacement;
   isPair = r.isPair;
   return *this;
 }
 
-PostProcessor::PostProcessor(bool verbose) : m_verbose(verbose)
+Postprocessor::Postprocessor(bool verbose) : m_verbose(verbose)
 {
   std::fill(m_isSpecial, m_isSpecial + 256, false);
 }
 
-void PostProcessor::
+void Postprocessor::
 uncompress(const byte* src, size_t length, std::vector<byte>& dst) {
   for(size_t i = 0; i < length; ++i) {
     int key = src[i];
@@ -77,8 +77,8 @@ uncompress(const byte* src, size_t length, std::vector<byte>& dst) {
   }
 }
 
-void PostProcessor::postProcess(std::vector<byte> *data) {
-  PROFILE("PostProcessor::postProcess");
+void Postprocessor::postProcess(std::vector<byte> *data) {
+  PROFILE("Postprocessor::postProcess");
   uint32 grammarSize = readGrammar(&(*data)[0], data->size());
   if(grammarSize == 1) {
     data->resize(data->size()-1);
@@ -92,7 +92,7 @@ void PostProcessor::postProcess(std::vector<byte> *data) {
   std::swap(src,uncompressed);
 }
 
-uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
+uint32 Postprocessor::readGrammar(const byte* src, size_t len) {
   const size_t last = len-1;
   //Prepare the ordinary symbols
   for(size_t i = 0; i < 256; ++i) {
@@ -242,7 +242,7 @@ uint32 PostProcessor::readGrammar(const byte* src, size_t len) {
 
 
 
-uint32 PostProcessor::
+uint32 Postprocessor::
 readReversedPackedInteger(const byte* src, int* bytesRead) {
   int bytes = 0;
   uint32 result = 0;
@@ -256,7 +256,7 @@ readReversedPackedInteger(const byte* src, int* bytesRead) {
   return result;
 }
 
-size_t PostProcessor::
+size_t Postprocessor::
 uncompressCommonPairs(std::vector<byte> *compressed, size_t length) {
   static const unsigned no_repl = 70000;
   std::vector<byte>& data = *compressed;
@@ -307,7 +307,7 @@ uncompressCommonPairs(std::vector<byte> *compressed, size_t length) {
   return result.size();
 }
 
-size_t PostProcessor::
+size_t Postprocessor::
 uncompressLongRuns(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   assert(length > 2);
@@ -377,7 +377,7 @@ uncompressLongRuns(std::vector<byte> *compressed, size_t length) {
 }
 
 
-size_t PostProcessor::
+size_t Postprocessor::
 uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   assert(length > 2);
@@ -462,7 +462,7 @@ uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length) {
   return result.size();
 }
 
-size_t PostProcessor::
+size_t Postprocessor::
 uncompressSequences(std::vector<byte> *compressed, size_t length) {
   std::vector<byte>& data = *compressed;
   std::vector<byte> result;

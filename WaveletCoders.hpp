@@ -79,11 +79,11 @@ class WaveletDecoder : public EntropyDecoder {
   ~WaveletDecoder();
   /* If end symbol is encountered, then the most significant bit is activated */
   uint64 readPackedInteger(InStream *in);
-  /* Allocates memory for block, reads and decodes it. */
-  std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers, InStream* in);
+  /* Reads and decodes block from stream to block given as a parameter. */
+  void decodeBlock(BWTBlock& block, InStream* in);
   /* Returns length of the compressed sequence and stores lengths of the context
    * blocks into stats-array.*/
-  uint64 readBlockHeader(std::vector<uint64>* stats, InStream* in);
+  uint64 readBlockHeader(BWTBlock& block, std::vector<uint64>* stats, InStream* in);
   void endContextBlock();
 
  private:

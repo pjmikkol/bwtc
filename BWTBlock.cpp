@@ -47,13 +47,14 @@ BWTBlock& BWTBlock::operator=(const BWTBlock& b) {
   m_length = b.m_length;
   m_LFpowers = b.m_LFpowers;
   m_isTransformed = b.m_isTransformed;
+  return *this;
 }
 
 void BWTBlock::setBegin(byte* begin) {
   m_begin = begin;
 }
 
-void BWTBlock::setLength(uint32 length) {
+void BWTBlock::setSize(uint32 length) {
   m_length = length;
 }
 
@@ -84,6 +85,21 @@ size_t BWTBlock::writeHeader(OutStream* out) const {
   return bytes;
 }
 
+void BWTBlock::readHeader(InStream* in) {
+  uint32 LFpows = in->readByte()+1;
+  if(verbosity > 2) {
+    std::clog << "Reading " << LFpows << " starting points."
+              << std::endl;
+  }
+  m_LFpowers.resize(LFpows);
+  for(uint32 i = 0; i < LFpows; ++i) {
+    uint32 pos = 0;
+    for(uint32 j = 0; j < 31; ++j)
+      pos = (pos << 1) | (in->readBit() ? 1 : 0);
+    m_LFpowers[i] = pos;
+  }
+  in->flushBuffer();
+}
 
 void BWTBlock::prepareLFpowers(uint32 startingPoints) {
   if(m_length <= 256 || startingPoints == 0) m_LFpowers.resize(1);

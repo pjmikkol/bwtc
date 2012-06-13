@@ -62,9 +62,9 @@ size_t PrecompressorBlock::writeBlockHeader(OutStream* out) const {
   size_t bytes = 0;
   size_t integersToPack[] = {originalSize(), slices() };
 
-  for(size_t i = 0; i < sizeof(integersToPack)/sizeof(size_t); ++i) {
+  for(size_t j = 0; j < sizeof(integersToPack)/sizeof(size_t); ++j) {
     int bytesNeeded;
-    uint64 packedInteger = utils::packInteger(integersToPack[i], &bytesNeeded);
+    uint64 packedInteger = utils::packInteger(integersToPack[j], &bytesNeeded);
     for(int i = 0; i < bytesNeeded; ++i) {
       out->writeByte(packedInteger & 0xff);
       packedInteger >>= 8;

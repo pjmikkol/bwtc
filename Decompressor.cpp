@@ -28,7 +28,9 @@
 #include "Streams.hpp"
 #include "preprocessors/Postprocessor.hpp"
 #include "Profiling.hpp"
+#include "bwtransforms/InverseBWT.hpp"
 
+#include <cassert>
 #include <string>
 
 namespace bwtc {
@@ -59,10 +61,11 @@ size_t Decompressor::decompress(size_t threads) {
     std::cerr << "Supporting only single thread!" << std::endl;
     return 0;
   }
+  InverseBWTransform *ibwt = giveInverseTransformer();
 
-  size_t decompressedSize = readGlobalHeader();
+  readGlobalHeader();
 
-  size_t preBlocks = 0, bwtBlocks = 0;
+  size_t preBlocks = 0, bwtBlocks = 0, decompressedSize = 0;
   while(true) {
     PrecompressorBlock *pb = PrecompressorBlock::readBlockHeader(m_in);
     if(pb->originalSize() == 0) {
@@ -72,16 +75,21 @@ size_t Decompressor::decompress(size_t threads) {
     ++preBlocks;
     decompressedSize += pb->originalSize();
     bwtBlocks += pb->slices();
-    size_t processed = 0;
+
     for(size_t i = 0; i < pb->slices(); ++i) {
-      pb->getSlice(i).setBegin(pb->begin() + processed);
-      //decode
-      //ibwt
+      pb->getSlice(i).setBegin(pb->end());
+      m_decoder->decodeBlock(pb->getSlice(i), m_in);
+      pb->usedAtEnd(pb->getSlice(i).size());
+      
+      ibwt->doTransform(pb->getSlice(i));
     }
+    // Postprocess pb
+    m_out->writeBlock(pb->begin(), pb->end());
+    assert(pb->size() == pb->originalSize());
 
     delete pb;
   }
-  
+  delete ibwt;
 }
 
 } //namespace bwtc

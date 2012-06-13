@@ -100,12 +100,28 @@ uint64 packInteger(uint64 integer, int* bytes_needed);
 uint64 unpackInteger(uint64 packed_integer);
 
 template <typename Input>
-size_t readPackedInteger(Input& input, size_t& bytesRead) {
+size_t readPackedIntegerRev(Input& input, size_t& bytesRead) {
   size_t read = 0xff, result = 0, j = 0;
   bytesRead = 0;
   while(read & 0x80) {
     read = 0;
     for(size_t i = 0; i < 8; ++i) {
+      read |= ((input.readBit()?1:0) << i);
+    }
+    result |= ((read & 0x7f) << j);
+    j += 7;
+    ++bytesRead;
+  }
+  return result;
+}
+
+template <typename Input>
+size_t readPackedInteger(Input& input, size_t& bytesRead) {
+  size_t read = 0xff, result = 0, j = 0;
+  bytesRead = 0;
+  while(read & 0x80) {
+    read = 0;
+    for(int i = 7; i >= 0; --i) {
       read |= ((input.readBit()?1:0) << i);
     }
     result |= ((read & 0x7f) << j);

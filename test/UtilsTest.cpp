@@ -125,6 +125,59 @@ BOOST_AUTO_TEST_CASE(RunFrequencyCounts4) {
   }
 }
 
+class DebugStream {
+ public:
+  DebugStream() : m_currByte(0), m_currBit(0) {}
+  
+  void reset() { m_currBit = m_currByte = 0;  }
+
+  bool readBit() {
+    bool bit = (m_data[m_currByte] >> (7 - m_currBit++)) & 1;
+    if(m_currBit == 8) {
+      m_currBit = 0;
+      ++m_currByte;
+    }
+    return bit;
+  }
+
+  void writeByte(byte b) {
+    if(m_currByte == m_data.size()) {
+      m_data.push_back(b);
+      ++m_currByte;
+    } else {
+      m_data[m_currByte++] = b;
+    }
+  }
+  
+ private:
+  std::vector<byte> m_data;
+  uint32 m_currByte;
+  uint32 m_currBit;
+};
+
+#define INTEGER_PACKING_TEST(par) \
+  DebugStream stream;\
+  int bytesWritten; \
+  uint64 integer = (par);\
+  uint64 packed = utils::packInteger(integer, &bytesWritten);\
+  for(int i = 0; i < bytesWritten; ++i) {\
+    stream.writeByte(packed & 0xff);\
+    packed >>= 8;\
+  }\
+  stream.reset();\
+  size_t bytesRead;\
+  size_t result = utils::readPackedInteger(stream, bytesRead);\
+  BOOST_CHECK_EQUAL(result, integer);\
+  BOOST_CHECK_EQUAL(bytesRead, bytesWritten)
+
+BOOST_AUTO_TEST_CASE(PackedInteger) {
+  uint64 numbers[] = {0, 1};//, 12, 126, 127, 128, 250, 1234, 5422, 124312, 4311235};
+  for(size_t i = 0; i < sizeof(numbers)/sizeof(uint64); ++i) {
+    INTEGER_PACKING_TEST(numbers[i]);
+  }
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(HuffmanLengths)

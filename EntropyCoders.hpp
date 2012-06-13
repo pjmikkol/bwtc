@@ -43,10 +43,6 @@ namespace bwtc {
 /* Base class for all entropy encoders */
 class EntropyEncoder {
  public:
-  EntropyEncoder() {}
-  EntropyEncoder(char prob_model) {
-    (void) prob_model;
-  }
   virtual ~EntropyEncoder() {}
 
   virtual size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
@@ -62,13 +58,8 @@ class EntropyEncoder {
 /* Base class for all entropy decoders */
 class EntropyDecoder {
  public:
-  EntropyDecoder() {}
-  EntropyDecoder(const std::string& source) {
-    (void) source;
-  }
   virtual ~EntropyDecoder() {}
-  virtual std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers,
-                                         InStream* in) = 0;
+  virtual void decodeBlock(BWTBlock& block, InStream* in) = 0;
 };
 
 EntropyEncoder* giveEntropyEncoder(char encoder);

@@ -230,8 +230,11 @@ writePackedInteger(uint64 packed_integer, OutStream* out) {
 }
 
 uint64
-WaveletDecoder::readBlockHeader(std::vector<uint64>* stats, InStream* in) {
+WaveletDecoder::readBlockHeader(BWTBlock& block, std::vector<uint64>* stats,
+                                InStream* in) {
   uint64 compressed_length = in->read48bits();
+  block.readHeader(in);
+  
   byte sections = in->readByte();
   size_t sects = (sections == 0) ? 256 : sections;
   for(size_t i = 0; i < sects; ++i) {
@@ -241,24 +244,26 @@ WaveletDecoder::readBlockHeader(std::vector<uint64>* stats, InStream* in) {
   return compressed_length;
 }
 
-std::vector<byte>*
-WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers, InStream* in) {
+void
+WaveletDecoder::decodeBlock(BWTBlock& block, InStream* in) {
   PROFILE("WaveletDecoder::decodeBlock");
-  if(in->compressedDataEnding()) return 0;
+  if(in->compressedDataEnding()) return;
 
   std::vector<uint64> context_lengths;
-  uint64 compr_len = readBlockHeader(&context_lengths, in);
+  uint64 compr_len = readBlockHeader(block, &context_lengths, in);
 
   if (verbosity > 2) {
     std::clog << "Size of compressed block = " << compr_len << "\n";
   }
 
-  uint64 block_size = std::accumulate(
+#ifndef NDEBUG
+  uint64 blockSize = std::accumulate(
       context_lengths.begin(), context_lengths.end(), static_cast<uint64>(0));
+#endif
 
-  std::vector<byte>* data = new std::vector<byte>();
-  data->reserve(block_size);
-
+  m_source.connect(in);
+  
+  size_t len = 0;
   for(size_t i = 0; i < context_lengths.size(); ++i) {
     if(context_lengths[i] == 0) continue;
     size_t rootSize = utils::unpackInteger(readPackedInteger(in));
@@ -278,20 +283,13 @@ WaveletDecoder::decodeBlock(std::vector<uint32>& LFpowers, InStream* in) {
       std::clog << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
       std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
     }
-    wavelet.message(std::back_inserter(*data));
+
+    size_t clen = wavelet.message(block.begin() + len);
+    len += clen;
     endContextBlock();
   }
-  
-  uint32 LFpows = in->readByte()+1;
-  LFpowers.resize(LFpows);
-  for(uint32 i = 0; i < LFpows; ++i) {
-    uint32 pos = 0;
-    for(uint32 j = 0; j < 31; ++j)
-      pos = (pos << 1) | (in->readBit() ? 1 : 0);
-    LFpowers[i] = pos;
-  }
-  in->flushBuffer();
-  return data;
+  block.setSize(len);
+  assert(len == blockSize);
 }
 
 uint64 WaveletDecoder::readPackedInteger(InStream* in) {

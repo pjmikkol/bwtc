@@ -128,7 +128,7 @@ class WaveletTree {
   size_t totalBits() const { return m_root->totalBits(); }
 
   template <typename OutputIterator>
-  void message(OutputIterator out) const;
+  size_t message(OutputIterator out) const;
 
   /**Input is required to have readBit()-method returning bool and readByte().
    */
@@ -328,7 +328,7 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
   if(symbols == 0) symbols = 256;
 
   size_t bitsRead = 0;
-  size_t maxLen = utils::readPackedInteger(input, bitsRead);
+  size_t maxLen = utils::readPackedIntegerRev(input, bitsRead);
   bitsRead = 8*bitsRead + 16;
 
   std::vector<byte> alphabet;
@@ -350,13 +350,13 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
 
   {
     size_t bytesRead = 0;
-    size_t longestRun = utils::readPackedInteger(input, bytesRead);
+    size_t longestRun = utils::readPackedIntegerRev(input, bytesRead);
     bitsRead += 8*bytesRead;
 
-    symbols = utils::readPackedInteger(input, bytesRead);
+    symbols = utils::readPackedIntegerRev(input, bytesRead);
     bitsRead += 8*bytesRead;
 
-    maxLen = utils::readPackedInteger(input, bytesRead);
+    maxLen = utils::readPackedIntegerRev(input, bytesRead);
     bitsRead += 8*bytesRead;
 
     std::vector<uint32> integers;
@@ -1081,7 +1081,8 @@ void WaveletTree<BitVector>::pushRun(byte symbol, size_t runLength)
 }
 
 template <typename BitVector> template <typename OutputIterator>
-void WaveletTree<BitVector>::message(OutputIterator out) const {
+size_t WaveletTree<BitVector>::message(OutputIterator out) const {
+  size_t len = 0;
   size_t msgSize = m_root->m_bitVector.size();
   std::map<TreeNode<BitVector>*, size_t> bitsSeen;
   for(size_t j = 0; j < msgSize; ++j) {
@@ -1136,7 +1137,9 @@ void WaveletTree<BitVector>::message(OutputIterator out) const {
     for(size_t k = 0; k < runLength; ++k) {
       *out++ = symbol;
     }
+    len += runLength;
   }
+  return len;
 }
 
 

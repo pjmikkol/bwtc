@@ -34,6 +34,7 @@
 #include "../globaldefs.hpp"
 #include "InverseBWT.hpp"
 #include "MtlSaInverseBWT.hpp"
+#include "../BWTBlock.hpp"
 #include "../Profiling.hpp"
 
 namespace bwtc {
@@ -43,8 +44,10 @@ InverseBWTransform* giveInverseTransformer() {
   return new MtlSaInverseBWTransform();
 }
 
-std::vector<byte>* InverseBWTransform::allocateMemory(uint64 block_size) {
-  return new std::vector<byte>(block_size);
+void InverseBWTransform::doTransform(BWTBlock& block) {
+  byte *data = block.begin();
+  *block.end() = data[block.LFpowers()[0]];
+  doTransform(block.begin(), block.size()+1, block.LFpowers());
 }
 
 uint64 FastInverseBWTransform::maxBlockSize(uint64 memory_budget) const {
@@ -93,14 +96,13 @@ void FastInverseBWTransform::doTransform(
     rank_milestone_buffer[ch].push_back(bwt_size);
   }
 
-  std::vector<byte>* result = allocateMemory(bwt_size - 1);
   uint32 index = 0;
 
   uint32 position = 0;
   while (position != eob_position) {
     uint32 bwt_and_rank = bwt_rank_low24[position];
     uint32 ch = bwt_and_rank >> 24;
-    (*result)[index++] = ch;
+    bwt[index++] = ch;
     uint32 rank_low24 = bwt_and_rank & 0x00FFFFFF;
     uint32 rank_hi8 = 0;
     while (rank_milestone_buffer[ch][rank_hi8 + 1] <= position) ++rank_hi8;

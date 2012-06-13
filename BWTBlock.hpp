@@ -58,10 +58,11 @@ class BWTBlock {
   std::vector<uint32>& LFpowers() { return m_LFpowers; }
 
   void setBegin(byte* begin);
-  void setLength(uint32 length);
+  void setSize(uint32 length);
 
   void prepareLFpowers(uint32 startingPoints);
   size_t writeHeader(OutStream *out) const;
+  void readHeader(InStream *in);
   
  private:
   byte *m_begin;

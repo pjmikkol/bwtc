@@ -54,6 +54,8 @@ class PrecompressorBlock {
   const byte* end() const { return m_data + m_used; }
   Grammar& grammar() { return m_grammar; }
 
+  void usedAtEnd(size_t n) { m_used += n; }
+  
   void sliceIntoBlocks(size_t blockSize);
   BWTBlock& getSlice(int i);
   size_t slices() const { return m_bwtBlocks.size(); }

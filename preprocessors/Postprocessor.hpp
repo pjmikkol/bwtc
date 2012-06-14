@@ -30,6 +30,8 @@
 #include <vector>
 
 #include "../globaldefs.hpp"
+#include "../Streams.hpp"
+#include "Grammar.hpp"
 
 namespace bwtc {
 
@@ -46,10 +48,13 @@ class Postprocessor {
     bool isPair;
   };
 
-  Postprocessor(bool verbose);
+  Postprocessor(bool verbose); //TODO: remove!
+  Postprocessor(bool verbose, const Grammar& grammar);
 
-  void uncompress(const byte* from, size_t length, std::vector<byte>& to);
-  void postProcess(std::vector<byte> *data);
+  void uncompress(const byte* from, size_t length, std::vector<byte>& to); //TODO: Remove?
+  void postProcess(std::vector<byte> *data); //TODO: Remove
+  size_t uncompress(const byte* data, size_t length, OutStream* to) const;
+ 
   uint32 readGrammar(const byte *src, size_t length);
   uint32 readReversedPackedInteger(const byte* src, int* bytesRead);
   
@@ -64,6 +69,7 @@ class Postprocessor {
   std::vector<byte> m_replacements[1 << 17];
   bool m_isSpecial[256];
   bool m_verbose;
+  bool m_hasRules;
 };
   
 } //namespace bwtc

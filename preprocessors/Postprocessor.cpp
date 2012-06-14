@@ -38,6 +38,7 @@
 #include "Postprocessor.hpp"
 #include "../Utils.hpp"
 #include "../Profiling.hpp"
+#include "Grammar.hpp"
 
 namespace bwtc {
 
@@ -63,6 +64,28 @@ Postprocessor::Postprocessor(bool verbose) : m_verbose(verbose)
   std::fill(m_isSpecial, m_isSpecial + 256, false);
 }
 
+Postprocessor::Postprocessor(bool verbose, const Grammar& grammar)
+    : m_verbose(verbose), m_hasRules(false) {
+  for(size_t i = 0; i < 256; ++i) {
+    m_replacements[i].push_back((byte)i);
+  }
+
+  for(size_t i = 0; i < 256; ++i) {
+    m_isSpecial[i] = grammar.isSpecial(i);
+    if(m_isSpecial[i]) {
+      int replValue = (1 << 16) | (i << 8) | i;
+      m_replacements[replValue].push_back(i);
+    }
+  }
+  // TODO:
+  // if(rules) m_hasRules = true;
+  // freed symbols
+  // rules
+  
+}
+
+
+
 void Postprocessor::
 uncompress(const byte* src, size_t length, std::vector<byte>& dst) {
   for(size_t i = 0; i < length; ++i) {
@@ -75,6 +98,27 @@ uncompress(const byte* src, size_t length, std::vector<byte>& dst) {
       dst.push_back(m_replacements[key][j]);
     }
   }
+}
+
+size_t Postprocessor::
+uncompress(const byte* data, size_t length, OutStream* to) const {
+  if(!m_hasRules) {
+    to->writeBlock(data, data+length);
+    return length;
+  }
+  
+  size_t uncompressedLength = 0;
+  for(size_t i = 0; i < length; ++i) {
+    int key = data[i];
+    if(m_isSpecial[key]) {
+      key = (1 << 16) | (data[i] << 8 )| data[i+1];
+      ++i;
+    }
+    size_t len = m_replacements[key].size();
+    to->writeBlock(&m_replacements[key][0], &m_replacements[key][len]);
+    uncompressedLength += len;
+  }
+  return uncompressedLength;
 }
 
 void Postprocessor::postProcess(std::vector<byte> *data) {

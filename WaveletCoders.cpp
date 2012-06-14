@@ -77,7 +77,7 @@ void WaveletDecoder::endContextBlock() {
 size_t WaveletEncoder::
 transformAndEncode(BWTBlock& block, BWTManager& bwtm, OutStream* out) {
   std::vector<uint32> characterFrequencies(256, 0);
-  bwtm.doTransform(block, &characterFrequencies[0]); // Also gather information about the runs
+  bwtm.doTransform(block, &characterFrequencies[0]);
 
   //TODO: find Integer coding
   m_destination.connect(out);
@@ -244,8 +244,7 @@ WaveletDecoder::readBlockHeader(BWTBlock& block, std::vector<uint64>* stats,
   return compressed_length;
 }
 
-void
-WaveletDecoder::decodeBlock(BWTBlock& block, InStream* in) {
+void WaveletDecoder::decodeBlock(BWTBlock& block, InStream* in) {
   PROFILE("WaveletDecoder::decodeBlock");
   if(in->compressedDataEnding()) return;
 

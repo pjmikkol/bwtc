@@ -78,7 +78,7 @@ class Grammar {
 
   Grammar();
 
-  inline bool isSpecial(byte symbol) { return m_isSpecialSymbol[symbol]; }
+  inline bool isSpecial(byte symbol) const { return m_isSpecialSymbol[symbol]; }
 
   inline size_t numOfRules() const { return m_rules.size(); }
   
@@ -131,6 +131,9 @@ class Grammar {
   uint32 writeSpecialSymbols(OutStream* dst) const;
   uint32 writeFreedSymbols(OutStream* dst) const;  
   uint32 writeRightSides(OutStream* dst) const;
+
+  /**Grammar must be empty before it's read.*/
+  void readGrammar(InStream* in);
   
 
   uint32 writeGrammar(byte* dst) const;

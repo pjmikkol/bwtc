@@ -37,6 +37,8 @@
 
 #include "globaldefs.hpp"
 
+//#define virtual
+
 namespace bwtc {
 
 /**
@@ -54,7 +56,7 @@ namespace bwtc {
 class OutStream {
  public:
   explicit OutStream(const std::string& file_name);
-  ~OutStream();
+  virtual ~OutStream();
 
   /**
    * Writes given byte into target.
@@ -66,7 +68,7 @@ class OutStream {
   /**
    * Writes bytes from range [begin, end) to stream
    */
-  virtual void writeBlock(byte *begin, byte *end);
+  virtual void writeBlock(const byte *begin, const byte *end);
 
   bool isStdout() const { return m_fileptr == stdout; }
 
@@ -90,13 +92,13 @@ class OutStream {
 struct InStream {
  public:
   explicit InStream(const std::string &file_name);
-  ~InStream();
+  virtual ~InStream();
 
   /* Copies block from stream to given byte array.
    * Returns the number of read bytes. */
-  uint64 readBlock(byte *to, uint64 max_block_size);
+  virtual uint64 readBlock(byte *to, uint64 max_block_size);
 
-  inline bool readBit() {
+  virtual inline bool readBit() {
     if (m_bitsInBuffer == 0) {
       m_buffer = static_cast<byte>(fetchByte());
       m_bitsInBuffer = 8;
@@ -104,7 +106,7 @@ struct InStream {
     return (m_buffer >> --m_bitsInBuffer) & 1;
   }
 
-  inline byte readByte() {
+  virtual inline byte readByte() {
     assert(m_bitsInBuffer < 8);
     byte nextByte = static_cast<byte>(fetchByte());
     m_buffer = (m_buffer << 8) | nextByte;
@@ -117,9 +119,9 @@ struct InStream {
   
   bool isStdin() const { return m_fileptr == stdin; }
 
-  uint64 read48bits();
+  virtual uint64 read48bits();
 
-  bool compressedDataEnding() {
+  virtual bool compressedDataEnding() {
     /* Quick workaround. For some mysterious reason there is single
      * additional byte in the end of compressed file. It seems that
      * BitEncoder is responsible for this. */
@@ -149,5 +151,7 @@ struct InStream {
 };
 
 } //namespace bwtc
+
+//#undef virtual
 
 #endif

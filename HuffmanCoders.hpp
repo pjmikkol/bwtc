@@ -1,6 +1,7 @@
 /**
  * @file HuffmanCoders.hpp
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
  *
@@ -28,33 +29,38 @@
 #ifndef BWTC_HUFFMAN_CODERS_HPP_
 #define BWTC_HUFFMAN_CODERS_HPP_
 
-#include <iostream>
-#include <string>
-#include <vector>
-
 #include "EntropyCoders.hpp"
 #include "globaldefs.hpp"
 #include "BitCoders.hpp"
 #include "Streams.hpp"
+#include "BWTBlock.hpp"
+
+#include <iostream>
+#include <string>
+#include <vector>
+
 
 namespace bwtc {
 
 class HuffmanEncoder : public EntropyEncoder {
  public:
-  HuffmanEncoder(const std::string& destination, char prob_model);
+  HuffmanEncoder();
   ~HuffmanEncoder();
-  void writeGlobalHeader(char encoding);
-  void encodeData(const byte* data, std::vector<uint64>* stats,
-                  uint64 data_size);
-  void writeBlockHeader(std::vector<uint64>* stats);
 
-  void writePackedInteger(uint64 packed_integer);
-  int writeTrailer(const std::vector<uint32>& LFpowers);
-  void finishBlock(const std::vector<uint32>& LFpowers);
+  size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
+                            OutStream* out);
+  
+  void encodeData(const byte* data, const std::vector<uint32>& stats,
+                  uint32 blockSize, OutStream* out);
+  void writeBlockHeader(const BWTBlock& b, std::vector<uint32>& stats,
+                        OutStream* out);
+  void finishBlock(OutStream* out);
+
+  void writePackedInteger(uint64 packed_integer, OutStream* out);
+
 
  private:
-  OutStream* m_out;
-  std::streampos m_headerPosition;
+  long int m_headerPosition;
   uint64 m_compressedBlockLength;
 
   void serializeShape(uint32 *clen, std::vector<bool> &vec);
@@ -64,16 +70,15 @@ class HuffmanEncoder : public EntropyEncoder {
 
 class HuffmanDecoder : public EntropyDecoder {
  public:
-  HuffmanDecoder(const std::string& source);
-  HuffmanDecoder(InStream *in);
+  HuffmanDecoder();
   ~HuffmanDecoder();
-  void readGlobalHeader();
-  uint64 readPackedInteger();
-  std::vector<byte>* decodeBlock(std::vector<uint32>& LFpowers);
-  uint64 readBlockHeader(std::vector<uint64>* stats);
+
+  uint64 readPackedInteger(InStream* in);
+  void decodeBlock(BWTBlock& block, InStream* in);
+  uint64 readBlockHeader(BWTBlock& block, std::vector<uint64>* stats,
+                         InStream* in);
 
  private:
-  InStream* m_in;
 
   size_t deserializeShape(InStream &input, uint32 *clen);
   HuffmanDecoder(const HuffmanDecoder&);

@@ -45,6 +45,17 @@ class EntropyEncoder {
  public:
   virtual ~EntropyEncoder() {}
 
+  /**Entropy coder should call BWTManager to calculate transform and after that
+   * compress the transformed string. By calling BWTManager, encoder can
+   * have some additional information about the string which can be calculated
+   * during the computation of BWT. With this one pass over the transformed string
+   * can be avoided.
+   *
+   * @param block Block to transform and encode.
+   * @param bwtm BWTManager to make a transform.
+   * @param out Stream where the encoded result is written.
+   * @return total bytes for the compressed block (including header)
+   */
   virtual size_t transformAndEncode(BWTBlock& block, BWTManager& bwtm,
                                     OutStream* out) = 0;
 

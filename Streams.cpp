@@ -92,7 +92,7 @@ long int OutStream::getPos() {
   return ftell(m_fileptr);
 }
 
-void OutStream::writeBlock(byte *begin, byte *end) {
+void OutStream::writeBlock(const byte *begin, const byte *end) {
   uint64 size = end - begin;
   if (m_filled + size < kBufferSize) {
     std::copy(begin, end, m_buffer + m_filled);

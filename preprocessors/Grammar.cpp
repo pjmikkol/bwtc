@@ -157,12 +157,16 @@ void Grammar::printRules() const {
   }
 }
 
+void Grammar::readGrammar(InStream* in) {
+  size_t bytesRead;
+  uint32 rules = utils::readPackedInteger(*in, bytesRead);
+  if(rules == 0) return;
+}
 
 uint32 Grammar::writeGrammar(OutStream* out) const {
   uint32 bytes = writeNumberOfRules(out);
-  if(m_rules.size() > 0) {
+  if(m_rules.size() == 0) return bytes;
     
-  }
   return bytes;
 }
 

@@ -73,20 +73,20 @@ size_t Decompressor::decompress(size_t threads) {
       break;
     }
     ++preBlocks;
-    decompressedSize += pb->originalSize();
     bwtBlocks += pb->slices();
 
     for(size_t i = 0; i < pb->slices(); ++i) {
       pb->getSlice(i).setBegin(pb->end());
       m_decoder->decodeBlock(pb->getSlice(i), m_in);
       pb->usedAtEnd(pb->getSlice(i).size());
-      
       ibwt->doTransform(pb->getSlice(i));
     }
     // Postprocess pb
-    m_out->writeBlock(pb->begin(), pb->end());
-    assert(pb->size() == pb->originalSize());
-
+    Postprocessor postprocessor(verbosity > 1, pb->grammar());
+    size_t postSize = postprocessor.uncompress(pb->begin(), pb->size(), m_out);
+    decompressedSize += postSize;
+    //m_out->writeBlock(pb->begin(), pb->end());
+    assert(postSize == pb->originalSize());
     delete pb;
   }
   delete ibwt;

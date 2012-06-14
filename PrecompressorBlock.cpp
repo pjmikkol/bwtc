@@ -72,7 +72,7 @@ size_t PrecompressorBlock::writeBlockHeader(OutStream* out) const {
     bytes += bytesNeeded;
   }
   
-  //TODO: writeGrammar
+  bytes += m_grammar.writeGrammar(out);
   return bytes;
 }
 
@@ -88,7 +88,7 @@ PrecompressorBlock* PrecompressorBlock::readBlockHeader(InStream* in) {
   if(originalSize != 0) {
     size_t blocks = utils::readPackedInteger(*in, bytes);
     pb->m_bwtBlocks.resize(blocks);
-    //Read grammar
+    pb->grammar().readGrammar(in);
   }
   return pb;
 }

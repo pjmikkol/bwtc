@@ -38,31 +38,31 @@ namespace bwtc {
 
 EntropyEncoder*
 giveEntropyEncoder(char encoder) {
-  /*  if(encoder == 'H') {
+  if(encoder == 'H') {
     if(verbosity > 1) {
       std::clog << "Using Huffman encoder\n";
     }
-    return new HuffmanEncoder(destination, encoder);
-    } else {*/
+    return new HuffmanEncoder();
+  } else {
     if(verbosity > 1) {
       std::clog << "Using Wavelet tree encoder\n";
     }
     return new WaveletEncoder(encoder);
-    //}
+  }
 }
 
 EntropyDecoder* giveEntropyDecoder(char decoder) {
-  /*  if(decoder == 'H') {
+  if(decoder == 'H') {
     if(verbosity > 1) {
       std::clog << "Using Huffman decoder\n";
     }
-    return new HuffmanDecoder(in);
-    } else {*/
+    return new HuffmanDecoder();
+  } else {
     if(verbosity > 1) {
       std::clog << "Using Wavelet tree decoder\n";
     }
     return new WaveletDecoder(decoder);
-    //}
+  }
 }
 
 } // namespace bwtc

@@ -1,6 +1,7 @@
 /**
  * @file HuffmanCoders.cpp
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
+ * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  *
  * @section LICENSE
  *
@@ -42,46 +43,21 @@
 
 namespace bwtc {
 
-HuffmanEncoder::HuffmanEncoder(const std::string& destination, char prob_model)
-    : m_out(new OutStream(destination)),
-      m_headerPosition(0), m_compressedBlockLength(0) {
-  (void) prob_model;
-}
+HuffmanEncoder::HuffmanEncoder()
+    : m_headerPosition(0), m_compressedBlockLength(0) {}
 
-void HuffmanEncoder::writeGlobalHeader(char encoding) {
-  m_out->writeByte(static_cast<byte>(encoding));
-}
+HuffmanEncoder::~HuffmanEncoder() {}
 
-void HuffmanDecoder::readGlobalHeader() {
-  char probmodel = static_cast<char>(m_in->readByte());
-  (void) probmodel;
-}
+size_t HuffmanEncoder::
+transformAndEncode(BWTBlock& block, BWTManager& bwtm, OutStream* out) {
+  std::vector<uint32> characterFrequencies(256, 0);
+  //TODO: Also gather information about the runs  during BWT
+  bwtm.doTransform(block, &characterFrequencies[0]); 
 
-HuffmanEncoder::~HuffmanEncoder() {
-  delete m_out;
-}
-
-int HuffmanEncoder::writeTrailer(const std::vector<uint32>& LFpowers) {
-  int bytes = 1;
-  byte s = (byte)(LFpowers.size()-1);
-  m_out->writeByte(s);
-  int bitsLeft = 8;
-  for(size_t i = 0; i < LFpowers.size(); ++i) {
-    for(int j = 30; j >= 0; --j) {
-      s = (s << 1) | ((LFpowers[i] >> j) & 0x1);
-      --bitsLeft;
-      if(bitsLeft == 0) {
-        m_out->writeByte(s);
-        bitsLeft = 8;
-        ++bytes;
-      }
-    }
-  }
-  if(bitsLeft < 8) {
-    m_out->writeByte(s << bitsLeft);
-    ++bytes;
-  }
-  return bytes;
+  writeBlockHeader(block, characterFrequencies, out);
+  encodeData(block.begin(), characterFrequencies, block.size(), out);
+  finishBlock(out);
+  return m_compressedBlockLength + 6;
 }
 
 void HuffmanEncoder::serializeShape(uint32 *clen, std::vector<bool> &vec) {
@@ -140,44 +116,23 @@ size_t HuffmanDecoder::deserializeShape(InStream &input, uint32 *clen) {
   return (bitsRead + 7) / 8;
 }
 
-/******************************************************************************
- *            Encoding and decoding single BWTBlock                           *
- *----------------------------------------------------------------------------*
- * Following functions handle encoding and decoding of the main blocks.       *
- * Also block header-format is specified here.                                *
- *                                                                            *
- * Format of the block is following:                                          *
- *  - Block header (no fixed length)                              (1)         *
- *  - Compressed block (no fixed length)                          (2)         *
- *  - Block trailer (coded same way as the context block lengths) (3)         *
- *                                                                            *
- *----------------------------------------------------------------------------*
- *                                                                            *
- * Block header (1) format is following:                                      *
- * a) Length of the (header + compressed block + trailer) in bytes (6 bytes). *
- *    Note that the the length field itself isn't included in total length    *
- * b) List of context block lengths. Lengths are compressed with              *
- *    utils::PackInteger-function.                                            *
- * c) Ending symbol of the block header (2 bytes = 0x8000) which is           *
- *    invalid code for packed integer                                         *
- ******************************************************************************/
-void HuffmanEncoder::encodeData(const byte* block,
-    std::vector<uint64>* stats, uint64 block_size) {
+void HuffmanEncoder::
+encodeData(const byte* block, const std::vector<uint32>& stats,
+           uint32 blockSize, OutStream* out) {
   PROFILE("HuffmanEncoder::encodeData");
-  (void) block_size;
   size_t beg = 0;
   
   // For storing runs data.
-  byte *runseq = new byte[block_size];
-  uint32 *runlen = new uint32[block_size];
+  byte *runseq = new byte[blockSize];
+  uint32 *runlen = new uint32[blockSize];
   if (!runseq || !runlen) {
     fprintf(stderr,"Allocation error.\n");
     exit(1);
   }
 
   const byte *block_ptr = block;
-  for(size_t i = 0; i < stats->size(); ++i) {
-    size_t current_cblock_size = (*stats)[i];
+  for(size_t i = 0; i < stats.size(); ++i) {
+    size_t current_cblock_size = stats[i];
     if(current_cblock_size == 0) continue;
 
     // Compute lengths of Huffman codes.
@@ -220,7 +175,7 @@ void HuffmanEncoder::encodeData(const byte* block,
     int bytes = 0;
     uint64 packed_nRuns = utils::packInteger(nRuns, &bytes);
     m_compressedBlockLength += bytes;
-    writePackedInteger(packed_nRuns);
+    writePackedInteger(packed_nRuns, out);
 
     // Store Huffman code lengths.
     std::vector<bool> shape;
@@ -232,7 +187,7 @@ void HuffmanEncoder::encodeData(const byte* block,
         b |= (shape[k]) ? 1 : 0;
       }
       if (j < 8) b <<= (8 - j);
-      m_out->writeByte(b);
+      out->writeByte(b);
       ++m_compressedBlockLength;
     }
 
@@ -248,7 +203,7 @@ void HuffmanEncoder::encodeData(const byte* block,
       byte c = runseq[k];
       while (bitsInBuffer + clen[c] > 64) {
         bitsInBuffer -= 8;
-        m_out->writeByte((buffer >> bitsInBuffer) & 0xff);
+        out->writeByte((buffer >> bitsInBuffer) & 0xff);
         ++m_compressedBlockLength;
       }
       buffer <<= clen[c];
@@ -259,14 +214,14 @@ void HuffmanEncoder::encodeData(const byte* block,
     // Flush the remaining bytes.    
     while (bitsInBuffer >= 8) {
       bitsInBuffer -= 8;
-      m_out->writeByte((buffer >> bitsInBuffer) & 0xff);
+      out->writeByte((buffer >> bitsInBuffer) & 0xff);
       ++m_compressedBlockLength;
     }
 
     // Flush the remaining bits.
     if (bitsInBuffer > 0) {
       buffer <<= (8 - bitsInBuffer);
-      m_out->writeByte(buffer & 0xff);
+      out->writeByte(buffer & 0xff);
       ++m_compressedBlockLength;
     }
 
@@ -277,7 +232,7 @@ void HuffmanEncoder::encodeData(const byte* block,
       int gammaCodeLen = utils::logFloor(runlen[k]) * 2 + 1;
       while (bitsInBuffer + gammaCodeLen > 64) {
         bitsInBuffer -= 8;
-        m_out->writeByte((buffer >> bitsInBuffer) & 0xff);
+        out->writeByte((buffer >> bitsInBuffer) & 0xff);
         ++m_compressedBlockLength;
       }
       buffer <<= gammaCodeLen;
@@ -286,12 +241,12 @@ void HuffmanEncoder::encodeData(const byte* block,
     }
     while (bitsInBuffer >= 8) {
       bitsInBuffer -= 8;
-      m_out->writeByte((buffer >> bitsInBuffer) & 0xff);
+      out->writeByte((buffer >> bitsInBuffer) & 0xff);
       ++m_compressedBlockLength;
     }
     if (bitsInBuffer > 0) {
       buffer <<= (8 - bitsInBuffer);
-      m_out->writeByte(buffer & 0xff);
+      out->writeByte(buffer & 0xff);
       ++m_compressedBlockLength;
     }
 
@@ -301,9 +256,8 @@ void HuffmanEncoder::encodeData(const byte* block,
   delete[] runlen;
 }
 
-void HuffmanEncoder::finishBlock(const std::vector<uint32>& LFpowers) {
-  m_compressedBlockLength +=  writeTrailer(LFpowers);
-  m_out->write48bits(m_compressedBlockLength, m_headerPosition);
+void HuffmanEncoder::finishBlock(OutStream* out) {
+  out->write48bits(m_compressedBlockLength, m_headerPosition);
 }
 
 /*********************************************************************
@@ -314,14 +268,18 @@ void HuffmanEncoder::finishBlock(const std::vector<uint32>& LFpowers) {
  *   zero represents 256                                             *
  * - lengths of the sections which are encoded with same wavelet tree*
  *********************************************************************/
-void HuffmanEncoder::writeBlockHeader(std::vector<uint64>* stats) {
+void HuffmanEncoder::
+writeBlockHeader(const BWTBlock& block, std::vector<uint32>& stats,
+                 OutStream* out) {
   uint64 headerLength = 0;
-  m_headerPosition = m_out->getPos();
-  for (unsigned i = 0; i < 6; ++i) m_out->writeByte(0x00); //fill 48 bits
+  m_headerPosition = out->getPos();
+  for (unsigned i = 0; i < 6; ++i) out->writeByte(0x00); //fill 48 bits
 
+  headerLength += block.writeHeader(out);
+  
   /* Deduce sections for separate encoding. At the moment uses not-so-well
    * thought heuristic. */
-  std::vector<uint64> temp; std::vector<uint64>& s = *stats;
+  std::vector<uint32> temp; std::vector<uint32>& s = stats;
   size_t sum = 0;
   for(size_t i = 0; i < s.size(); ++i) {
     sum += s[i];
@@ -339,47 +297,50 @@ void HuffmanEncoder::writeBlockHeader(std::vector<uint64>* stats) {
   byte len;
   if(temp.size() == 256) len = 0;
   else len = temp.size();
-  m_out->writeByte(len);
+  out->writeByte(len);
   headerLength += 1;
 
   assert(s.size() == temp.size());
   assert(temp.size() <= 256);
 
-  for (size_t i = 0; i < stats->size(); ++i) {
+  for (size_t i = 0; i < stats.size(); ++i) {
     int bytes;
-    uint64 packed_cblock_size = utils::packInteger((*stats)[i], &bytes);
+    uint64 packed_cblock_size = utils::packInteger(stats[i], &bytes);
     headerLength += bytes;
-    writePackedInteger(packed_cblock_size);
+    writePackedInteger(packed_cblock_size, out);
   }
   m_compressedBlockLength = headerLength;
 }
 
 /* Integer is written in reversal fashion so that it can be read easier.*/
-void HuffmanEncoder::writePackedInteger(uint64 packed_integer) {
+void HuffmanEncoder::writePackedInteger(uint64 packed_integer, OutStream* out) {
   do {
     byte to_written = static_cast<byte>(packed_integer & 0xFF);
     packed_integer >>= 8;
-    m_out->writeByte(to_written);
+    out->writeByte(to_written);
   } while (packed_integer);
 }
 
-uint64 HuffmanDecoder::readBlockHeader(std::vector<uint64>* stats) {
-  uint64 compressed_length = m_in->read48bits();
-  byte sections = m_in->readByte();
+uint64 HuffmanDecoder::
+readBlockHeader(BWTBlock& block, std::vector<uint64>* stats, InStream* in) {
+  uint64 compressed_length = in->read48bits();
+  block.readHeader(in);
+  
+  byte sections = in->readByte();
   size_t sects = (sections == 0) ? 256 : sections;
   for(size_t i = 0; i < sects; ++i) {
-    uint64 value = readPackedInteger();
+    uint64 value = readPackedInteger(in);
     stats->push_back(utils::unpackInteger(value));
   }
   return compressed_length;
 }
 
-std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
+void HuffmanDecoder::decodeBlock(BWTBlock& block, InStream* in) {
   PROFILE("HuffmanDecoder::decodeBlock");
-  if(m_in->compressedDataEnding()) return 0;
+  if(in->compressedDataEnding()) return;
 
   std::vector<uint64> context_lengths;
-  uint64 compr_len = readBlockHeader(&context_lengths);
+  uint64 compr_len = readBlockHeader(block, &context_lengths, in);
 
   if (verbosity > 2) {
     std::clog << "Size of compressed block = " << compr_len << "\n";
@@ -391,21 +352,19 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
   byte *runseq = new byte[block_size];
   uint32 *runlen = new uint32[block_size];
 
-  std::vector<byte>* data = new std::vector<byte>();
-  data->resize(block_size);
-  byte *data_ptr = &(*data)[0];
+  byte *data_ptr = block.begin();
 
   for(size_t i = 0; i < context_lengths.size(); ++i) {
     if(context_lengths[i] == 0) continue;
 
     // Get the number of runs withing the current context block.
-    uint64 packed_nRuns = readPackedInteger();
+    uint64 packed_nRuns = readPackedInteger(in);
     uint64 nRuns = utils::unpackInteger(packed_nRuns);
 
     // Get Huffman code lengths.
     uint32 clen[256];
     std::fill(clen, clen + 256, 0);
-    deserializeShape(*m_in, clen);
+    deserializeShape(*in, clen);
 
     // Compute Huffman codes.
     uint32 code[256];
@@ -466,7 +425,7 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
     int32 bitsInBuffer = 0, zeroCount = 0;
     uint32 haveDecoded = 0;
     while (haveDecoded < nRuns) {
-      byte b = m_in->readByte();
+      byte b = in->readByte();
       if (zeroCount > 0 && !bitsInBuffer) {
         buffer = b;
         if (!buffer) {
@@ -531,7 +490,7 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
           if (zeroCount + bitsInBuffer > 8 && haveDecoded < nRuns) {
             
             // Read nextb.
-            byte nextb = m_in->readByte();
+            byte nextb = in->readByte();
             byte cbuffer = (buffer << (8 - bitsInBuffer)) |
               (nextb >> bitsInBuffer);
             assert(lookupWhich[zeroCount][cbuffer] < 256);
@@ -624,22 +583,22 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
         continue;
       }
     }
-    m_in->flushBuffer();
+    in->flushBuffer();
 
     // Now read gamma codes that store lenghts of runs.
     for (uint64 k = 0; k < nRuns; ++k) {
       int zeros = 0;
-      while (!m_in->readBit())
+      while (!in->readBit())
         ++zeros;
       uint64 value = 0;        
       for (int32 t = 0; t < zeros; ++t) {
-        int32 bit = m_in->readBit();
+        int32 bit = in->readBit();
         value = (value << 1) | bit;
       }
       value |= (1 << zeros);
       runlen[k] = value;
     }
-    m_in->flushBuffer();
+    in->flushBuffer();
     
     // Fill the block with runs data.
     byte *runseq_ptr = &runseq[0];
@@ -650,21 +609,13 @@ std::vector<byte>* HuffmanDecoder::decodeBlock(std::vector<uint32>& LFpowers) {
     }
   }
 
-  uint32 LFpows = m_in->readByte()+1;
-  LFpowers.resize(LFpows);
-  for(uint32 i = 0; i < LFpows; ++i) {
-    uint32 pos = 0;
-    for(uint32 j = 0; j < 31; ++j)
-      pos = (pos << 1) | (m_in->readBit() ? 1 : 0);
-    LFpowers[i] = pos;
-  }
-  m_in->flushBuffer();
+  block.setSize(block_size);
+  
   delete[] runseq;
   delete[] runlen;
-  return data;
 }
 
-uint64 HuffmanDecoder::readPackedInteger() {
+uint64 HuffmanDecoder::readPackedInteger(InStream* in) {
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
   static const uint64 kEndMask = static_cast<uint64>(1) << 7;
 
@@ -672,7 +623,7 @@ uint64 HuffmanDecoder::readPackedInteger() {
   bool bits_left = true;
   int i;
   for(i = 0; bits_left; ++i) {
-    uint64 read = static_cast<uint64>(m_in->readByte());
+    uint64 read = static_cast<uint64>(in->readByte());
     bits_left = (read & kEndMask) != 0;
     packed_integer |= (read << i*8);
   }
@@ -681,15 +632,9 @@ uint64 HuffmanDecoder::readPackedInteger() {
 }
 /*********** Encoding and decoding single BWTBlock-section ends ********/
 
-HuffmanDecoder::HuffmanDecoder(const std::string& source) :
-    m_in(new InStream(source)) {}
+HuffmanDecoder::HuffmanDecoder() {}
 
-HuffmanDecoder::HuffmanDecoder(InStream* in) :
-    m_in(in) {}
-
-HuffmanDecoder::~HuffmanDecoder() {
-  delete m_in;
-}
+HuffmanDecoder::~HuffmanDecoder() {}
 
 
 } // namespace bwtc

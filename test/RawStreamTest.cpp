@@ -22,7 +22,7 @@
  *
  * @section DESCRIPTION
  *
- * Testing of InStream and OutStream.
+ * Testing of RawInStream and RawOutStream.
  *
  */
 

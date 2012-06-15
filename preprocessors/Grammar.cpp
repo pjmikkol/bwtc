@@ -82,20 +82,24 @@ void Grammar::expandAlphabet(const std::vector<byte>& freedSymbols,
       //m_specialInverse[freedSymbols[i]] = nextSpecialPair;
       m_isVariable[freedSymbols[i]] = true;
       if(index < numOfSpecials - 1) {
-        //new character is the second member of special pair
-        // freedSymbol[i] -> (m_specialSymbols[index],m_specialSymbols.back())
-        m_specialPairReplacements.push_back(std::make_pair(toVariable, freedSymbols[i]));
+        /* New character is the second member of special pair
+         * freedSymbol[i] maps to pair
+         * (m_specialSymbols[index],m_specialSymbols.back()) */
+        m_specialPairReplacements.push_back(
+            std::make_pair(toVariable, freedSymbols[i]));
         isNewSpecial[freedSymbols[i]] = true;
-        uint16 spPair = (m_specialSymbols[index] << 8) | m_specialSymbols.back();
+        uint16 spPair = (m_specialSymbols[index] << 8)|m_specialSymbols.back();
         nextSpecialPairs.push_back(spPair);
         specialReplaces[freedSymbols[i]] = spPair;
       } else {
-        //new character is the first member of special pair
-        // freedSymbol[i] -> (m_specialSymbols.back(),m_specialSymbols[index+1-numOfSpecials])
+        /* New character is the first member of special pair:
+         * freedSymbol[i] maps to pair
+         * (m_specialSymbols.back(),m_specialSymbols[index+1-numOfSpecials]) */
         index = index+1-numOfSpecials;
-        m_specialPairReplacements.push_back(std::make_pair(toVariable, freedSymbols[i]));
+        m_specialPairReplacements.push_back(
+            std::make_pair(toVariable, freedSymbols[i]));
         isNewSpecial[freedSymbols[i]] = true;
-        uint16 spPair = (m_specialSymbols.back() << 8) | m_specialSymbols[index];
+        uint16 spPair = (m_specialSymbols.back() << 8)|m_specialSymbols[index];
         specialReplaces[freedSymbols[i]] = spPair;
         nextSpecialPairs.push_back(spPair);
       }
@@ -153,7 +157,8 @@ void Grammar::printRules() const {
   }
   for(size_t i = 0; i < m_specialPairReplacements.size(); ++i) {
     if(m_specialPairReplacements[i].first) continue;
-    std::cout << i << " -> " <<  ((int)m_specialPairReplacements[i].second) << std::endl;
+    std::cout << i << " -> " <<  ((int)m_specialPairReplacements[i].second)
+              << std::endl;
   }
 }
 
@@ -166,7 +171,45 @@ void Grammar::readGrammar(InStream* in) {
 uint32 Grammar::writeGrammar(OutStream* out) const {
   uint32 bytes = writeNumberOfRules(out);
   if(m_rules.size() == 0) return bytes;
-    
+  bytes += writeSpecialSymbols(out);
+  bytes += writeLeftSides(out);
+  return bytes;
+}
+
+uint32 Grammar::writeSpecialSymbols(OutStream* out) const {
+  // Number of special symbols
+  out->writeByte(numberOfSpecialSymbols());
+  for(std::vector<byte>::const_iterator it = m_specialSymbols.begin();
+      it != m_specialSymbols.end(); ++it)
+    out->writeByte(*it);
+  return m_specialSymbols.size()+1;
+}
+
+uint32 Grammar::writeLeftSides(OutStream *out) const {
+  uint32 bytes = writeVariableFlags(out);
+  
+}
+
+uint32 Grammar::writeVariableFlags(OutStream* out) const {
+  uint32 bytes = m_rules.size()/8;
+  bool divisible = (m_rules.size() % 8) == 0;
+  if(!divisible) ++bytes;
+  byte buffer = 0;
+  byte bitsLeft = 8;
+
+  for(std::vector<Rule>::const_iterator it = m_rules.begin();
+      it != m_rules.end(); ++it) {
+
+    buffer |= ((it->isLarge()?1:0) << --bitsLeft);
+    if(bitsLeft == 0) {
+      bitsLeft = 8;
+      out->writeByte(buffer);
+      buffer = 0;
+    }
+  }
+  if(!divisible) {
+    out->writeByte(buffer);
+  }
   return bytes;
 }
 

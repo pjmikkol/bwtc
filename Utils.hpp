@@ -159,14 +159,17 @@ void computeHuffmanCodes(uint32 *clen, uint32 *code);
  *              Array IS modified during the calculation.
  * @param alphabetSize Size of the freqs-array.
  */
-void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
-                             uint64 *freqs, uint32 alphabetSize=256);
+void
+calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                        uint64 *freqs, uint32 alphabetSize=256);
 
-void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
-                             uint64 *freqs, const std::vector<uint32>& names);
+void
+calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                        uint64 *freqs, const std::vector<uint32>& names);
 
-void calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
-                              uint64 *freqs, const std::vector<uint32>& names);
+void
+calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
+                         uint64 *freqs, const std::vector<uint32>& names);
 
 void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
                           uint64 *freqs);

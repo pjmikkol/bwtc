@@ -119,11 +119,12 @@ class Grammar {
   }
 
   void expandAlphabet(const std::vector<byte>& freedSymbols,
-                        const std::vector<byte>& newSpecials,
-                        std::vector<uint16>& nextSpecialPairs);
+                      const std::vector<byte>& newSpecials,
+                      std::vector<uint16>& nextSpecialPairs);
   
   uint32 writeGrammar(OutStream* dst) const;
   uint32 writeNumberOfRules(OutStream* dst) const;
+  uint32 writeLeftSides(OutStream* dst) const;
   uint32 writeVariableFlags(OutStream* dst) const;
   uint32 writeVariables(OutStream* dst) const;
   uint32 writeLengthsOfRules(OutStream* dst) const;

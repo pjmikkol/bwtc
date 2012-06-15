@@ -25,8 +25,8 @@
  * Header for OutStream and InStream.
  */
 
-#ifndef BWTC_STREAM_HPP_
-#define BWTC_STREAM_HPP_
+#ifndef BWTC_STREAMS_HPP_
+#define BWTC_STREAMS_HPP_
 
 #include <cstdio>
 #include <cassert>

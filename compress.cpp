@@ -192,8 +192,11 @@ int main(int argc, char** argv) {
   //  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
   bwtc::Compressor compressor(input_name, output_name, preprocessing, mem*1000000, encoding);
   compressor.initializeBwtAlgorithm(bwtAlgo, startingPoints);
-  compressor.compress(1);
-  
+  size_t compressedBytes = compressor.compress(1);
+
+  if(verbosity > 0) {
+    std::clog << "Compressed size is " << compressedBytes << std::endl;
+  }
   
   PRINT_PROFILE_DATA
   return 0;

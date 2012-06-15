@@ -29,6 +29,7 @@
 
 #include "../Streams.hpp"
 
+#include <algorithm>
 #include <vector>
 
 namespace bwtc {
@@ -36,7 +37,7 @@ namespace tests {
 
 class TestStream : public InStream, public OutStream {
  public:
-  TestStream() : InStream(""), OutStream(""), m_currByte(0), m_currBit(0) {}
+  TestStream() : m_currByte(0), m_currBit(0) {}
   
   void reset() { m_currBit = m_currByte = 0;  }
 
@@ -57,10 +58,65 @@ class TestStream : public InStream, public OutStream {
       m_data[m_currByte++] = b;
     }
   }
+
+  void writeBlock(const byte* begin, const byte* end) {
+    if(m_currBit) {
+      ++m_currByte;
+      m_currBit = 0;
+    }
+    m_data.resize((end - begin) + m_currByte);
+    std::copy(begin, end, &m_data[m_currByte]);
+  }
+
+  long int getPos() {
+    return m_currByte;
+  }
+
+  void flush() {}
+
+  uint64 readBlock(byte *to, uint64 maxBlockSize) {
+    size_t end = std::min(m_data.size(), m_currByte + maxBlockSize);
+    std::copy(&m_data[m_currByte], &m_data[end], to);
+    uint64 result = end - m_currByte;
+    m_currByte = end;
+    return result;
+  }
+
+  byte readByte() {
+    return m_data[m_currByte++];
+  }
+
+  void flushBuffer() {
+    if(m_currBit) {
+      m_currBit = 0;
+      ++m_currByte;
+    }
+  }
+
+  void write48bits(uint64 toWritten, long int position) {
+    position += 5;
+    for(int i = 5; i >= 0; --i) {
+      byte b = (toWritten >> i*8) & 0xff;
+      m_data[position - i] = b;
+    }
+  }
+
+  uint64 read48bits() {
+    uint64 res = 0;
+    for(size_t i = 0; i <= 5; ++i) {
+      res <<= 8;
+      res |= m_data[m_currByte++];
+    }
+    return res;
+  }
+
+  bool compressedDataEnding() {
+    return m_currByte >= m_data.size();
+  }
   
  private:
   std::vector<byte> m_data;
-  uint32 m_currByte;
+  size_t m_currByte;
   uint32 m_currBit;
 };
 

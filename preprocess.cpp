@@ -70,11 +70,11 @@ void preprocess(const std::string& input_name, const std::string& output_name,
     if (output_name != "") std::clog << "Output: " << output_name << std::endl;
     else std::clog << "Output: stdout" << std::endl;
   }
-  bwtc::InStream in(input_name);
+  bwtc::RawInStream in(input_name);
   
   bwtc::Precompressor preprocessor(preproc);
 
-  bwtc::OutStream out(output_name);
+  bwtc::RawOutStream out(output_name);
 
   writeGlobalHeader(&out);
 

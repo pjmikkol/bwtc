@@ -40,7 +40,7 @@
 
 namespace bwtc {
 
-OutStream::OutStream(const std::string& file_name)
+RawOutStream::RawOutStream(const std::string& file_name)
     :m_name(file_name) {
   m_buffer = new byte[kBufferSize];
   if (!m_buffer) {
@@ -60,8 +60,8 @@ OutStream::OutStream(const std::string& file_name)
   assert(m_fileptr);
 }
 
-OutStream::~OutStream() {
-  PROFILE("OutStream::~OutStream()");
+RawOutStream::~RawOutStream() {
+  PROFILE("RawOutStream::~RawOutStream()");
   if (m_filled > 0) {
     flush();
   }
@@ -71,7 +71,7 @@ OutStream::~OutStream() {
   delete[] m_buffer;
 }
 
-void OutStream::writeByte(byte b) {
+void RawOutStream::writeByte(byte b) {
   m_buffer[m_filled++] = b;
   if (m_filled == kBufferSize) {
     fwrite(m_buffer, 1, m_filled, m_fileptr);
@@ -79,7 +79,7 @@ void OutStream::writeByte(byte b) {
   }
 }
 
-void OutStream::flush() {
+void RawOutStream::flush() {
   if (m_filled > 0) {
     fwrite(m_buffer, 1, m_filled, m_fileptr);
     m_filled = 0;
@@ -87,12 +87,12 @@ void OutStream::flush() {
   fflush(m_fileptr);
 }
 
-long int OutStream::getPos() {
+long int RawOutStream::getPos() {
   flush();
   return ftell(m_fileptr);
 }
 
-void OutStream::writeBlock(const byte *begin, const byte *end) {
+void RawOutStream::writeBlock(const byte *begin, const byte *end) {
   uint64 size = end - begin;
   if (m_filled + size < kBufferSize) {
     std::copy(begin, end, m_buffer + m_filled);
@@ -103,7 +103,7 @@ void OutStream::writeBlock(const byte *begin, const byte *end) {
   }
 }
 
-void OutStream::write48bits(uint64 to_written, long int position) {
+void RawOutStream::write48bits(uint64 to_written, long int position) {
   assert((to_written & (((uint64)0xFFFF) << 48)) == 0);
   flush();
   long int current = ftell(m_fileptr);
@@ -116,7 +116,7 @@ void OutStream::write48bits(uint64 to_written, long int position) {
   fseek(m_fileptr, current, SEEK_SET);
 }
 
-uint64 InStream::read48bits() {
+uint64 RawInStream::read48bits() {
   uint64 result = 0;
   for(int i = 0; i < 6; ++i) {
     result <<= 8;
@@ -125,7 +125,7 @@ uint64 InStream::read48bits() {
   return result;
 }
 
-InStream::InStream(const std::string &file_name) :
+RawInStream::RawInStream(const std::string &file_name) :
     m_name(file_name), m_buffer(0), m_bitsInBuffer(0)
 {
   m_bigbuf = new byte[kBigbufSize];
@@ -147,14 +147,14 @@ InStream::InStream(const std::string &file_name) :
   assert(m_fileptr);
 }
 
-InStream::~InStream() {
+RawInStream::~RawInStream() {
   if (m_fileptr != stdin) {
     fclose(m_fileptr);
   }
   delete[] m_bigbuf;
 }
 
-uint64 InStream::readBlock(byte* to, uint64 max_block_size) {
+uint64 RawInStream::readBlock(byte* to, uint64 max_block_size) {
   assert(m_bitsInBuffer == 0);
   uint64 have_read = 0;
   int32 c;
@@ -164,7 +164,7 @@ uint64 InStream::readBlock(byte* to, uint64 max_block_size) {
   return have_read;
 }
 
-int32 InStream::fetchByte() {
+int32 RawInStream::fetchByte() {
   if (m_bigbuf_left <= 0) {
     m_bigbuf_pos = 0;
     m_bigbuf_left = fread(m_bigbuf, 1, kBigbufSize, m_fileptr);
@@ -174,7 +174,7 @@ int32 InStream::fetchByte() {
   return m_bigbuf[m_bigbuf_pos++];
 }
 
-int32 InStream::peekByte() {
+int32 RawInStream::peekByte() {
   if (m_bigbuf_left <= 0) {
     m_bigbuf_pos = 0;
     m_bigbuf_left = fread(m_bigbuf, 1, kBigbufSize, m_fileptr);

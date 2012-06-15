@@ -37,9 +37,28 @@
 
 #include "globaldefs.hpp"
 
-//#define virtual
-
 namespace bwtc {
+
+class OutStream {
+ public:
+  virtual ~OutStream() {}
+  virtual void writeByte(byte b) = 0;
+  virtual void writeBlock(const byte *begin, const byte *end) = 0;
+  virtual long int getPos() = 0;
+  virtual void write48bits(uint64 to_written, long int position) = 0;
+  virtual void flush() = 0;
+};
+
+class InStream {
+ public:
+  virtual ~InStream() {}
+  virtual uint64 readBlock(byte *to, uint64 max_block_size) = 0;
+  virtual bool readBit() = 0;
+  virtual byte readByte() = 0;
+  virtual void flushBuffer() = 0;
+  virtual uint64 read48bits() = 0;
+  virtual bool compressedDataEnding() = 0;
+};
 
 /**
  * OutStream writes data into file or std::cout.
@@ -53,10 +72,10 @@ namespace bwtc {
  *
  * @see Compressor
  */
-class OutStream {
+class RawOutStream : public OutStream {
  public:
-  explicit OutStream(const std::string& file_name);
-  virtual ~OutStream();
+  explicit RawOutStream(const std::string& file_name);
+  virtual ~RawOutStream();
 
   /**
    * Writes given byte into target.
@@ -84,15 +103,15 @@ class OutStream {
   uint32 m_filled;
   byte *m_buffer;
 
-  OutStream& operator=(const OutStream& os);
-  OutStream(const OutStream& os);
+  RawOutStream& operator=(const RawOutStream& os);
+  RawOutStream(const RawOutStream& os);
 };
 
 
-struct InStream {
+class RawInStream : public InStream {
  public:
-  explicit InStream(const std::string &file_name);
-  virtual ~InStream();
+  explicit RawInStream(const std::string &file_name);
+  virtual ~RawInStream();
 
   /* Copies block from stream to given byte array.
    * Returns the number of read bytes. */
@@ -113,7 +132,7 @@ struct InStream {
     return (m_buffer >> m_bitsInBuffer) & 0xff;
   }
 
-  inline void flushBuffer() {
+  virtual inline void flushBuffer() {
     m_bitsInBuffer = 0;
   }
   
@@ -146,12 +165,11 @@ struct InStream {
 
   int fetchByte();
   int peekByte();
-  InStream& operator=(const InStream& os);
-  InStream(const InStream& os);
+  RawInStream& operator=(const RawInStream& os);
+  RawInStream(const RawInStream& os);
 };
 
 } //namespace bwtc
 
-//#undef virtual
 
 #endif

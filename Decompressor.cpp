@@ -36,7 +36,7 @@
 namespace bwtc {
 
 Decompressor::Decompressor(const std::string& in, const std::string& out)
-    : m_in(new InStream(in)), m_out(new OutStream(out)),
+    : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
       m_decoder(0), m_postprocessor(verbosity > 1) {}
 
 Decompressor::Decompressor(InStream* in, OutStream* out)

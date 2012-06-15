@@ -10,7 +10,7 @@ find_package(Boost COMPONENTS system filesystem)
 link_directories(${Boost_LIBRARY_DIR} ${OBJECT_FILE_PATH})
 include_directories(${Boost_INCLUDE_DIR})
 
-set(BOOST_UNIT_TESTS UtilsTest WaveletTest PairReplacerTest)
+set(BOOST_UNIT_TESTS UtilsTest WaveletTest PairReplacerTest GrammarTest)
 
 foreach(program ${BOOST_UNIT_TESTS})
   add_executable(${program} ${program}.cpp)

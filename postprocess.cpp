@@ -101,7 +101,7 @@ void postprocess(const std::string& input_name, const std::string& output_name,
     else std::clog << "Output: stdout" << std::endl;
   }
 
-  bwtc::InStream in(input_name);
+  bwtc::RawInStream in(input_name);
   std::string postproc = readGlobalHeader(&in);
   std::reverse(postproc.begin(), postproc.end());
   bwtc::Postprocessor postProcessor(verbosity > 0);
@@ -111,7 +111,7 @@ void postprocess(const std::string& input_name, const std::string& output_name,
               << std::endl;
   }
 
-  bwtc::OutStream out(output_name);
+  bwtc::RawOutStream out(output_name);
 
   unsigned blocks = 0;
   while (!in.compressedDataEnding()) {

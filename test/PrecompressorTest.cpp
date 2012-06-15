@@ -58,7 +58,7 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
   
   /* Then the actual test */
   bwtc::Precompressor prepr;
-  bwtc::InStream in(test_fname);
+  bwtc::RawInStream in(test_fname);
 
   int blocks = 0;
   std::streamsize total = 0;

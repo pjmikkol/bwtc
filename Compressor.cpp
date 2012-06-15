@@ -36,7 +36,7 @@ namespace bwtc {
 Compressor::
 Compressor(const std::string& in, const std::string& out,
            const std::string& preprocessing, size_t memLimit, char entropyCoder)
-    : m_in(new InStream(in)), m_out(new OutStream(out)),
+    : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
       m_coder(giveEntropyEncoder(entropyCoder)), m_precompressor(preprocessing),
       m_options(memLimit, entropyCoder) {}
 
@@ -99,8 +99,6 @@ size_t Compressor::compress(size_t threads) {
       //delete space allocated for i:th slice. However the worst case
       //stays the same
     }
-
-
     delete pb;
   }
   compressedSize += PrecompressorBlock::writeEmptyHeader(m_out);

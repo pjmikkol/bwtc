@@ -44,36 +44,9 @@ namespace po = boost::program_options;
 #include "Utils.hpp"
 #include "globaldefs.hpp"
 #include "Profiling.hpp"
+#include "PrecompressorBlock.hpp"
 
 using bwtc::verbosity;
-
-std::string readGlobalHeader(bwtc::InStream *in) {
-  std::string preproc;
-  size_t bitsLeft = 0;
-  size_t bitsInCode = 0;
-  size_t code = 0;
-  byte b = 0;
-
-  while(true) {
-    if(bitsInCode == 3) {
-      if(code == 0) break;
-      else if (code == 2) preproc += 'c';
-      else if (code == 1) preproc += 'r';
-      else if (code == 3) preproc += 'p';
-      else if (code == 4) preproc += 's';
-      code = 0;
-      bitsInCode = 0;
-    }
-    if(bitsLeft == 0) {
-      b = in->readByte();
-      bitsLeft = 8;
-    }
-    code = (code << 1) | ((b >> (bitsLeft - 1)) & 1);
-    --bitsLeft;
-    ++bitsInCode;
-  }
-  return preproc;
-}
 
 uint64 readPackedInteger(bwtc::InStream *in) {
   static const uint64 kEndSymbol = static_cast<uint64>(1) << 63;
@@ -102,37 +75,24 @@ void postprocess(const std::string& input_name, const std::string& output_name,
   }
 
   bwtc::RawInStream in(input_name);
-  std::string postproc = readGlobalHeader(&in);
-  std::reverse(postproc.begin(), postproc.end());
-  bwtc::Postprocessor postProcessor(verbosity > 0);
-
-  if(verbosity > 1) {
-    std::clog << "Postprocessor initiated with parameter: " << postproc
-              << std::endl;
-  }
 
   bwtc::RawOutStream out(output_name);
 
   unsigned blocks = 0;
-  while (!in.compressedDataEnding()) {
+  while(true) {
+    bwtc::PrecompressorBlock *pb =
+        bwtc::PrecompressorBlock::readBlockHeader(&in);
+    if(pb->originalSize() == 0) {
+      delete pb;
+      break;
+    }
     ++blocks;
-              
-    // Read block header (size).
-    uint64 packed_current_block_size = readPackedInteger(&in);
-    uint64 current_block_size = utils::unpackInteger(packed_current_block_size);
-    std::vector<byte> block;
-    block.resize(current_block_size);
 
-    // Read block bytes.
-    in.readBlock(&block[0], current_block_size);
-
-    // Proper postprocessing of data.
-    postProcessor.postProcess(&block);
-    
-    // Write the output.
-    uint64 final_block_size = static_cast<uint64>(block.size());
-    out.writeBlock(&block[0], (&block[0]) + final_block_size);
-    out.flush();
+    // Postprocess pb
+    bwtc::Postprocessor postprocessor(verbosity > 1, pb->grammar());
+    size_t postSize = postprocessor.uncompress(pb->begin(), pb->size(), &out);
+    assert(postSize == pb->originalSize());
+    delete pb;
   }
 
   if (verbosity > 0) {

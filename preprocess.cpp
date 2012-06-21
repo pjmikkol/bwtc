@@ -46,11 +46,6 @@ namespace po = boost::program_options;
 
 using bwtc::verbosity;
 
-void writeGlobalHeader(bwtc::OutStream *out) {
-  //Could probably write some information to the header
-  out->writeByte(0x77);
-}
-
 void writePackedInteger(bwtc::uint64 packed_integer, bwtc::OutStream *out) {
   do {
     bwtc::byte to_written = static_cast<bwtc::byte>(packed_integer & 0xFF);
@@ -76,8 +71,6 @@ void preprocess(const std::string& input_name, const std::string& output_name,
 
   bwtc::RawOutStream out(output_name);
 
-  writeGlobalHeader(&out);
-
   unsigned blocks = 0;
   bwtc::uint64 last_s = 0;
   while(bwtc::PrecompressorBlock* block = preprocessor.readBlock(block_size, &in)) {
@@ -87,15 +80,11 @@ void preprocess(const std::string& input_name, const std::string& output_name,
     }
 
     ++blocks;
+    // TODO:
+    // Write pb->size() to be able to know the data needed to read after
+    // header. Read that in postprocess.cpp and modify PrecompressorBlock a bit
 
-    //TODO: Fix postprocess.cpp
     block->writeBlockHeader(&out); //write Grammar
-    // Simplified encoder->writeBlockHeader(..).
-    bwtc::uint64 current_block_size = block->size();
-    int bytes;
-    bwtc::uint64 packed_current_block_size =
-      utils::packInteger(current_block_size, &bytes);
-    writePackedInteger(packed_current_block_size, &out);
     out.writeBlock(block->begin(), block->end());
 
     last_s = block->originalSize();

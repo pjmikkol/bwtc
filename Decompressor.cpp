@@ -37,10 +37,10 @@ namespace bwtc {
 
 Decompressor::Decompressor(const std::string& in, const std::string& out)
     : m_in(new RawInStream(in)), m_out(new RawOutStream(out)),
-      m_decoder(0), m_postprocessor(verbosity > 1) {}
+      m_decoder(0) {}
 
 Decompressor::Decompressor(InStream* in, OutStream* out)
-    : m_in(in), m_out(out), m_decoder(0), m_postprocessor(verbosity > 1) {}
+    : m_in(in), m_out(out), m_decoder(0) {}
 
 Decompressor::~Decompressor() {
   delete m_in;
@@ -90,6 +90,8 @@ size_t Decompressor::decompress(size_t threads) {
     delete pb;
   }
   delete ibwt;
+
+  return decompressedSize;
 }
 
 } //namespace bwtc

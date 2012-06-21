@@ -48,21 +48,16 @@ class Postprocessor {
     bool isPair;
   };
 
-  Postprocessor(bool verbose); //TODO: remove!
   Postprocessor(bool verbose, const Grammar& grammar);
 
   void uncompress(const byte* from, size_t length, std::vector<byte>& to);
   size_t uncompress(const byte* data, size_t length, OutStream* to) const;
-
-  void postProcess(std::vector<byte> *data); //TODO: Remove
  
-  uint32 readGrammar(const byte *src, size_t length);
-  uint32 readReversedPackedInteger(const byte* src, int* bytesRead);
-  
   static size_t uncompressCommonPairs(std::vector<byte> *from, size_t length);
   static size_t uncompressLongRuns(std::vector<byte> *from, size_t length);
   static size_t uncompressSequences(std::vector<byte> *from, size_t length);
-  static size_t uncompressPairsAndRuns(std::vector<byte> *compressed, size_t length);
+  static size_t uncompressPairsAndRuns(std::vector<byte> *compressed,
+                                       size_t length);
 
  private:
   // Almost half of the array is unused but that area of memory

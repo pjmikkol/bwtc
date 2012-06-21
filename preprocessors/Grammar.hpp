@@ -187,17 +187,6 @@ class Grammar {
   /**Grammar must be empty before it's read.*/
   void readGrammar(InStream* in);
   
-
-  uint32 writeGrammar(byte* dst) const;
-  uint32 writeRightSides(byte* dst) const;
-  uint32 writeFreedSymbols(byte* dst) const;
-  uint32 writeSpecialSymbols(byte* dst) const;
-  uint32 writeNumberOfSpecialSymbols(byte* dst) const;
-  uint32 writeLengthsOfRules(byte* dst) const;
-  uint32 writeVariables(byte* dst) const;
-  uint32 writeVariableFlags(byte* dst) const;
-  uint32 writeNumberOfRules(byte* dst) const;
-
  private:
   /**Frequencies of bytes in the right-side of rules.*/
   uint32 m_frequencies[256];

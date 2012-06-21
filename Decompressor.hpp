@@ -58,7 +58,6 @@ class Decompressor {
   InStream *m_in;
   OutStream *m_out;
   EntropyDecoder *m_decoder;
-  Postprocessor m_postprocessor;
 };
 
 } //namespace bwtc

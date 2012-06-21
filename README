@@ -1,4 +1,6 @@
-Copyright 2010-2011, Pekka Mikkola, pjmikkol (at) cs.helsinki.fi
+Copyright 2010-2012, 
+Pekka Mikkola, pjmikkol (at) cs.helsinki.fi
+Dominik Kempa, dominik.kempa (at) cs.helsinki.fi
 
 This file is part of bwtc.
 
@@ -17,7 +19,9 @@ along with bwtc.  If not, see <http://www.gnu.org/licenses/>.
 
 Burrows-Wheeler Transform based compression program
 
-at the moment: in early development phase
+At the moment the compression and decompression works as it should. 
+There is still lot of development ideas, so the compressed file format 
+may and will change in the near future.
 
 ...
 

@@ -28,7 +28,7 @@ endif()
 set(EXECUTABLE_OUTPUT_PATH bin/)
 set(OBJECT_FILE_PATH ${bwtc_SOURCE_DIR}/${EXECUTABLE_OUTPUT_PATH})
 
-set(COMMON_SRC Coders.cpp BitCoders.cpp Utils.cpp Streams.cpp 
+set(COMMON_SRC BitCoders.cpp Utils.cpp Streams.cpp 
   WaveletCoders.cpp EntropyCoders.cpp HuffmanCoders.cpp PrecompressorBlock.cpp 
   BWTBlock.cpp)
 add_library(common ${COMMON_SRC})

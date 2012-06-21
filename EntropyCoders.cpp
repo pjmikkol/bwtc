@@ -30,7 +30,6 @@
 #include <vector>
 
 #include "EntropyCoders.hpp"
-#include "Coders.hpp"
 #include "WaveletCoders.hpp"
 #include "HuffmanCoders.hpp"
 

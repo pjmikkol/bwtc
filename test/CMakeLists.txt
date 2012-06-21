@@ -20,11 +20,6 @@ foreach(program ${BOOST_UNIT_TESTS})
     "[.\n]*failure")
 endforeach(program)
 
-add_executable(CodersTest CodersTest.cpp)
-target_link_libraries(CodersTest common probmodels)
-add_test(CodersTest ${EXECUTABLE_OUTPUT_PATH}/CodersTest "test_file")
-set_tests_properties(CodersTest PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")
-
 add_executable(SaisTest SaisTest.cpp)
 target_link_libraries(SaisTest common)
 add_test(SaisTest ${EXECUTABLE_OUTPUT_PATH}/SaisTest)
@@ -51,6 +46,3 @@ target_link_libraries(InverseBwtOnFileTest common bwtransforms)
 
 add_executable(LFpowersTest LFpowersTest.cpp)
 target_link_libraries(LFpowersTest common bwtransforms)
-
-#add_test(long_sequences_test ${EXECUTABLE_OUTPUT_PATH}/long_sequences_test)
-#set_tests_properties(long_sequences_test PROPERTIES PASS_REGULAR_EXPRESSION ".*pass")

@@ -72,16 +72,33 @@ Postprocessor::Postprocessor(bool verbose, const Grammar& grammar)
 
   for(size_t i = 0; i < 256; ++i) {
     m_isSpecial[i] = grammar.isSpecial(i);
-    if(m_isSpecial[i]) {
-      int replValue = (1 << 16) | (i << 8) | i;
-      m_replacements[replValue].push_back(i);
+  }
+  if(grammar.numOfRules() > 0) m_hasRules = true;
+  
+  // Freed symbols
+  const int highBit = 1 << 16;
+  {
+    std::vector<std::pair<uint16, byte> > freedSyms;
+    grammar.freedSymbols(freedSyms);
+    for(size_t i = 0; i < freedSyms.size(); ++i) {
+      assert(m_replacements[highBit | freedSyms[i].first].size() == 0);
+      /*std::cout << (freedSyms[i].first >> 8) << " "
+                << (freedSyms[i].first & 0xff) << " -> "
+                <<  ((int) freedSyms[i].second) << std::endl;*/
+      m_replacements[highBit | freedSyms[i].first].
+          push_back(freedSyms[i].second);
     }
   }
-  // TODO:
-  // if(rules) m_hasRules = true;
-  // freed symbols
-  // rules
-  
+
+  // Rules
+  for(size_t i = 0; i < grammar.numberOfRules(); ++i) {
+    Grammar::Rule rule = grammar.getRule(i);
+    std::vector<byte> tmp;
+    uncompress(rule.begin(), rule.length(), tmp);
+    int repAddress = rule.variable();
+    if(rule.isLarge())  repAddress |= highBit;
+    std::swap(m_replacements[repAddress], tmp);
+  }
 }
 
 
@@ -102,6 +119,7 @@ uncompress(const byte* src, size_t length, std::vector<byte>& dst) {
 
 size_t Postprocessor::
 uncompress(const byte* data, size_t length, OutStream* to) const {
+  PROFILE("Postprocessor::uncompress");
   if(!m_hasRules) {
     to->writeBlock(data, data+length);
     return length;
@@ -222,7 +240,8 @@ uint32 Postprocessor::readGrammar(const byte* src, size_t len) {
       byte freedSymbol = *(src + last - size);
       ++size;
       byte next = *(src + last - size);
-      if(freedSymbol == next && off && current != nSpecialSymbols*nSpecialSymbols - 1) {
+      if(freedSymbol == next && off &&
+         current != nSpecialSymbols*nSpecialSymbols - 1) {
         ++current;
         continue;
       }

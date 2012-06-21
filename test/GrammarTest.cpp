@@ -68,13 +68,16 @@ BOOST_AUTO_TEST_CASE(SpecialSymbols) {
   freed.push_back('a'); freed.push_back('b');
   spec.push_back('X'); spec.push_back('Y');
 
+  original.addRule('a', '1','2');
   original.expandAlphabet(freed, spec, specialPairs);
+  original.endUpdatingRules();
+
   BOOST_CHECK_EQUAL((specialPairs[0] >> 8) & 0xff, 'X');
   BOOST_CHECK_EQUAL(specialPairs[0] & 0xff, 'Y');
   BOOST_CHECK_EQUAL((specialPairs[1] >> 8) & 0xff, 'Y');
   BOOST_CHECK_EQUAL(specialPairs[1] & 0xff, 'X');
   
-  BOOST_CHECK_EQUAL(original.numberOfRules(), 0);
+  BOOST_CHECK_EQUAL(original.numberOfRules(), 1);
   BOOST_CHECK_EQUAL(original.numberOfSpecialSymbols(), 2);
 
   original.writeGrammar(&stream);

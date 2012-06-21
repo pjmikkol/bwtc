@@ -359,10 +359,12 @@ void PairReplacer::constructReplacementTable(
   m_grammar.beginUpdatingRules();
   assert(m_numOfReplacements > 0);
   assert(m_numOfReplacements == replacements.size());
+
   for(size_t i = 0; i < m_numOfReplacements; ++i) {
     assert(m_commonByte != replacements[i]);
-#if 1
-    for(size_t j = 0; j < newSpecials.size(); ++j) assert(replacements[i] != newSpecials[j]);
+#ifndef NDEBUG
+    for(size_t j = 0; j < newSpecials.size(); ++j)
+      assert(replacements[i] != newSpecials[j]);
     assert(!m_grammar.isSpecial(replacements[i]));
 #endif    
     m_replacements[pairs[i].second] = (replacements[i]<<8) | m_commonByte;
@@ -371,7 +373,6 @@ void PairReplacer::constructReplacementTable(
   }
   std::vector<uint16> nextSpecialPairs;
   m_grammar.expandAlphabet(freedSymbols, newSpecials, nextSpecialPairs);
-  //replacements.size()- freedSymbols.size());
   assert(freedSymbols.size() == nextSpecialPairs.size());
 
   for(size_t i = 0; i < freedSymbols.size(); ++i) {
@@ -393,7 +394,7 @@ void PairReplacer::constructReplacementTable(
         m_replacements[hVal | j] = special;
     }
   }
-  m_grammar.endUpdatingRules();
+  m_grammar.endUpdatingRules(replacements);
 }
 
 size_t PairReplacer::
@@ -482,11 +483,13 @@ size_t PairReplacer::decideReplacements() {
     assert(!m_grammar.isSpecial(k));
     newSpecials.push_back(k);
   }
+  uint32 vars = 0;
   for(size_t i = 0; i < m_numOfFreedSymbols; ++i) {
     byte k = freqTable.getKey(j++);
     assert(!m_grammar.isSpecial(k));
     freedSymbols.push_back(k);
     replacements.push_back(k);
+    if(m_grammar.isVariable(k)) ++vars;
   }
   for(size_t i = 0; i < frees.size(); ++i) {
     replacements.push_back(frees[i]);
@@ -500,13 +503,17 @@ size_t PairReplacer::decideReplacements() {
     std::clog << "Replacing " << m_numOfReplacements << " pairs. ";
     std::clog << "Freed " << m_numOfFreedSymbols << " symbols for pairs and "
               << m_numOfNewSpecials << " symbols for special "
-              << "characters." << std::endl;
+              << "characters. " << std::endl << vars
+              << " freed symbols were already "
+              << "grammar variables." << std::endl;
   }
   
   m_commonByte = freqTable.getKey(freqTable.size()-1);
-  std::fill(m_replacements, m_replacements + (1 << 16), (m_commonByte<<8)|m_commonByte);
+  std::fill(m_replacements, m_replacements + (1 << 16),
+            (m_commonByte<<8)|m_commonByte);
   if(m_numOfReplacements > 0)
-    constructReplacementTable(replaceablePairs,freedSymbols, newSpecials,replacements);
+    constructReplacementTable(replaceablePairs,freedSymbols, newSpecials,
+                              replacements);
   return m_numOfReplacements;
 }
 

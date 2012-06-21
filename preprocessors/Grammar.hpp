@@ -44,20 +44,23 @@ namespace bwtc {
  * special symbol).
  */
 class Grammar {
- public:
-  /**Rule stores single replacement. They are chosen by preprocessing
-   * algoritms.*/
-  class Rule {
+ private:
+  /**PrRule stores single replacement. They are chosen by preprocessing
+   * algoritms. This class is meant only for internal use of grammar.*/
+  class PrRule {
    public:
-    Rule(uint16 variable, uint32 begin, uint32 end, bool largeVariable=false)
+    PrRule(uint16 variable, uint32 begin, uint32 end, bool largeVariable=false)
         : m_begin(begin), m_end(end), m_variable(variable),
           m_largeVariable(largeVariable) { }
 
     inline uint32 begin() const {return m_begin;}
-    inline uint16 end() const {return m_end;}
+    inline uint32 end() const {return m_end;}
     inline uint16 variable() const {return m_variable;}
     inline bool isLarge() const { return m_largeVariable; }
-    inline void setRange(uint32 begin, uint32 end) { m_begin = begin; m_end = end; }
+    inline void setRange(uint32 begin, uint32 end) {
+      m_begin = begin;
+      m_end = end;
+    }
     inline void changeVariable(uint16 nVariable, bool large=true) {
       m_variable = nVariable;
       m_largeVariable = large;
@@ -76,6 +79,30 @@ class Grammar {
     bool m_largeVariable;
   };
 
+ public:
+  /**This class is meant to be used from the outside. 
+   */
+  class Rule {
+   public:
+    Rule(const PrRule& rule, const byte* start)
+        : m_begin(start + rule.begin()), m_end(start + rule.end()),
+          m_variable(rule.variable()), m_largeVariable(rule.isLarge())
+    {}
+    
+    inline const byte *begin() const { return m_begin; }
+    inline const byte *end() const { return m_end; }
+    inline uint16 variable() const {return m_variable;}
+    inline bool isLarge() const { return m_largeVariable; }
+    inline size_t length() const { return m_end - m_begin; }
+
+   private:
+    const byte* const m_begin;
+    const byte* const m_end;
+    const uint16 m_variable;
+    const bool m_largeVariable;
+  }; 
+  
+  
   Grammar();
 
   inline bool isSpecial(byte symbol) const { return m_isSpecialSymbol[symbol]; }
@@ -114,10 +141,34 @@ class Grammar {
     m_newRules = 0;
   }
 
+  inline void endUpdatingRules(const std::vector<byte>& variables) {
+    m_updatingRules = false;
+    for(size_t i = 0; i < variables.size(); ++i)
+      m_isVariable[variables[i]] = true;
+  }
+
   inline void endUpdatingRules() {
     m_updatingRules = false;
   }
 
+  inline Rule getRule(size_t index) const {
+    return Rule(m_rules[index], &m_rightHandSides[0]);
+  }
+
+  inline bool isVariable(byte sym) const {
+    return m_isVariable[sym];
+  }
+  
+  uint16 specialPair(uint32 ord) const;
+  
+  /**The first entry in pair is special pair which is used for freeing the
+   * second member. */
+  void freedSymbols(std::vector<std::pair<uint16, byte> >& replacements) const;
+
+  uint32 numberOfFreedSymbols() const;
+
+  uint32 numberOfSpecialPair(uint32 first, uint32 snd) const;
+  
   void expandAlphabet(const std::vector<byte>& freedSymbols,
                       const std::vector<byte>& newSpecials,
                       std::vector<uint16>& nextSpecialPairs);
@@ -148,7 +199,6 @@ class Grammar {
   uint32 writeNumberOfRules(byte* dst) const;
 
  private:
-
   /**Frequencies of bytes in the right-side of rules.*/
   uint32 m_frequencies[256];
   bool m_isSpecialSymbol[256];
@@ -160,7 +210,7 @@ class Grammar {
    * variable. */
   std::vector<std::pair<bool,byte> > m_specialPairReplacements;
 
-  std::vector<Rule> m_rules;
+  std::vector<PrRule> m_rules;
   /**Right-hand sides of the rules.*/
   std::vector<byte> m_rightHandSides;
 

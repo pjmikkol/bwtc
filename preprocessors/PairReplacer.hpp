@@ -82,13 +82,15 @@ class PairReplacer {
   void findReplaceablePairs(std::vector<std::pair<uint32, uint16> >& pairs,
                             std::vector<std::pair<uint32, uint16> >& replaceablePairs,
                             FrequencyTable& freqs, size_t maxReplacements,
-                            uint32& variables, uint32& specials, uint32& forFree) const;
+                            uint32& variables, uint32& specials,
+                            uint32& forFree) const;
 
   int64 findReplaceables(size_t start, 
                          const std::vector<std::pair<uint32, uint16> >& pairs,
                          std::vector<std::pair<uint32, uint16> >& replPairs,
                          FrequencyTable& freqs, size_t maxRepl,
-                         uint32& variables, uint32& specials,uint32& forFree) const;
+                         uint32& variables, uint32& specials,
+                         uint32& forFree) const;
 
   size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
 
@@ -99,12 +101,13 @@ class PairReplacer {
   void constructReplacementTable(
       const std::vector<std::pair<uint32, uint16> >& pairs,
       const std::vector<byte>& freedSymbols,
-      const std::vector<byte>& newSpecials,const std::vector<byte>& replacements);
+      const std::vector<byte>& newSpecials,
+      const std::vector<byte>& replacements);
 
   Grammar& m_grammar;
 
   /**Stores the frequencies of bytes. */
-  uint32 m_frequencies[256];
+  size_t m_frequencies[256];
 
   /**Used for storing the counters when analyzing data. */
   size_t m_pairFrequencies[1 << 16];

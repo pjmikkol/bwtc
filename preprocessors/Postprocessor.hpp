@@ -51,9 +51,10 @@ class Postprocessor {
   Postprocessor(bool verbose); //TODO: remove!
   Postprocessor(bool verbose, const Grammar& grammar);
 
-  void uncompress(const byte* from, size_t length, std::vector<byte>& to); //TODO: Remove?
-  void postProcess(std::vector<byte> *data); //TODO: Remove
+  void uncompress(const byte* from, size_t length, std::vector<byte>& to);
   size_t uncompress(const byte* data, size_t length, OutStream* to) const;
+
+  void postProcess(std::vector<byte> *data); //TODO: Remove
  
   uint32 readGrammar(const byte *src, size_t length);
   uint32 readReversedPackedInteger(const byte* src, int* bytesRead);

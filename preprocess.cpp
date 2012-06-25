@@ -80,17 +80,16 @@ void preprocess(const std::string& input_name, const std::string& output_name,
     }
 
     ++blocks;
-    // TODO:
-    // Write pb->size() to be able to know the data needed to read after
-    // header. Read that in postprocess.cpp and modify PrecompressorBlock a bit
 
-    block->writeBlockHeader(&out); //write Grammar
+    block->writeBlockHeader(&out, PRECOMP_COMPRESSED_SIZE); 
     out.writeBlock(block->begin(), block->end());
 
     last_s = block->originalSize();
     delete block;
   }
 
+  bwtc::PrecompressorBlock::writeEmptyHeader(&out);
+  
   if (verbosity > 0) {
     std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
     std::clog << "Total size: " << (blocks-1)*block_size + last_s << "B\n";
@@ -107,7 +106,7 @@ void validatePreprocOption(const std::string& p) {
 
   for(size_t i = 0; i < p.size(); ++i) {
     char c = p[i];
-    if(c != 'c' && c != 'p' && c != 'r' && c != 's') throw exc;
+    if(c != 'p') throw exc;
   }
 }
 
@@ -136,10 +135,7 @@ int main(int argc, char** argv) {
          notifier(&validatePreprocOption),
          "preprocessor options:\n"
          "  p -- pair replacer\n"
-         "  r -- run replacer\n"
-         "  c -- pair and run replacer\n"
-         "  s -- long recurring sequences replacer\n"
-         "For example \"ppr\" would run pair replacer twice and run replacer once")
+         "For example \"pp\" would run pair replacer twice")
         ;
 
     /* Allow input and output files given in user friendly form,

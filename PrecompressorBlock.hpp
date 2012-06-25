@@ -60,10 +60,21 @@ class PrecompressorBlock {
   BWTBlock& getSlice(int i);
   size_t slices() const { return m_bwtBlocks.size(); }
 
-  size_t writeBlockHeader(OutStream* out) const;
+  size_t writeBlockHeader(
+      OutStream* out, MetaData metadata=PRECOMP_ORIGINAL_SIZE) const;
 
   static size_t writeEmptyHeader(OutStream* out);
-  static PrecompressorBlock* readBlockHeader(InStream* in);
+  
+  /**If metadata equals PRECOMP_ORIGINAL_SIZE then the original size of
+   * the precompressed block is read, space is allocated and finally the
+   * number of BWT-blocks is read.
+   *
+   * If metadata equals MetaDataFlags::PRECOMP_COMPRESSED_SIZE then the
+   * compressed size is read. Space is allocated for the
+   * compressed block and it is read from inStream.
+   */
+  static PrecompressorBlock* readBlockHeader(
+      InStream* in, MetaData metadata=PRECOMP_ORIGINAL_SIZE);
   
  private:
   Grammar m_grammar;

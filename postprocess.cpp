@@ -81,8 +81,8 @@ void postprocess(const std::string& input_name, const std::string& output_name,
   unsigned blocks = 0;
   while(true) {
     bwtc::PrecompressorBlock *pb =
-        bwtc::PrecompressorBlock::readBlockHeader(&in);
-    if(pb->originalSize() == 0) {
+        bwtc::PrecompressorBlock::readBlockHeader(&in, PRECOMP_COMPRESSED_SIZE);
+    if(pb->size() == 0) {
       delete pb;
       break;
     }
@@ -91,7 +91,6 @@ void postprocess(const std::string& input_name, const std::string& output_name,
     // Postprocess pb
     bwtc::Postprocessor postprocessor(verbosity > 1, pb->grammar());
     size_t postSize = postprocessor.uncompress(pb->begin(), pb->size(), &out);
-    assert(postSize == pb->originalSize());
     delete pb;
   }
 

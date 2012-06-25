@@ -53,16 +53,29 @@ PrecompressorBlock::~PrecompressorBlock() {
 
 void PrecompressorBlock::setSize(size_t size) {
   assert(size > 0);
-  m_used = size;
-  m_reserved = size+1;
-  m_data = (byte*)realloc(m_data, sizeof(byte)*(m_reserved));
+  if(m_used != size) {
+    m_used = size;
+    m_reserved = size+1;
+    m_data = (byte*)realloc(m_data, sizeof(byte)*(m_reserved));
+  }
 }
 
-size_t PrecompressorBlock::writeBlockHeader(OutStream* out) const {
+size_t PrecompressorBlock::
+writeBlockHeader(OutStream* out, MetaData metadata) const {
   size_t bytes = 0;
-  size_t integersToPack[] = {originalSize(), slices() };
+  size_t integersToPack[2];
+  size_t elems;
+  if(metadata == PRECOMP_ORIGINAL_SIZE) {
+    integersToPack[0] = originalSize();
+    integersToPack[1] = slices();
+    elems = 2;
+  } else if(metadata == PRECOMP_COMPRESSED_SIZE) {
+    integersToPack[0] = size();
+    std::cout << "Size=" << size() << std::endl;
+    elems = 1;
+  }
 
-  for(size_t j = 0; j < sizeof(integersToPack)/sizeof(size_t); ++j) {
+  for(size_t j = 0; j < elems; ++j) {
     int bytesNeeded;
     uint64 packedInteger = utils::packInteger(integersToPack[j], &bytesNeeded);
     for(int i = 0; i < bytesNeeded; ++i) {
@@ -81,16 +94,30 @@ size_t PrecompressorBlock::writeEmptyHeader(OutStream* out) {
   return 1;
 }
 
-PrecompressorBlock* PrecompressorBlock::readBlockHeader(InStream* in) {
-  size_t bytes;
-  size_t originalSize = utils::readPackedInteger(*in, bytes);
-  PrecompressorBlock* pb = new PrecompressorBlock(originalSize);
-  if(originalSize != 0) {
-    size_t blocks = utils::readPackedInteger(*in, bytes);
-    pb->m_bwtBlocks.resize(blocks);
-    pb->grammar().readGrammar(in);
+PrecompressorBlock* PrecompressorBlock::
+readBlockHeader(InStream* in, MetaData metadata) {
+  if(metadata == PRECOMP_ORIGINAL_SIZE) {
+    size_t bytes;
+    size_t originalSize = utils::readPackedInteger(*in, bytes);
+    PrecompressorBlock* pb = new PrecompressorBlock(originalSize);
+    if(originalSize != 0) {
+      size_t blocks = utils::readPackedInteger(*in, bytes);
+      pb->m_bwtBlocks.resize(blocks);
+      pb->grammar().readGrammar(in);
+    }
+    return pb;
+  } else if(metadata == PRECOMP_COMPRESSED_SIZE) {
+    size_t bytes;
+    size_t compressedSize = utils::readPackedInteger(*in, bytes);
+    PrecompressorBlock* pb = new PrecompressorBlock(compressedSize);
+    if(compressedSize != 0) {
+      pb->grammar().readGrammar(in);
+      uint64 read = in->readBlock(pb->begin(), compressedSize);
+      assert(read == compressedSize);
+      pb->setSize(read);
+    }
+    return pb;
   }
-  return pb;
 }
 
 void PrecompressorBlock::sliceIntoBlocks(size_t blockSize) {

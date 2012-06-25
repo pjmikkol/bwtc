@@ -72,6 +72,11 @@ static const uint32 s_maxStartingPoints = 256;
 
 } // namespace bwtc
 
+enum MetaData {
+  PRECOMP_ORIGINAL_SIZE,
+  PRECOMP_COMPRESSED_SIZE
+};
+
 /**
  * Name of the compressor program
  */

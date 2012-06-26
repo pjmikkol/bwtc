@@ -249,27 +249,25 @@ void Grammar::readGrammar(InStream* in) {
   assert(m_specialPairReplacements.size() == 0);
   size_t freedSymbols = in->readByte();
   size_t curr = 0;
+  size_t sq = curr*curr;
+  size_t sqr = curr;
+
   if(freedSymbols > 0) {
     size_t read = 0;
 
-    size_t sq = curr*curr;
-    size_t sqr = curr;
     while(read < freedSymbols) {
       //assert(curr < specials*specials);
       
       if(sq == curr) {
-        //std::cout << "sq = curr = " << curr << std::endl;
         m_specialPairReplacements.push_back(
             std::make_pair(false, m_specialSymbols[sqr]));
         ++sqr;
         sq = sqr*sqr;
       } else if(!original[curr]) {
-        //std::cout << "!original[curr], curr = " << curr << std::endl;
         // special pair enumerated with curr is used as grammar variable
         // so we are not interested in its 'original' value
         m_specialPairReplacements.push_back(std::make_pair(true, 0));
       } else {
-        //std::cout << "original[curr], curr = " << curr << std::endl;
         byte orig = in->readByte();
         m_specialPairReplacements.push_back(std::make_pair(false, orig));
         ++read;
@@ -278,7 +276,14 @@ void Grammar::readGrammar(InStream* in) {
     }
   }
   for(;curr <= maxSymbol; ++curr) {
-    m_specialPairReplacements.push_back(std::make_pair(true, 0));
+    if(sq == curr && sqr < m_specialSymbols.size()) {
+      m_specialPairReplacements.push_back(
+          std::make_pair(false, m_specialSymbols[sqr]));
+      ++sqr;
+      sq = sqr*sqr;
+    } else {
+      m_specialPairReplacements.push_back(std::make_pair(true, 0));
+    }
   }
 
   //Assume that the lengths are between 2 and 4

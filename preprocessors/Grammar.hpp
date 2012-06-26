@@ -132,7 +132,7 @@ class Grammar {
     return m_specialSymbols.size();
   }
   
-  inline const uint32* frequencies() const {
+  inline const size_t* frequencies() const {
     return m_frequencies;
   }
 
@@ -189,7 +189,7 @@ class Grammar {
   
  private:
   /**Frequencies of bytes in the right-side of rules.*/
-  uint32 m_frequencies[256];
+  size_t m_frequencies[256];
   bool m_isSpecialSymbol[256];
   bool m_isVariable[256];
 

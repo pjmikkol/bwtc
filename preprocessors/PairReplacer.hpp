@@ -76,18 +76,18 @@ class PairReplacer {
 
   size_t decideReplacements();
   
-  static void makePairList(std::vector<std::pair<uint32, uint16> >& pairs,
+  static void makePairList(std::vector<std::pair<size_t, uint16> >& pairs,
                            const size_t *pairFrequencies);
 
-  void findReplaceablePairs(std::vector<std::pair<uint32, uint16> >& pairs,
-                            std::vector<std::pair<uint32, uint16> >& replaceablePairs,
+  void findReplaceablePairs(std::vector<std::pair<size_t, uint16> >& pairs,
+                            std::vector<std::pair<size_t, uint16> >& replaceablePairs,
                             FrequencyTable& freqs, size_t maxReplacements,
                             uint32& variables, uint32& specials,
                             uint32& forFree) const;
 
   int64 findReplaceables(size_t start, 
-                         const std::vector<std::pair<uint32, uint16> >& pairs,
-                         std::vector<std::pair<uint32, uint16> >& replPairs,
+                         const std::vector<std::pair<size_t, uint16> >& pairs,
+                         std::vector<std::pair<size_t, uint16> >& replPairs,
                          FrequencyTable& freqs, size_t maxRepl,
                          uint32& variables, uint32& specials,
                          uint32& forFree) const;
@@ -99,7 +99,7 @@ class PairReplacer {
   PairReplacer& operator=(const PairReplacer&);
   PairReplacer(const PairReplacer& pr);
   void constructReplacementTable(
-      const std::vector<std::pair<uint32, uint16> >& pairs,
+      const std::vector<std::pair<size_t, uint16> >& pairs,
       const std::vector<byte>& freedSymbols,
       const std::vector<byte>& newSpecials,
       const std::vector<byte>& replacements);

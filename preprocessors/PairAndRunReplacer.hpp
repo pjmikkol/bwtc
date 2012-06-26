@@ -66,7 +66,7 @@ class PairAndRunReplacer {
   void finishAnalysation();
 
   void findReplaceablePairsAndRuns(
-      std::vector<std::pair<uint32, uint16> >& pairs,
+      std::vector<std::pair<size_t, uint16> >& pairs,
       std::vector<Replacement>& replaceables, FrequencyTable& freqs,
       size_t maxReplaceables) const;
 
@@ -88,7 +88,7 @@ class PairAndRunReplacer {
   PairAndRunReplacer& operator=(const PairAndRunReplacer&);
 
   /**Stores the frequencies of bytes. */
-  uint32 m_frequencies[256];
+  size_t m_frequencies[256];
 
   /**Stores the frequencies of runs. The value stored in m_runFreqs[c][l],
    * is the amount of how many times the run of c of the length (1 << (l+1))

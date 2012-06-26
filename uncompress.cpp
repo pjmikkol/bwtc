@@ -45,57 +45,6 @@ namespace po = boost::program_options;
 
 using bwtc::verbosity;
 
-void decompress(const std::string& input_name, const std::string& output_name,
-                int verbosity) {
-  PROFILE("TOTAL_decompression_time");
-  /*  if (verbosity > 0) {
-    if (input_name != "") std::clog << "Input: " << input_name << std::endl;
-    else std::clog << "Input: stdin" << std::endl;
-    if (output_name != "") std::clog << "Output: " << output_name << std::endl;
-    else std::clog << "Output: stdout" << std::endl;
-  }
-  bwtc::InStream* in = new bwtc::InStream(input_name);
-  char dec = static_cast<char>(in->readByte());
-  
-  bwtc::EntropyDecoder *decoder = bwtc::giveEntropyDecoder(dec);
-
-  bwtc::Postprocessor postProcessor(verbosity > 0);
-
-  bwtc::OutStream out(output_name);
-
-  bwtc::InverseBWTransform* transformer = bwtc::giveInverseTransformer();
-
-  unsigned blocks = 0;
-
-  std::vector<uint32> LFpowers;
-  while (std::vector<byte>* bwt_block = decoder->decodeBlock(LFpowers, in)) {
-
-    if(verbosity > 1) {
-      std::clog << "Read " << LFpowers.size() << " starting points for "
-                << "inverse transform." << std::endl;
-    }
-    ++blocks;
-
-    transformer->doTransform(&(*bwt_block)[0], bwt_block->size(), LFpowers);
-
-    bwtc::Postprocessor postProcessor(verbosity > 1);
-    postProcessor.postProcess(bwt_block);
-    byte *bwt_block_ptr = &(*bwt_block)[0];
-    out.writeBlock(bwt_block_ptr, bwt_block_ptr + ((size_t)bwt_block->size()));
-
-    out.flush();
-    delete bwt_block;
-
-  }
-  if (verbosity > 0) {
-    std::clog << "Read " << blocks << " block" << ((blocks < 2)?"":"s") << "\n";
-  }
-
-  delete decoder;
-  delete transformer;
-  */
-}
-
 int main(int argc, char** argv) {
   std::string input_name, output_name;
   bool stdout, stdin;
@@ -149,8 +98,6 @@ int main(int argc, char** argv) {
   bwtc::Decompressor decompressor(input_name, output_name);
   decompressor.decompress(1);
 
-  //decompress(input_name, output_name, verbosity);
-  
   PRINT_PROFILE_DATA
   return 0;
 }

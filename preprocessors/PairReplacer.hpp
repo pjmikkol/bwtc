@@ -61,7 +61,7 @@ class PairReplacer {
 
     int pXc = prev ^ m_prev;
     // compute min(pXc,1)
-    int min = 1 + ((pXc - 1) & ((pXc - 1) >> (sizeof(int) * 7))); // 7 == CHAR_BIT - 1
+    int min = 1 + ((pXc - 1) & ((pXc - 1) >> (sizeof(int) * 8 - 1)));
     
     m_pairFrequencies[m_prev] += min;
   }

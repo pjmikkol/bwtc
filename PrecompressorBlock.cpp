@@ -44,6 +44,7 @@ PrecompressorBlock::PrecompressorBlock(size_t maxSize, InStream* in)
 {
   uint64 read = in->readBlock(m_data, maxSize);
   m_data = (byte*)realloc(m_data, sizeof(byte)*(read+1));
+  m_reserved = read + 1;
   m_originalSize = m_used = read;
 }
 
@@ -71,7 +72,6 @@ writeBlockHeader(OutStream* out, MetaData metadata) const {
     elems = 2;
   } else if(metadata == PRECOMP_COMPRESSED_SIZE) {
     integersToPack[0] = size();
-    std::cout << "Size=" << size() << std::endl;
     elems = 1;
   }
 

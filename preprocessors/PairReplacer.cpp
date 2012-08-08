@@ -363,6 +363,42 @@ writeReplacedVersion(byte *src, size_t length) const {
   return filled;
 }
 
+size_t PairReplacer::
+writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
+  size_t j = 0; /**Indexes the target.*/
+  uint16 pair = src[0];
+  size_t i = 1;
+  uint16 noop = (m_commonByte << 8) | m_commonByte;
+
+  while(true) {
+    pair = (pair << 8) | src[i];
+    uint16 replValue = m_replacements[pair];
+    if(replValue == noop) {
+      dst[j++] = src[i-1];
+    } else if((replValue & 0xff) == m_commonByte) {
+      dst[j++] = replValue >> 8;
+      if(i == length - 1) break;
+      pair = src[++i];
+    } else {
+      dst[j++] = replValue >> 8;
+      dst[j++] = replValue & 0xff;
+    }
+    
+    if(i == length - 1) {
+      pair = (src[i] << 8) | 0;
+      if(((replValue = m_replacements[pair]) & 0xff) != m_commonByte) {
+        dst[j++] = replValue >> 8;
+        dst[j++] = replValue & 0xff;
+      } else {
+        dst[j++] = src[i];
+      }
+      break;
+    }
+    ++i;
+  }
+  return j;
+}
+
 size_t PairReplacer::decideReplacements() {
   assert(m_analysationStarted);
   FrequencyTable freqTable(m_frequencies);

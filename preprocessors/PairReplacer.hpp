@@ -93,6 +93,7 @@ class PairReplacer {
                          uint32& forFree) const;
 
   size_t writeReplacedVersion(byte *src, size_t length) const;
+  size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
 
 
  private:

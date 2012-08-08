@@ -52,20 +52,65 @@ Precompressor::readBlock(size_t blockSize, InStream* in) const {
   r.decideReplacements();\
   length = r.writeReplacedVersion((src), length)
 
+#define PREPROCESSS(Type, verb, src, dst) \
+  Type r(grammar, (verb));\
+  r.analyseData((src), length);\
+  r.finishAnalysation();\
+  r.decideReplacements();\
+  length = r.writeReplacedVersion((src), length, (dst))
+
 void Precompressor::precompress(PrecompressorBlock& block) const {
   PROFILE("Precompressor::precompress");
-  byte *src = block.begin();
+  byte *src = block.begin(), *dst;
+  std::vector<byte> tmp;
+
   Grammar& grammar = block.grammar();
   size_t length = block.size();
 
+  size_t roundsWithTempArray = 0;
+
   if(m_preprocessingOptions.size() > 0) {
+    size_t oldLength = length;
+    bool useTempArray = false;
+
     for(size_t i = 0; i < m_preprocessingOptions.size(); ++i) {
       char c = m_preprocessingOptions[i];
-      if(c == 'p') {
-        PREPROCESS(PairReplacer, verbosity > 1, src);
+      double ratio = (double)length/block.originalSize();
+      if(ratio < 0.666 && !useTempArray) {
+        tmp.resize(length + 1);
+        dst = &tmp[0];
+        useTempArray = true;
       }
+
+      if(c == 'p') {
+        if(useTempArray) {
+          PREPROCESSS(PairReplacer, verbosity > 1, src, dst);
+        } else {
+          PREPROCESS(PairReplacer, verbosity > 1, src);
+        }
+      }
+
+      if(length == oldLength) {
+        if(verbosity > 1) {
+          std::clog << "Aborted precompression because couldn't achieve "
+                    << "improvement anymore." << std::endl;
+        }
+        break;
+      }
+
+      if(useTempArray) {
+        ++roundsWithTempArray;
+        std::swap(src, dst);
+      }
+
     }
   }
+
+  if(roundsWithTempArray % 2 != 0) {
+    std::copy(src, src + length, dst);
+    src = dst;
+  }
+
   block.setSize(length);
   if(verbosity > 1) {
     std::clog << "Size of precompressed block is "

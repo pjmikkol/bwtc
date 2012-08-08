@@ -61,7 +61,7 @@ class PairReplacer {
 
     int pXc = prev ^ m_prev;
     // compute min(pXc,1)
-    int min = 1 + ((pXc - 1) & ((pXc - 1) >> (sizeof(int) * 8 - 1)));
+    int min = 1 + ((pXc - 1) & ((pXc - 1) >> (sizeof(int)*__CHAR_BIT__ - 1)));
     
     m_pairFrequencies[m_prev] += min;
   }
@@ -92,7 +92,7 @@ class PairReplacer {
                          uint32& variables, uint32& specials,
                          uint32& forFree) const;
 
-  size_t writeReplacedVersion(const byte *src, size_t length, byte *dst) const;
+  size_t writeReplacedVersion(byte *src, size_t length) const;
 
 
  private:

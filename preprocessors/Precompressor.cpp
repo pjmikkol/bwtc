@@ -45,35 +45,26 @@ Precompressor::readBlock(size_t blockSize, InStream* in) const {
   return result;
 }
 
-#define PREPROCESS(Type, verb, src, dst) \
+#define PREPROCESS(Type, verb, src) \
   Type r(grammar, (verb));\
   r.analyseData((src), length);\
   r.finishAnalysation();\
   r.decideReplacements();\
-  length = r.writeReplacedVersion((src), length, (dst))
+  length = r.writeReplacedVersion((src), length)
 
 void Precompressor::precompress(PrecompressorBlock& block) const {
   PROFILE("Precompressor::precompress");
-  //TODO: use less memory!
-  byte *dst, *src = block.begin();
-  std::vector<byte> tmp;
+  byte *src = block.begin();
   Grammar& grammar = block.grammar();
   size_t length = block.size();
 
   if(m_preprocessingOptions.size() > 0) {
-    tmp.resize(length + 1);
-    dst = &tmp[0];
     for(size_t i = 0; i < m_preprocessingOptions.size(); ++i) {
       char c = m_preprocessingOptions[i];
       if(c == 'p') {
-        PREPROCESS(PairReplacer, verbosity > 1, src, dst);
+        PREPROCESS(PairReplacer, verbosity > 1, src);
       }
-      std::swap(src, dst);
     }
-  }
-  if(m_preprocessingOptions.size() & 1) {
-    std::copy(src, src + length, dst);
-    src = dst;
   }
   block.setSize(length);
   if(verbosity > 1) {

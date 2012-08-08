@@ -44,6 +44,52 @@ using bwtc::uint32;
 /* Useful functions for debugging activites etc. */
 namespace utils {
 
+template <typename T>
+class CircularBuffer {
+ public:
+  explicit CircularBuffer(size_t len)
+      : m_length(len), m_data((T*)malloc(sizeof(T)*len)), m_head(0),
+        m_start(0), m_inBuffer(0) {}
+
+  ~CircularBuffer() { free(m_data); }
+
+  /** Returns the elements consumed (<= len)*/
+  size_t consume(T* to, size_t len) {
+    assert(len <= m_length);
+    size_t newStart;
+    len = std::min(len, m_inBuffer);
+    if(m_start + len >= m_length) {
+      std::copy(m_data + m_start, m_data + m_length, to);
+      newStart = len - (m_length - m_start);
+      std::copy(m_data, m_data + newStart, to + (m_length - m_start));
+    } else {
+      newStart = m_start + len;
+      std::copy(m_data + m_start, m_data + newStart, to);
+    }
+    m_start = newStart;
+    m_inBuffer -= len;
+    return len;
+  }
+
+  inline void push(const T& val) {
+    if(m_head >= m_length) m_head = 0;
+    m_data[m_head++] = val;
+    ++m_inBuffer;
+  }
+
+  inline bool full() const {
+    return m_inBuffer >= m_length;
+  }
+
+ private:
+  const size_t m_length;
+  T* const m_data;
+  size_t m_head; 
+  size_t m_start;
+  size_t m_inBuffer;
+};
+
+
 static byte logFloor(unsigned n) {
   assert(n > 0);
 #ifdef __GNUC__

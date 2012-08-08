@@ -68,15 +68,14 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 1);
 
-  // size of replaced string == 10000+255
-  std::vector<byte> result;
-  result.resize(10255);
+  std::vector<byte> result(data);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
+  // size of replaced string == 10000+255
   BOOST_CHECK_EQUAL(cSize,10255);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),0);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
@@ -90,11 +89,13 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
-  for(size_t i = 0; i < original.size(); ++i)
+  for(size_t i = 0; i < original.size(); ++i) {
     BOOST_CHECK_EQUAL(original[i], data[i]);
+
+  }
 }
 
 BOOST_AUTO_TEST_CASE(pairOfSame) {
@@ -119,15 +120,13 @@ BOOST_AUTO_TEST_CASE(pairOfSame) {
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 1);
 
-  // size of replaced string == 10000 + 255 + 3
-  std::vector<byte> result;
-  result.resize(10258);
-
+  std::vector<byte> result(data);
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
+  // size of replaced string == 10000 + 255 + 3
   BOOST_CHECK_EQUAL(cSize,10258);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
@@ -140,7 +139,7 @@ BOOST_AUTO_TEST_CASE(pairOfSame) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
 
   //BOOST_CHECK_EQUAL(original.size(), data.size());
@@ -169,14 +168,14 @@ BOOST_AUTO_TEST_CASE(twoForFree) {
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 2);
 
-  std::vector<byte> result;
-  result.resize(20256 + 2*2);
+  std::vector<byte> result(data);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
+  // Size of result == 20256 + 2*2
   BOOST_CHECK_EQUAL(cSize,20260);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),2);
@@ -186,7 +185,7 @@ BOOST_AUTO_TEST_CASE(twoForFree) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -216,13 +215,12 @@ BOOST_AUTO_TEST_CASE(simpleSpecialScenario) {
   BOOST_CHECK_EQUAL(rep, 2);
 
   // size of replaced string == 20000 + 256 + 4 (two specials, two freed) 
-  std::vector<byte> result;
-  result.resize(20000 + 256 + 4);
+  std::vector<byte> result(data);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
   BOOST_CHECK_EQUAL(cSize,20260);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
@@ -233,7 +231,7 @@ BOOST_AUTO_TEST_CASE(simpleSpecialScenario) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -264,13 +262,12 @@ BOOST_AUTO_TEST_CASE(freeCharacterFromReplacements) {
   BOOST_CHECK_EQUAL(rep, 2);
 
   // size of replaced string == 20000 + 255 + 4
-  std::vector<byte> result;
-  result.resize(20000 + 259);
+  std::vector<byte> result(data);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
   BOOST_CHECK_EQUAL(cSize,20259);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
@@ -281,7 +278,7 @@ BOOST_AUTO_TEST_CASE(freeCharacterFromReplacements) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -310,13 +307,12 @@ BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
   BOOST_CHECK_EQUAL(rep, 1);
 
   // size of replaced string == 10000 + 253 + 3x2
-  std::vector<byte> result;
-  result.resize(10259);
+  std::vector<byte> result(data);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
   BOOST_CHECK_EQUAL(cSize,10259);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
@@ -327,7 +323,7 @@ BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -363,13 +359,12 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
   BOOST_CHECK_EQUAL(rep, 1);
 
   // size of replaced string == 10000+506 + 2 + 1 + 2*2
-  std::vector<byte> result;
-  result.resize(10513);
+  std::vector<byte> result(data);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
   BOOST_CHECK_EQUAL(cSize,10513);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
@@ -380,7 +375,7 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -413,25 +408,23 @@ BOOST_AUTO_TEST_CASE(MoreReplacements) {
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 3);
 
-  std::vector<byte> result;
-  result.resize(80000);
+  std::vector<byte> result(data);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
 
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),3);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),3);
-  result.resize(cSize);
 
   Grammar postGrammar;
   postGrammar.readGrammar(&serializedGrammar);
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -465,10 +458,9 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
   BOOST_CHECK_EQUAL(rep, 1);
 
   // size of replaced string == 10000+504 + 2x2 + 2x2
-  std::vector<byte> result;
-  result.resize(10512);
+  std::vector<byte> result(data);
 
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
   BOOST_CHECK_EQUAL(cSize,10512);
   PairReplacer pr1(grammar, true);
@@ -479,10 +471,7 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
   // Should use 'a' as a new variable
   // size of replaced string == 5000 + 504 + 2x2 + 2x2
   BOOST_CHECK_EQUAL(grammar.isSpecial(result[0]), false);
-  std::vector<byte> res2;
-  res2.resize(5512);
-  cSize = pr1.writeReplacedVersion(&result[0], 10512, &res2[0]);
-  res2.resize(cSize);
+  cSize = pr1.writeReplacedVersion(&result[0], cSize);
 
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
@@ -500,7 +489,7 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&res2[0], res2.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -531,24 +520,22 @@ BOOST_AUTO_TEST_CASE(NewSpecialOnRightSide) {
   size_t rep = pr.decideReplacements();
   BOOST_CHECK_EQUAL(rep, 1);
 
-  std::vector<byte> result;
-  result.resize(10000 + 512 + 2*3);
-
+  std::vector<byte> result(data);
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
-  size_t cSize = pr.writeReplacedVersion(&data[0], data.size(), &result[0]);
+  size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
 
   BOOST_CHECK_EQUAL(grammar.numberOfRules(),1);
   BOOST_CHECK_EQUAL(grammar.numberOfSpecialSymbols(),2);
-  BOOST_CHECK_EQUAL(cSize, 10518);
+  BOOST_CHECK_EQUAL(cSize, 10000 + 512 + 2*3);
 
   Grammar postGrammar;
   postGrammar.readGrammar(&serializedGrammar);
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[0], result.size(), original);
+  post.uncompress(&result[0], cSize, original);
 
   BOOST_CHECK_EQUAL(original.size(), data.size());
   for(size_t i = 0; i < original.size(); ++i)
@@ -576,23 +563,16 @@ BOOST_AUTO_TEST_CASE(twoRounds) {
   data[k++] = 'a';
   BOOST_CHECK_EQUAL(k, data.size());
 
-  std::vector<byte> result[2];
-  size_t cSize;
+  std::vector<byte> orig(data);
+  size_t cSize = data.size();
   for(size_t i = 0; i < 2; ++i) {
     PairReplacer pr(grammar, true);
-    std::vector<byte> *v;
-    if(i == 0) v = &data;
-    else v = &result[i-1];
-    
-    pr.analyseData(&(*v)[0], v->size());
+    pr.analyseData(&data[0], cSize);
 
     pr.decideReplacements();
 
-    result[i].resize(40000);
-    cSize = pr.writeReplacedVersion(&(*v)[0], v->size(), &result[i][0]);
-    result[i].resize(cSize);
+    cSize = pr.writeReplacedVersion(&data[0], cSize);
   }
-  result[1].resize(result[1].size());
   TestStream serializedGrammar;
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
@@ -602,11 +582,11 @@ BOOST_AUTO_TEST_CASE(twoRounds) {
   Postprocessor post(true, postGrammar);
 
   std::vector<byte> original;
-  post.uncompress(&result[1][0], result[1].size(), original);
+  post.uncompress(&data[0], cSize, original);
 
-  BOOST_CHECK_EQUAL(original.size(), data.size());
+  BOOST_CHECK_EQUAL(original.size(), orig.size());
   for(size_t i = 0; i < original.size(); ++i)
-    BOOST_CHECK_EQUAL(original[i], data[i]);
+    BOOST_CHECK_EQUAL(original[i], orig[i]);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -27,6 +27,7 @@
 #include "PairReplacer.hpp"
 #include "FrequencyTable.hpp"
 #include "Grammar.hpp"
+#include "../Utils.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -54,10 +55,6 @@ void PairReplacer::analyseData(const byte *data, size_t length, bool reset) {
   size_t i = 0;
   if(!m_analysationStarted) beginAnalysing(data[i++], reset);
 
-  /*
-  for(; i < length; ++i) {
-    analyseData(data[i]);
-    }*/
   for(; i < ((length-1) & 0xfffffffe); ++i) {
     analyseData0(data[i]);
     analyseData(data[++i]);
@@ -323,9 +320,13 @@ void PairReplacer::constructReplacementTable(
 }
 
 size_t PairReplacer::
-writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
+writeReplacedVersion(byte *src, size_t length) const {
+  // Buffer of a size of one third should be enough. Just to be on the
+  // safe side we allocate memory a bit more than necessary.
+  utils::CircularBuffer<byte> buffer(0.333334*length + 3);
 
-  size_t j = 0; /* Is used for indexing the target. */
+  /* Keeps track of how much of replaced version is written into the src. */
+  size_t filled = 0; 
   uint16 pair = src[0];
   size_t i = 1;
   uint16 noop = (m_commonByte << 8) | m_commonByte;
@@ -334,28 +335,32 @@ writeReplacedVersion(const byte *src, size_t length, byte *dst) const {
     pair = (pair << 8) | src[i];
     uint16 replValue = m_replacements[pair];
     if(replValue == noop) {
-      dst[j++] = src[i-1];
+      buffer.push(src[i-1]);
     } else if((replValue & 0xff) == m_commonByte) {
-      dst[j++] = replValue >> 8;
+      buffer.push(replValue >> 8);
       if(i == length - 1) break;
       pair = src[++i];
     } else {
-      dst[j++] = replValue >> 8;
-      dst[j++] = replValue & 0xff;
+      buffer.push(replValue >> 8);
+      if(buffer.full()) filled += buffer.consume(src + filled, i - filled - 1);
+      buffer.push(replValue & 0xff);
     }
+    if(buffer.full()) filled += buffer.consume(src + filled, i - filled - 1);
+    
     if(i == length - 1) {
       pair = (src[i] << 8) | 0;
       if(((replValue = m_replacements[pair]) & 0xff) != m_commonByte) {
-        dst[j++] = replValue >> 8;
-        dst[j++] = replValue & 0xff;
+        buffer.push(replValue >> 8);
+        buffer.push(replValue & 0xff);
       } else {
-        dst[j++] = src[i];
+        buffer.push(src[i]);
       }
       break;
     }
     ++i;
   }
-  return j;
+  filled += buffer.consume(src + filled, i);
+  return filled;
 }
 
 size_t PairReplacer::decideReplacements() {

@@ -125,13 +125,15 @@ void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length)
   if(prev < src + length) ++runFreqs[*prev];
 }
 
-void calculateRunsAndCharacters(uint64 *runFreqs, const byte *src,
-                                size_t length, std::map<uint32, uint32>& runs)
+size_t calculateRunsAndCharacters(uint64 *runFreqs, const byte *src,
+                                  size_t length, std::map<uint32, uint32>& runs)
 {
+  size_t totalRuns = 0;
   const byte *prev = src;
   const byte *curr = src+1;
   do {
     while(curr < src + length && *prev == *curr) ++curr;
+    ++totalRuns;
     ++runFreqs[*prev];
     ++runs[curr - prev];
     prev = curr++;
@@ -139,7 +141,9 @@ void calculateRunsAndCharacters(uint64 *runFreqs, const byte *src,
   if(prev < src + length) {
     ++runFreqs[*prev];
     ++runs[1];
+    ++totalRuns;
   }
+  return totalRuns;
 }
 
 
@@ -413,7 +417,7 @@ void calculateHuffmanLengths(std::vector<std::pair<uint64, uint32> >& codeLength
 }
 
 void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
-                          uint64 *freqs)
+                          uint64 *freqs, bool sorted)
 {
   assert(codeLengths.size() >  0);
   if(codeLengths.size() == 1) {
@@ -421,7 +425,7 @@ void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
     return;
   }
   
-  std::sort(codeLengths.begin(), codeLengths.end());
+  if(!sorted) std::sort(codeLengths.begin(), codeLengths.end());
   const size_t n = codeLengths.size();
   for(size_t i = 0; i < n; ++i) {
     freqs[i] = codeLengths[i].first;

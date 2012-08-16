@@ -234,6 +234,27 @@ BOOST_AUTO_TEST_CASE(WholeConstruction6) {
   checkEqual(msg, (const byte*) str);
 }
 
+BOOST_AUTO_TEST_CASE(WholeConstruction7) {
+  char *str = new char[10000];
+  for(size_t i = 0; i < 3330; ++i) {
+    str[3*i] = 'a';
+    str[3*i + 1] = 'b';
+    str[3*i + 2] = 'c';
+  }
+  for(size_t i = 0; i < 4; ++i) {
+    str[9990 + i] = 'a';
+    str[9990 + i + 4] = 'b';
+  }
+  str[9998] = 'c';
+  str[9999] = 'c';
+  WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
+  std::vector<byte> msg;
+  tree.message(std::back_inserter(msg));
+  BOOST_CHECK_EQUAL(msg.size(), strlen(str));
+  checkEqual(msg, (const byte*) str);
+  delete [] str;
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
 

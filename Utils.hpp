@@ -55,9 +55,9 @@ class CircularBuffer {
 
   /** Returns the elements consumed (<= len)*/
   size_t consume(T* to, size_t len) {
+    len = std::min(len, m_inBuffer);
     assert(len <= m_length);
     size_t newStart;
-    len = std::min(len, m_inBuffer);
     if(m_start + len >= m_length) {
       std::copy(m_data + m_start, m_data + m_length, to);
       newStart = len - (m_length - m_start);
@@ -185,8 +185,8 @@ unsigned readAndUnpackInteger(byte *from, uint64 *to);
 
 void calculateRunFrequencies(uint64 *runFreqs, const byte *src, size_t length);
 
-void calculateRunsAndCharacters(uint64 *runFreqs, const byte *src,
-                                size_t length, std::map<uint32, uint32>& runs);
+size_t calculateRunsAndCharacters(uint64 *runFreqs, const byte *src,
+                                  size_t length, std::map<uint32, uint32>& runs);
 
 uint64 calculateRunFrequenciesAndStoreRuns(uint64 *runFreqs, byte *runseq,
   uint32 *runlen,  const byte *src, size_t length);
@@ -218,7 +218,7 @@ calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
                          uint64 *freqs, const std::vector<uint32>& names);
 
 void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
-                          uint64 *freqs);
+                          uint64 *freqs, bool sorted=false);
  
 template <typename Unsigned, typename BitVector>
 void pushBits(Unsigned n, byte bits, BitVector& bitVector) {

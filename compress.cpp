@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
          notifier(&validatePreprocOption),
          "preprocessor options:\n"
          "  p -- pair replacer\n"
-         "For example \"pps\" would run pair replacer twice and sequence replacer once")
+         "For example \"pp\" would run pair replacer twice")
         ("enc,e", po::value<char>(&encoding)->default_value('B')->
          notifier(&validateEncodingOption),
          "entropy encoding scheme, options:\n"

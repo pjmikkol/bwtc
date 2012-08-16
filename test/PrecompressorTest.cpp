@@ -70,7 +70,7 @@ void TestDefaultPreProcBlockRead(int fsize, int block_size) {
     delete b;
   }
   assert(total == fsize);
-  assert( blocks == (fsize / (block_size-1)) + 1 ||
+  assert( blocks == (fsize / block_size) + 1 ||
           fsize % blocks == 0 ||
          (fsize == 0 && blocks == 0) );
 }

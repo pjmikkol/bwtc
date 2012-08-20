@@ -43,11 +43,9 @@ class FrequencyTable {
   FrequencyTable& operator=(const FrequencyTable& freqTable);
 
   FrequencyTable(size_t* frequencies); 
-  FrequencyTable(uint32* frequencies); 
 
   /**Does basically the same as the above ctor. */
   void initialize(size_t* frequencies);
-  void initialize(uint32* frequencies);
 
   /** Returns the i:th lowest freq*/
   uint32 getFrequency(int i) const; 

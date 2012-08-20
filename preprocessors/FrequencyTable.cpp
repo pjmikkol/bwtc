@@ -65,10 +65,6 @@ FrequencyTable::FrequencyTable(size_t* frequencies) : m_last(256) {
   initialize(frequencies);
 }
 
-FrequencyTable::FrequencyTable(uint32* frequencies) : m_last(256) {
-  initialize(frequencies);
-}
-
 void FrequencyTable::initialize(size_t* frequencies) {
   /* Assumes that frequencies has length of 256 */
   for(int i = 0; i < 256; ++i) {
@@ -78,17 +74,6 @@ void FrequencyTable::initialize(size_t* frequencies) {
             comparePairSecondAsc<std::pair<byte, size_t> >);
   initLocations();
 }
-
-void FrequencyTable::initialize(uint32* frequencies) {
-  /* Assumes that frequencies has length of 256 */
-  for(int i = 0; i < 256; ++i) {
-    m_frequencies[i] = std::make_pair(static_cast<byte>(i), frequencies[i]);
-  }
-  std::sort(m_frequencies, m_frequencies + 256,
-            comparePairSecondAsc<std::pair<byte, size_t> >);
-  initLocations();
-}
-
 
 uint32 FrequencyTable::getFrequency(int i) const {
   assert(i >= 0 && i < m_last);

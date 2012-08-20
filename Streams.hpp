@@ -52,7 +52,7 @@ class OutStream {
 class InStream {
  public:
   virtual ~InStream() {}
-  virtual uint64 readBlock(byte *to, uint64 max_block_size) = 0;
+  virtual size_t readBlock(byte *to, size_t max_block_size) = 0;
   virtual bool readBit() = 0;
   virtual byte readByte() = 0;
   virtual void flushBuffer() = 0;
@@ -115,7 +115,7 @@ class RawInStream : public InStream {
 
   /* Copies block from stream to given byte array.
    * Returns the number of read bytes. */
-  virtual uint64 readBlock(byte *to, uint64 max_block_size);
+  virtual size_t readBlock(byte *to, size_t max_block_size);
 
   virtual inline bool readBit() {
     if (m_bitsInBuffer == 0) {

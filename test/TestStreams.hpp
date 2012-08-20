@@ -74,7 +74,7 @@ class TestStream : public InStream, public OutStream {
 
   void flush() {}
 
-  uint64 readBlock(byte *to, uint64 maxBlockSize) {
+  size_t readBlock(byte *to, size_t maxBlockSize) {
     size_t end = std::min(m_data.size(), m_currByte + maxBlockSize);
     std::copy(&m_data[m_currByte], &m_data[end], to);
     uint64 result = end - m_currByte;

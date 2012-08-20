@@ -154,7 +154,7 @@ RawInStream::~RawInStream() {
   delete[] m_bigbuf;
 }
 
-uint64 RawInStream::readBlock(byte* to, uint64 max_block_size) {
+size_t RawInStream::readBlock(byte* to, size_t max_block_size) {
   assert(m_bitsInBuffer == 0);
   uint64 have_read = 0;
   int32 c;

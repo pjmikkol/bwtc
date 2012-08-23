@@ -45,8 +45,8 @@
 #include <utility>
 #include <vector>
 
-#define OPTIMIZED_INTEGER_CODE
-#define SEMI_FIXED_CODE
+//#define OPTIMIZED_INTEGER_CODE
+//#define SEMI_FIXED_CODE
 
 namespace bwtc {
 
@@ -138,6 +138,9 @@ class WaveletTree {
 
   template <typename OutputIterator>
   size_t message(OutputIterator out) const;
+
+  /** Push the runs of the string into tree */
+  void pushMessage(const byte* src, size_t length);
 
   /**Input is required to have readBit()-method returning bool and readByte().
    */
@@ -246,7 +249,19 @@ class WaveletTree {
   static size_t assignPrefixCodes(std::vector<std::pair<uint64, uint32> >& lengths,
                                   TreeNode<BitVector>* node, size_t elem, size_t bits);
 
-
+  /**Finds good parameters for semi-fixed coding.
+   *
+   * @param integerFrequencies List of integers and their frequencies
+   *        (first member) is the frequency.
+   * @param totalFrequencies Sum of the first members in the integerFrequencies-
+   *        vector.
+   * @return The pair returned contains value of W used in the computation of
+   *         semi-fixed codes and the depth of the node representing the
+   *         semi-fixed codes in the code-tree. 
+   */
+  static uint32 findParametersForSemiFixedCodes(
+      std::vector<std::pair<uint64, uint32> >& integerFrequencies,
+      size_t totalFrequencies);
 };
 
 template <typename BitVector>
@@ -261,6 +276,8 @@ WaveletTree<BitVector>::WaveletTree()
   m_root = new TreeNode<BitVector>();
 }
 
+#ifdef OPTIMIZED_INTEGER_CODE
+
 template <typename BitVector>
 WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
 #ifdef ENTROPY_PROFILER
@@ -270,21 +287,18 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
   PROFILE("WaveletTree::WaveletTree");
   uint64 runFreqs[256] = {0};
 
-#ifdef OPTIMIZED_INTEGER_CODE
   // Frequencies of run lengths are collected into map. They are indexed
   // by the length of run.
   std::map<uint32, uint32> runDistribution;
   size_t totalRuns = utils::calculateRunsAndCharacters(
       runFreqs, src, length, runDistribution);
-#else
-  utils::calculateRunFrequencies(runFreqs, src, length);
-#endif
 
   // Calculate codes for the byte-alphabet (top part of Wavelet-tree)
   std::vector<std::pair<uint64, uint32> > codeLengths;
   utils::calculateHuffmanLengths(codeLengths, runFreqs);
 
-#ifdef OPTIMIZED_INTEGER_CODE
+  assignPrefixCodes(codeLengths);
+
   {
     assert(runDistribution.size() > 0);
     std::vector<std::pair<uint64, uint32> > integerCodeLengths;
@@ -300,26 +314,9 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
 #endif
     }
 
-#ifdef SEMI_FIXED_CODE    
-    std::sort(integerCodeLengths.rbegin(), integerCodeLengths.rend());
-
-    size_t rejectedSum = 0;
-    const size_t common = 10;
-    while(true) {
-      if(integerCodeLengths.back().first > common || integerCodeLengths.size() <= 1) break;
-      rejectedSum += integerCodeLengths.back().first;
-      integerCodeLengths.pop_back();
-    }
-    std::reverse(integerCodeLengths.begin(), integerCodeLengths.end());
-    // '0' Is used for the symbols which have semifixed code
-    if(rejectedSum > 0) {
-      integerCodeLengths.push_back(std::make_pair(rejectedSum, 0));
-      int i = integerCodeLengths.size() - 2;
-      while(i >= 0 && rejectedSum < integerCodeLengths[i].first) {
-        std::swap(integerCodeLengths[i], integerCodeLengths[i+1]);
-        --i;
-      }
-    }
+#ifdef SEMI_FIXED_CODE
+    //m_W = findParametersForSemiFixedCodes(integerCodeLengths, totalRuns);
+    findParametersForSemiFixedCodes(integerCodeLengths, totalRuns);
 
     freqs.resize(integerCodeLengths.size());
     utils::calculateCodeLengths(integerCodeLengths, &freqs[0], true);
@@ -337,26 +334,36 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
     assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
     collectCodes(m_integerCodes, m_integerCodeTree);
   }
-
-#endif
   
-  assignPrefixCodes(codeLengths);
-  
-  // Old way to construct huffman shape
-  //m_root = createHuffmanShape(runFreqs);
-
   collectCodes(m_codes, m_root);
 
-  // Push the runs of the string into tree
-  const byte *prev = src;
-  const byte *curr = src+1;
-  do{
-    while(curr < src + length && *prev == *curr) ++curr;
-    pushRun(*prev, curr-prev);
-    prev = curr++;
-  } while(curr < src + length);
-  if(prev < src + length) pushRun(*prev,1);
+  pushMessage(src, length);
 }
+
+#else //ifndef OPTIMIZED_INTEGER_CODE
+
+template <typename BitVector>
+WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
+#ifdef ENTROPY_PROFILER
+    : m_bytesForCharacters(0), m_bytesForRuns(0)
+#endif
+{
+  PROFILE("WaveletTree::WaveletTree");
+  uint64 runFreqs[256] = {0};
+
+  utils::calculateRunFrequencies(runFreqs, src, length);
+
+  // Calculate codes for the byte-alphabet (top part of Wavelet-tree)
+  std::vector<std::pair<uint64, uint32> > codeLengths;
+  utils::calculateHuffmanLengths(codeLengths, runFreqs);
+
+  assignPrefixCodes(codeLengths);
+  
+  collectCodes(m_codes, m_root);
+
+  pushMessage(src, length);
+}
+#endif
 
 template <typename BitVector>
 WaveletTree<BitVector>::~WaveletTree() {
@@ -1482,6 +1489,17 @@ size_t WaveletTree<BitVector>::assignPrefixCodes(
   return elem;
 }
 
+template <typename BitVector>
+void WaveletTree<BitVector>::pushMessage(const byte* src, size_t length) {
+  const byte *prev = src;
+  const byte *curr = src+1;
+  do{
+    while(curr < src + length && *prev == *curr) ++curr;
+    pushRun(*prev, curr-prev);
+    prev = curr++;
+  } while(curr < src + length);
+  if(prev < src + length) pushRun(*prev,1);
+}
 
 template <typename BitVector>
 TreeNode<BitVector>*
@@ -1535,6 +1553,34 @@ WaveletTree<BitVector>::collectCodes(BVectors& codes, BitVector& vec,
     collectCodes(codes, vec, node->m_right);
     vec.pop_back();
   }
+}
+
+template <typename BitVector>
+uint32 WaveletTree<BitVector>::findParametersForSemiFixedCodes(
+    std::vector<std::pair<uint64, uint32> >& integerFrequencies,
+    size_t totalFrequencies) {
+
+    std::sort(integerFrequencies.rbegin(), integerFrequencies.rend());
+
+    size_t rejectedSum = 0;
+    const size_t common = 10;
+    while(true) {
+      if(integerFrequencies.back().first > common || integerFrequencies.size() <= 1) break;
+      rejectedSum += integerFrequencies.back().first;
+      integerFrequencies.pop_back();
+    }
+    std::reverse(integerFrequencies.begin(), integerFrequencies.end());
+    // '0' Is used for the symbols which have semifixed code
+    if(rejectedSum > 0) {
+      integerFrequencies.push_back(std::make_pair(rejectedSum, 0));
+      int i = integerFrequencies.size() - 2;
+      while(i >= 0 && rejectedSum < integerFrequencies[i].first) {
+        std::swap(integerFrequencies[i], integerFrequencies[i+1]);
+        --i;
+      }
+    }
+
+    return m_W;
 }
 
 

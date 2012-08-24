@@ -70,7 +70,8 @@ BOOST_AUTO_TEST_CASE(analyseAtOnce) {
 
   std::vector<byte> result(data);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -121,7 +122,8 @@ BOOST_AUTO_TEST_CASE(pairOfSame) {
   BOOST_CHECK_EQUAL(rep, 1);
 
   std::vector<byte> result(data);
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -170,7 +172,8 @@ BOOST_AUTO_TEST_CASE(twoForFree) {
 
   std::vector<byte> result(data);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -217,7 +220,8 @@ BOOST_AUTO_TEST_CASE(simpleSpecialScenario) {
   // size of replaced string == 20000 + 256 + 4 (two specials, two freed) 
   std::vector<byte> result(data);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -264,7 +268,8 @@ BOOST_AUTO_TEST_CASE(freeCharacterFromReplacements) {
   // size of replaced string == 20000 + 255 + 4
   std::vector<byte> result(data);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -309,7 +314,8 @@ BOOST_AUTO_TEST_CASE(MakeSymbolsFree) {
   // size of replaced string == 10000 + 253 + 3x2
   std::vector<byte> result(data);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -361,7 +367,8 @@ BOOST_AUTO_TEST_CASE(MakeVariableFree) {
   // size of replaced string == 10000+506 + 2 + 1 + 2*2
   std::vector<byte> result(data);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -410,7 +417,8 @@ BOOST_AUTO_TEST_CASE(MoreReplacements) {
 
   std::vector<byte> result(data);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
 
@@ -473,7 +481,8 @@ BOOST_AUTO_TEST_CASE(MultipleRounds) {
   BOOST_CHECK_EQUAL(grammar.isSpecial(result[0]), false);
   cSize = pr1.writeReplacedVersion(&result[0], cSize);
 
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
 
@@ -521,7 +530,8 @@ BOOST_AUTO_TEST_CASE(NewSpecialOnRightSide) {
   BOOST_CHECK_EQUAL(rep, 1);
 
   std::vector<byte> result(data);
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
   size_t cSize = pr.writeReplacedVersion(&result[0], result.size());
@@ -573,7 +583,8 @@ BOOST_AUTO_TEST_CASE(twoRounds) {
 
     cSize = pr.writeReplacedVersion(&data[0], cSize);
   }
-  TestStream serializedGrammar;
+  std::vector<byte> vec;
+  TestStream serializedGrammar(vec);
   grammar.writeGrammar(&serializedGrammar);
   serializedGrammar.reset();
 

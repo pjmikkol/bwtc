@@ -45,7 +45,8 @@ namespace tests {
 BOOST_AUTO_TEST_SUITE(GrammarSerialization)
 
 BOOST_AUTO_TEST_CASE(EmptyGrammar) {
-  TestStream stream;
+  std::vector<byte> data;
+  TestStream stream(data);
   Grammar original;
   original.writeGrammar(&stream);
   stream.reset();
@@ -59,7 +60,8 @@ BOOST_AUTO_TEST_CASE(EmptyGrammar) {
 }
 
 BOOST_AUTO_TEST_CASE(SpecialSymbols) {
-  TestStream stream;
+  std::vector<byte> data;
+  TestStream stream(data);
   Grammar original;
   original.beginUpdatingRules();
 

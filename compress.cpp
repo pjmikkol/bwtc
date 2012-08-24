@@ -187,8 +187,8 @@ int main(int argc, char** argv) {
   }
 
 
-  //  compress(input_name, output_name, block_size*1024, preprocessing, encoding, startingPoints, bwtAlgo);
-  bwtc::Compressor compressor(input_name, output_name, preprocessing, mem*1000000, encoding);
+  bwtc::Compressor compressor(input_name, output_name, preprocessing,
+                              mem*1000000, encoding);
   compressor.initializeBwtAlgorithm(bwtAlgo, startingPoints);
   size_t compressedBytes = compressor.compress(1);
 

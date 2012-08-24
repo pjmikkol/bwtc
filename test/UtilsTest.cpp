@@ -29,6 +29,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <vector>
+
 #include "../globaldefs.hpp"
 #include "../Utils.hpp"
 
@@ -128,7 +130,8 @@ BOOST_AUTO_TEST_CASE(RunFrequencyCounts4) {
 
 
 #define INTEGER_PACKING_TEST(par) \
-  TestStream stream;             \
+  std::vector<byte> vec;\
+  TestStream stream(vec); \
   int bytesWritten; \
   uint64 integer = (par);\
   uint64 packed = utils::packInteger(integer, &bytesWritten);\

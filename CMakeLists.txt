@@ -33,6 +33,9 @@ set(COMMON_SRC BitCoders.cpp Utils.cpp Streams.cpp
   BWTBlock.cpp)
 add_library(common ${COMMON_SRC})
 
+#set(MAINOBJECTS_SRC Compressor.cpp Decompressor.cpp)
+#add_library(mainobjects "${MAINOBJECTS_SRC}")
+
 set(PREPROCESSORS_SRC_DIR preprocessors)
 set(BWTRANSFORMS_SRC_DIR bwtransforms)
 set(PROBMODELS_SRC_DIR probmodels)
@@ -42,7 +45,7 @@ add_subdirectory(${PREPROCESSORS_SRC_DIR})
 add_subdirectory(${BWTRANSFORMS_SRC_DIR})
 add_subdirectory(${PROBMODELS_SRC_DIR})
 
-set(COMPRESSOR_SRC compress.cpp Compressor.cpp)
+set(COMPRESSOR_SRC compress.cpp  Compressor.cpp)
 set(DECOMPRESSOR_SRC uncompress.cpp Decompressor.cpp)
 set(PREPROCESSOR_SRC preprocess.cpp)
 set(POSTPROCESSOR_SRC postprocess.cpp)

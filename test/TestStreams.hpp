@@ -37,10 +37,13 @@ namespace tests {
 
 class TestStream : public InStream, public OutStream {
  public:
-  TestStream() : m_currByte(0), m_currBit(0) {}
-  
+  TestStream(std::vector<byte>& data)
+      :  m_data(data), m_currByte(0), m_currBit(0) {}
+
   void reset() { m_currBit = m_currByte = 0;  }
 
+  ~TestStream() {}
+ 
   bool readBit() {
     bool bit = (m_data[m_currByte] >> (7 - m_currBit++)) & 1;
     if(m_currBit == 8) {
@@ -115,7 +118,7 @@ class TestStream : public InStream, public OutStream {
   }
   
  private:
-  std::vector<byte> m_data;
+  std::vector<byte>& m_data;
   size_t m_currByte;
   uint32 m_currBit;
 };

@@ -20,6 +20,15 @@ foreach(program ${BOOST_UNIT_TESTS})
     "[.\n]*failure")
 endforeach(program)
 
+add_executable(CompressorAndDecompressorTest CompressorAndDecompressorTest.cpp
+  ../Decompressor.cpp ../Compressor.cpp)
+target_link_libraries(CompressorAndDecompressorTest 
+  common boost_unit_test_framework preprocessors bwtransforms probmodels)
+add_test(CompressorAndDecompressorTest 
+  ${EXECUTABLE_OUTPUT_PATH}/CompressorAndDecompressorTest)
+set_tests_properties(CompressorAndDecompressorTest 
+  PROPERTIES FAIL_REGULAR_EXPRESSION "[.\n]*failure")
+
 add_executable(SaisTest SaisTest.cpp)
 target_link_libraries(SaisTest common)
 add_test(SaisTest ${EXECUTABLE_OUTPUT_PATH}/SaisTest)

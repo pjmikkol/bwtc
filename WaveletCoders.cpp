@@ -1,6 +1,6 @@
 /**
  * @file WaveletCoders.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -141,9 +141,9 @@ encodeData(const byte* block, const std::vector<uint32>& stats, OutStream* out)
       size_t shapeBytes = shape.size()/8;
       if(shape.size()%8 > 0) ++shapeBytes;
       std::clog << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
-      std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
+      std::clog << "Wavelet tree takes " << wavelet.totalBits()
+                << " bits in total\n";
     }
-    //wavelet.encodeTree(m_destination, *m_probModel);
     wavelet.encodeTreeBF(m_destination, *m_probModel, *m_integerProbModel,
                          *m_gapProbModel);
 
@@ -273,14 +273,14 @@ void WaveletDecoder::decodeBlock(BWTBlock& block, InStream* in) {
 
     in->flushBuffer();
     m_source.start();
-    //wavelet.decodeTree(rootSize, m_source, *m_probModel);
     wavelet.decodeTreeBF(rootSize, m_source, *m_probModel, *m_integerProbModel,
                          *m_gapProbModel);
     if(verbosity > 3) {
       size_t shapeBytes = bits/8;
       if(bits%8 > 0) ++shapeBytes;
       std::clog << "Shape of wavelet tree took " << shapeBytes << " bytes.\n";
-      std::clog << "Wavelet tree takes " << wavelet.totalBits() << " bits in total\n";
+      std::clog << "Wavelet tree takes " << wavelet.totalBits()
+                << " bits in total\n";
     }
 
     size_t clen = wavelet.message(block.begin() + len);

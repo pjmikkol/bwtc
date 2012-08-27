@@ -1,6 +1,6 @@
 /**
  * @file UtilsTest.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(RunFrequencyCounts4) {
   BOOST_CHECK_EQUAL(bytesRead, bytesWritten)
 
 BOOST_AUTO_TEST_CASE(PackedInteger) {
-  uint64 numbers[] = {0, 1};//, 12, 126, 127, 128, 250, 1234, 5422, 124312, 4311235};
+  uint64 numbers[] = {0, 1, 12, 126, 127, 128, 250, 1234, 5422, 124312, 4311235};
   for(size_t i = 0; i < sizeof(numbers)/sizeof(uint64); ++i) {
     INTEGER_PACKING_TEST(numbers[i]);
   }

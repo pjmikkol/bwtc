@@ -130,7 +130,8 @@ class WaveletTree {
   /**Writes encoding of the shape of tree into given vector. The shape of
    * the tree is in form presented in "Housekeeping for Prefix Codes" by
    * Turpin and Moffat. */
-  void treeShape(BitVector& vector) const;
+  template <typename Output>
+  void treeShape(Output& vector) const;
 
   size_t bitsInRoot() const { return m_root->m_bitVector.size(); }
   size_t totalBits() const { return m_root->totalBits(); }
@@ -185,7 +186,7 @@ class WaveletTree {
   template <typename Decoder, typename ProbabilisticModel, typename GammaModel,
             typename GapModel>
   void decodeTreeBF(size_t rootSize, Decoder& dec, ProbabilisticModel& pm,
-                    GammaModel& gm, GapModel& gapm) const;
+                    GammaModel& gm, GapModel& gapm);
 
   const BitVector& code(byte symbol) { return m_codes[symbol]; }
   
@@ -474,8 +475,7 @@ void WaveletTree<BitVector>::
 fixedIntegerCode(BitVector& bits, uint32 x, uint32 w) {
   assert(x > 0);
   const uint64 wPow = static_cast<uint64>(1) << w;
-  size_t B = floor(log(x - 1 + wPow)/log(2)) - w;
-  //TODO: utils::logFloor
+  size_t B = utils::logFloor(x - 1 + wPow) - w;
   for(size_t i = 0; i < B; ++i) bits.push_back(true);
   bits.push_back(false);
 
@@ -503,7 +503,8 @@ void WaveletTree<BitVector>::gammaCode(BitVector& bits, size_t integer) {
 }
 
 template <typename BitVector>
-void WaveletTree<BitVector>::treeShape(BitVector& vec) const {
+template <typename Output>
+void WaveletTree<BitVector>::treeShape(Output& vec) const {
   size_t maxLen = 0;
   byte b = 0;
   std::vector<byte> symbols;
@@ -532,8 +533,8 @@ void WaveletTree<BitVector>::treeShape(BitVector& vec) const {
   {
     maxLen = 0;
     std::vector<uint32> integers;
-    for(typename std::map<uint32, BitVector>::const_iterator it = m_integerCodes.begin();
-        it != m_integerCodes.end(); ++it)
+    for(typename std::map<uint32, BitVector>::const_iterator
+            it = m_integerCodes.begin(); it != m_integerCodes.end(); ++it)
     {
       integers.push_back(it->first);
       size_t len = it->second.size();
@@ -553,13 +554,15 @@ void WaveletTree<BitVector>::treeShape(BitVector& vec) const {
     packedInt = utils::packInteger(maxLen, &bytes);
     utils::pushBitsRev(vec, packedInt, 8*bytes);
 #ifndef SEMI_FIXED_CODE
-    utils::binaryInterpolativeCode(integers, 0, integers.size() - 1, 1, integers.back(), vec);
+    utils::binaryInterpolativeCode(integers, 0, integers.size() - 1,
+                                   1, integers.back(), vec);
 #else    
-    utils::binaryInterpolativeCode(integers, 0, integers.size() - 1, 0, integers.back(), vec);
+    utils::binaryInterpolativeCode(integers, 0, integers.size() - 1,
+                                   0, integers.back(), vec);
 #endif
     
-    for(typename std::map<uint32, BitVector>::const_iterator it = m_integerCodes.begin();
-        it != m_integerCodes.end(); ++it) {
+    for(typename std::map<uint32, BitVector>::const_iterator
+            it = m_integerCodes.begin(); it != m_integerCodes.end(); ++it) {
       assert(it->second.size() > 0);
       utils::unaryCode(vec, maxLen - it->second.size() + 1);
     }
@@ -629,7 +632,8 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
     bool prev = !node.first->m_bitVector[0];
     if(node.first->m_left->m_hasSymbol || node.first->m_right->m_hasSymbol) {
 
-      // Both children are symbol nodes, hence only "after gaps" are needed to encode
+      // Both children are symbol nodes, hence only "after gaps"
+      // are needed to encode
       if(node.first->m_left->m_hasSymbol && node.first->m_right->m_hasSymbol) {
         for(size_t i = 0; i  < node.first->m_bitVector.size(); ++i) {
           if(!node.second[i]) continue; //node.first->m_bitVector[i] is known
@@ -793,7 +797,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
                                           Decoder& dec,
                                           ProbabilisticModel& pm,
                                           GammaModel& gm,
-                                          GapModel& gapm) const
+                                          GapModel& gapm)
 {
   //TODO: If needed optimize redundant copying of bitvectors!
   typedef std::pair<TreeNode<BitVector>*, BitVector> InternalNode; 
@@ -844,10 +848,11 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
           IntegerNode<BitVector>(m_root->m_right, right.size(), 0, 0));
 #else
 #ifndef SEMI_FIXED_CODE
-          IntegerNode<BitVector>(m_root->m_right, m_integerCodeTree, right.size()));
+          IntegerNode<BitVector>(m_root->m_right, m_integerCodeTree,
+                                 right.size()));
 #else
-          IntegerNode<BitVector>(m_root->m_right, m_integerCodeTree, right.size(),
-                                 0, 0));
+          IntegerNode<BitVector>(m_root->m_right, m_integerCodeTree,
+                                 right.size(), 0, 0));
 #endif
 #endif      
       } else {
@@ -1414,7 +1419,8 @@ WaveletTree<BitVector>::createHuffmanShape(const uint64 *runFreqs)
     }
   }
   if(heap.size() == 1) {
-    TreeNode<BitVector> *root = new TreeNode<BitVector>(heap.deleteMin().first, 0);
+    TreeNode<BitVector> *root = new TreeNode<BitVector>(
+        heap.deleteMin().first, 0);
     heap.insert(root, 1);
   }
   while(heap.size() > 1) {
@@ -1465,7 +1471,8 @@ uint32 WaveletTree<BitVector>::findParametersForSemiFixedCodes(
     size_t rejectedSum = 0;
     const size_t common = 10;
     while(true) {
-      if(integerFrequencies.back().first > common || integerFrequencies.size() <= 1) break;
+      if(integerFrequencies.back().first > common ||
+         integerFrequencies.size() <= 1) break;
       rejectedSum += integerFrequencies.back().first;
       integerFrequencies.pop_back();
     }

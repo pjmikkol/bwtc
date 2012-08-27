@@ -1,6 +1,6 @@
 /**
  * @file WaveletTest.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -32,9 +32,12 @@
 #include <iterator>
 #include <utility>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 #include "../Utils.hpp"
 #include "../WaveletTree.hpp"
+#include "TestStreams.hpp"
 
 namespace bwtc {
 int verbosity = 0;
@@ -76,6 +79,17 @@ template <typename T, typename U>
 void checkEqual(const T& vec, const U& answ) {
   for(size_t i = 0; i < vec.size(); ++i) {
     BOOST_CHECK_EQUAL(vec[i], answ[i]);
+  }
+}
+
+void genData(std::vector<byte>& data, int i, size_t len) {
+  for(size_t j = 0; j < len; ++j) {
+    int r = rand();
+    // Make runs of same character more probable:
+    if(j > 0 && (r & ((2 << i) - 1)) >= 1)
+      data.push_back(data.back());
+    else 
+        data.push_back(r & 0xff);
   }
 }
 
@@ -190,7 +204,8 @@ BOOST_AUTO_TEST_CASE(WholeConstruction1) {
 }
 
 BOOST_AUTO_TEST_CASE(WholeConstruction2) {
-  const char *str = "abbbabaagggffllslwerkfdskofdsksasdadsasdfgdfsmldsgklmesgfklmfeeeeeeeeeg";
+  const char *str = "abbbabaagggffllslwerkfdskofdsksasdadsas"
+      "dfgdfsmldsgklmesgfklmfeeeeeeeeeg";
   WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
   std::vector<byte> msg;
   tree.message(std::back_inserter(msg));
@@ -217,7 +232,8 @@ BOOST_AUTO_TEST_CASE(WholeConstruction4) {
 }
 
 BOOST_AUTO_TEST_CASE(WholeConstruction5) {
-  const char *str = "abcdefghijklmnababcabcdabcdeabcdefacbcdefgabcdefghabcdefghiabcdefghij";
+  const char *str = "abcdefghijklmnababcabcdabcdeabcd"
+      "efacbcdefgabcdefghabcdefghiabcdefghij";
   WaveletTree<std::vector<bool> > tree((const byte*) str, strlen(str));
   std::vector<byte> msg;
   tree.message(std::back_inserter(msg));
@@ -255,21 +271,152 @@ BOOST_AUTO_TEST_CASE(WholeConstruction7) {
   delete [] str;
 }
 
+BOOST_AUTO_TEST_CASE(WholeConstruction8) {
+  srand(time(0));
+  for(size_t i = 0; i < 5; ++i) {
+    std::vector<byte> data;
+    genData(data, i, 10000);
+    WaveletTree<std::vector<bool> > tree(&data[0], data.size());
+    std::vector<byte> msg;
+    tree.message(std::back_inserter(msg));
+    BOOST_CHECK_EQUAL(msg.size(), data.size());
+    checkEqual(msg, data);
+  }
+}
 
 BOOST_AUTO_TEST_SUITE_END()
 
 
+class ByteVecWrapper {
+ public:
+  ByteVecWrapper() : m_bitsUsed(0), m_currByte(0) {
+    m_data.push_back(0);
+  }
+
+  void push_back(bool bit) {
+    int shift = 7 - m_bitsUsed;
+    if(bit) {
+      m_data[m_currByte] |= (1 << shift);
+    } else if((m_data[m_currByte] >> shift) & 1) {
+      m_data[m_currByte] &= ~(1 << shift);
+    }
+
+    ++m_bitsUsed;
+    checkAndGrow();
+  }
+
+  void reset() { m_currByte = m_bitsUsed = 0; }
+
+  byte readByte() {
+    assert(m_bitsUsed == 0);
+    return m_data[m_currByte++];
+  }
+  
+  bool readBit() {
+    bool ret = (m_data[m_currByte] >> (7 - m_bitsUsed)) & 1;
+    ++m_bitsUsed;
+    checkAndGrow();
+    return ret;
+  }
+
+  std::vector<byte> m_data;
+
+ private:
+  void checkAndGrow() {
+    if(m_bitsUsed == 8) {
+      m_bitsUsed = 0;
+      ++m_currByte;
+      if(m_currByte == m_data.size()) m_data.push_back(0);
+    }
+  }
+
+  uint32 m_bitsUsed;
+  uint32 m_currByte;
+};
 
 BOOST_AUTO_TEST_SUITE(WaveletTreeShape)
 
-struct Input {
-  Input() : bitsRead(0) {}
+void makeTreeShapeTest(size_t len) {
+  for(size_t i = 0; i < 5; ++i) {
+    std::vector<byte> data;
+    genData(data, i, len);
+    WaveletTree<std::vector<bool> > tree(&data[0], data.size());
+    ByteVecWrapper shape;
+    tree.treeShape(shape);
 
-  std::vector<bool> bits;
-  size_t bitsRead;
-  bool readBit() { return bits.at(bitsRead++); }
+    shape.reset();
+    
+    WaveletTree<std::vector<bool> > other;
+    other.readShape(shape);
+    ByteVecWrapper oShape;
+    other.treeShape(oShape);
+    BOOST_CHECK_EQUAL(shape.m_data.size(), oShape.m_data.size());
+    checkEqual(shape.m_data, oShape.m_data);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TreeShape1) {
+  srand(time(0));
+  makeTreeShapeTest(100);
+  makeTreeShapeTest(1000);
+  makeTreeShapeTest(10000);
+  makeTreeShapeTest(100000);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+class MockCoder : public ByteVecWrapper {
+ public:
+  void encode(bool bit, Probability) {
+    push_back(bit);
+  }
+
+  bool decode(Probability) {
+    return readBit();
+  }
 };
 
+class MockProbModel {
+ public:
+  Probability probabilityOfOne() const { return 1; }
+  void update(bool) {}
+  void updateState(bool) {}
+  void resetModel() {}
+};
+
+BOOST_AUTO_TEST_SUITE(CodingAndDecoding)
+
+void makeCodingAndDecodingTest(size_t len) {
+  for(size_t i = 0; i < 5; ++i) {
+    std::vector<byte> data;
+    genData(data, i, len);
+    WaveletTree<std::vector<bool> > tree(&data[0], data.size());
+    MockCoder coded;
+    tree.treeShape(coded);
+    MockProbModel prob;
+    tree.encodeTreeBF(coded, prob, prob, prob);
+
+    size_t bitsInRoot = tree.bitsInRoot();
+    coded.reset();
+    
+    WaveletTree<std::vector<bool> > other;
+    other.readShape(coded);
+    other.decodeTreeBF(bitsInRoot, coded, prob, prob, prob);
+
+    std::vector<byte> result(data.size());
+    other.message(&result[0]);
+    BOOST_CHECK_EQUAL(data.size(), result.size());
+    checkEqual(data, result);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(CodingAndDecoding1) {
+  srand(time(0));
+  makeCodingAndDecodingTest(100);
+  makeCodingAndDecodingTest(1000);
+  makeCodingAndDecodingTest(10000);
+  makeCodingAndDecodingTest(100000);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
 

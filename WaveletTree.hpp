@@ -206,6 +206,7 @@ class WaveletTree {
   static void gammaCode(BitVector& bits, size_t integer);
 
   static void fixedIntegerCode(BitVector& bits, uint32 integer, uint32 w);
+  static uint32 lengthOfFixedCode(uint32 integer, uint32 w);
   static size_t fixedIntegerCodeTranslation(size_t bits, uint32 w);
 
   /**Assigns prefix codes based on the given lengths. Actual codes are stored
@@ -225,8 +226,8 @@ class WaveletTree {
   TreeNode<BitVector>* m_root;
   BitVector m_codes[256];
 
-  // Parameter of fixed integer codes
-  static const size_t m_W = 6;
+  // Parameter of fixed integer codes. Supported values are: 0 -- 15
+  uint32 m_W;
 
 #ifdef OPTIMIZED_INTEGER_CODE
   std::map<uint32, BitVector> m_integerCodes;
@@ -266,16 +267,21 @@ class WaveletTree {
    */
   static uint32 findParametersForSemiFixedCodes(
       std::vector<std::pair<uint64, uint32> >& integerFrequencies,
-      size_t totalFrequencies);
+      uint64 totalFrequencies);
 
-  //size_t readCodeTree(size_t maxSym, size_t symbols);
+  static uint64 bitsForIntegers(
+      uint32 w, uint32 depthForFixedCodes,
+      const std::vector<std::pair<uint64, uint32> >& integerFrequencies,
+      std::vector<std::pair<uint64, uint32> >& codeLengths,
+      uint64 totalFrequencies);
 };
 
 template <typename BitVector>
-WaveletTree<BitVector>::WaveletTree()
+WaveletTree<BitVector>::WaveletTree() :
 #ifdef ENTROPY_PROFILER
-    : m_bytesForCharacters(0), m_bytesForRuns(0)
+    m_bytesForCharacters(0), m_bytesForRuns(0),
 #endif
+    m_W(0)
 {
 #ifdef OPTIMIZED_INTEGER_CODE
   m_integerCodeTree = 0;
@@ -286,10 +292,11 @@ WaveletTree<BitVector>::WaveletTree()
 #ifdef OPTIMIZED_INTEGER_CODE
 
 template <typename BitVector>
-WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
+WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length) :
 #ifdef ENTROPY_PROFILER
-    : m_bytesForCharacters(0), m_bytesForRuns(0)
+    m_bytesForCharacters(0), m_bytesForRuns(0),
 #endif
+    m_W(0)
 {
   PROFILE("WaveletTree::WaveletTree");
   uint64 runFreqs[256] = {0};
@@ -322,12 +329,17 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
     }
 
 #ifdef SEMI_FIXED_CODE
-    //m_W = findParametersForSemiFixedCodes(integerCodeLengths, totalRuns);
-    findParametersForSemiFixedCodes(integerCodeLengths, totalRuns);
+    m_W = findParametersForSemiFixedCodes(integerCodeLengths, totalRuns);
 
-    freqs.resize(integerCodeLengths.size());
-    utils::calculateCodeLengths(integerCodeLengths, &freqs[0], true);
-    std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
+    m_integerCodeTree = new TreeNode<BitVector>();
+    if(integerCodeLengths.size() > 0) {
+      assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
+      collectCodes(m_integerCodes, m_integerCodeTree);
+    } else {
+      m_integerCodeTree->m_symbol = 0;
+      m_integerCodeTree->m_hasSymbol = true;
+      m_integerCodes[0].reserve(0); //Force the vector to be initialized
+    }
 #else
     /* Huffman-codes for integers */
     utils::calculateHuffmanLengths(integerCodeLengths, &freqs[0], integers);
@@ -336,10 +348,10 @@ WaveletTree<BitVector>::WaveletTree(const byte *src, size_t length)
     /* Hu-Tucker-codes for integers
     utils::calculateHuTuckerLengths(integerCodeLengths, &freqs[0], integers);
     */
-#endif
     m_integerCodeTree = new TreeNode<BitVector>();
     assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
     collectCodes(m_integerCodes, m_integerCodeTree);
+#endif
   }
   
   collectCodes(m_codes, m_root);
@@ -419,7 +431,42 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
     size_t bytesRead = 0;
     size_t longestRun = utils::readPackedIntegerRev(input, bytesRead);
     bitsRead += 8*bytesRead;
+#ifdef SEMI_FIXED_CODE
 
+    if(longestRun > 0) {
+      symbols = utils::readPackedIntegerRev(input, bytesRead);
+      bitsRead += 8*bytesRead;
+
+      std::vector<uint32> integers;
+      maxLengthOfCode = utils::readPackedIntegerRev(input, bytesRead);
+      bitsRead += 8*bytesRead;
+      bitsRead += utils::binaryInterpolativeDecode(integers, input, 0,
+                                                   longestRun, symbols);
+      std::vector<std::pair<uint64, uint32> > integerCodeLengths;
+      for(size_t i = 0; i < symbols; ++i) {
+        size_t n = utils::unaryDecode(input);
+        bitsRead += n;
+        assert(n <= maxLengthOfCode);
+        size_t len = maxLengthOfCode + 1 - n;
+        integerCodeLengths.push_back(std::make_pair(len, integers[i]));
+      }
+      std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
+      m_integerCodeTree = new TreeNode<BitVector>();
+      
+      assignPrefixCodes(integerCodeLengths, m_integerCodeTree, 0, 0);
+      collectCodes(m_integerCodes, m_integerCodeTree);
+    } else {
+      m_integerCodeTree = new TreeNode<BitVector>(0);
+      //Force the vector to be initialized
+      m_integerCodes[0].reserve(0);
+    }
+    m_W = 0;
+    for(int i = 0; i < 4; ++i) {
+      int bit = input.readBit()?1:0;
+      m_W = (m_W << 1) | bit;
+    }
+    bitsRead += 4;
+#else 
     symbols = utils::readPackedIntegerRev(input, bytesRead);
     bitsRead += 8*bytesRead;
 
@@ -427,14 +474,8 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
     std::vector<uint32> integers;
     maxLengthOfCode = utils::readPackedIntegerRev(input, bytesRead);
     bitsRead += 8*bytesRead;
-#ifndef SEMI_FIXED_CODE
     bitsRead += utils::binaryInterpolativeDecode(integers, input, 1,
                                                  longestRun, symbols);
-#else
-    bitsRead += utils::binaryInterpolativeDecode(integers, input, 0,
-                                                 longestRun, symbols);
-#endif
-
     std::vector<std::pair<uint64, uint32> > integerCodeLengths;
     for(size_t i = 0; i < symbols; ++i) {
       size_t n = utils::unaryDecode(input);
@@ -444,7 +485,6 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
       integerCodeLengths.push_back(std::make_pair(len, integers[i]));
     }
 
-    /* Would sort if used Huffman codes*/
     std::sort(integerCodeLengths.begin(), integerCodeLengths.end());
     m_integerCodeTree = new TreeNode<BitVector>();
 
@@ -452,6 +492,7 @@ size_t WaveletTree<BitVector>::readShape(Input& input) {
     collectCodes(m_integerCodes, m_integerCodeTree);
 
     assert(!m_integerCodeTree->m_hasSymbol);
+#endif
   }
 #endif
   return bitsRead;
@@ -482,6 +523,13 @@ fixedIntegerCode(BitVector& bits, uint32 x, uint32 w) {
   uint64 y = x - fixedIntegerCodeTranslation(B,w);
   for(int i = w + B - 1; i >= 0; --i)
     bits.push_back( ((y >> i) & 1) == 1);
+}
+
+template <typename BitVector>
+uint32 WaveletTree<BitVector>::lengthOfFixedCode(uint32 x, uint32 w) {
+  const uint64 wPow = static_cast<uint64>(1) << w;
+  size_t B = utils::logFloor(x - 1 + wPow) - w;
+  return 2*B + w + 1;
 }
 
 template <typename BitVector>
@@ -542,31 +590,46 @@ void WaveletTree<BitVector>::treeShape(Output& vec) const {
     }
 
     int bytes;
+    assert(integers.size() > 0);
     // Largest symbol
     packedInt = utils::packInteger(integers.back(), &bytes);
     utils::pushBitsRev(vec, packedInt, 8*bytes);
+#ifdef SEMI_FIXED_CODE
+    if(packedInt > 0) {
+      // Num of distinct symbols
+      packedInt = utils::packInteger(integers.size(), &bytes);
+      utils::pushBitsRev(vec, packedInt, 8*bytes);
 
+      // Maximum length of code
+      packedInt = utils::packInteger(maxLen, &bytes);
+      utils::pushBitsRev(vec, packedInt, 8*bytes);
+      utils::binaryInterpolativeCode(integers, 0, integers.size() - 1,
+                                     0, integers.back(), vec);
+      for(typename std::map<uint32, BitVector>::const_iterator
+              it = m_integerCodes.begin(); it != m_integerCodes.end(); ++it) {
+        assert(it->second.size() > 0);
+        utils::unaryCode(vec, maxLen - it->second.size() + 1);
+      }
+    }
+    for(int i = 3; i >= 0; --i) {
+      vec.push_back((m_W >> i) & 1);
+    }
+#else    
     // Num of distinct symbols
     packedInt = utils::packInteger(integers.size(), &bytes);
     utils::pushBitsRev(vec, packedInt, 8*bytes);
-
+    
     // Maximum length of code
     packedInt = utils::packInteger(maxLen, &bytes);
     utils::pushBitsRev(vec, packedInt, 8*bytes);
-#ifndef SEMI_FIXED_CODE
     utils::binaryInterpolativeCode(integers, 0, integers.size() - 1,
                                    1, integers.back(), vec);
-#else    
-    utils::binaryInterpolativeCode(integers, 0, integers.size() - 1,
-                                   0, integers.back(), vec);
-#endif
-    
     for(typename std::map<uint32, BitVector>::const_iterator
             it = m_integerCodes.begin(); it != m_integerCodes.end(); ++it) {
       assert(it->second.size() > 0);
       utils::unaryCode(vec, maxLen - it->second.size() + 1);
     }
-
+#endif
   }
 #endif
 }
@@ -616,7 +679,8 @@ void WaveletTree<BitVector>::encodeTreeBF(Encoder& enc, ProbabilisticModel& pm,
       else { left.first = m_root->m_left; queue.push(left); }
     }
     if(m_root->m_right) {
-      if(m_root->m_right->m_hasSymbol) integerCodeNodes.push_back(m_root->m_right);
+      if(m_root->m_right->m_hasSymbol)
+        integerCodeNodes.push_back(m_root->m_right);
       else { right.first = m_root->m_right; queue.push(right); }
     }
   }
@@ -928,9 +992,11 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
             node.first->m_left, node.second.size() - right.size(), 0, 0));
 #else
 #ifndef SEMI_FIXED_CODE
-            node.first->m_left, m_integerCodeTree, node.second.size() - right.size()));
+            node.first->m_left, m_integerCodeTree,
+                node.second.size() - right.size()));
 #else
-            node.first->m_left, m_integerCodeTree, node.second.size() - right.size(),0 ,0));
+            node.first->m_left, m_integerCodeTree,
+              node.second.size() - right.size(),0 ,0));
 #endif
 #endif
           queue.push(std::make_pair(node.first->m_right, right));
@@ -979,8 +1045,11 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
 #else
         if(node.m_intNode && node.m_intNode->m_hasSymbol) {
           node.m_node->m_hasSymbol = true;
-          node.m_node->m_symbol = node.m_intNode->m_symbol;
-          if(node.m_node->m_symbol != 0) continue;
+          if(m_integerCodes.size() > 1) {
+            //If using plain gamma codes we would override the old symbol
+            node.m_node->m_symbol = node.m_intNode->m_symbol;
+          }
+          if(node.m_intNode->m_symbol != 0) continue;
         }
 #endif
 #endif        
@@ -1110,7 +1179,7 @@ void WaveletTree<BitVector>::decodeTreeBF(size_t rootSize,
  *
  * @param bits BitVector representing the symbol to be pushed.
  * @return Node which is at the depth bits.size() when the root is at depth 0.
- *         This node should have symbol (ie. m_hasSymbol == true).                   
+ *         This node should have symbol (ie. m_hasSymbol == true).
  */
 template <typename BitVector>
 TreeNode<BitVector> *WaveletTree<BitVector>::pushBits(const BitVector& bits)
@@ -1243,24 +1312,27 @@ size_t WaveletTree<BitVector>::message(OutputIterator out) const {
       runLength |= (bit?1:0);
     }
 #else
-    do {
-      bit = node->m_bitVector[i];
-
-      if(bit) {
-        i = bitsSeen[node]++;
-        assert(node->m_right);
-        node = node->m_right;
-      } else {
-        i = i - bitsSeen[node];
-        assert(node->m_left);
-        node = node->m_left;
-      }
-    } while(!node->m_hasSymbol);
-    size_t runLength = node->m_symbol;
-
+    size_t runLength = 0;
 #ifdef SEMI_FIXED_CODE
-    size_t leadingOnes = 0;
+    if(!m_integerCodeTree->m_hasSymbol) {
+      // We are not using plain gamma codes so we can proceed
+      do {
+        bit = node->m_bitVector[i];
+        
+        if(bit) {
+          i = bitsSeen[node]++;
+          assert(node->m_right);
+          node = node->m_right;
+        } else {
+          i = i - bitsSeen[node];
+          assert(node->m_left);
+          node = node->m_left;
+        }
+      } while(!node->m_hasSymbol);
+      runLength = node->m_symbol;
+    }
     if(runLength == 0) {
+      size_t leadingOnes = 0;
       bit = node->m_bitVector[i];
       while(bit) {
         ++leadingOnes;
@@ -1279,6 +1351,21 @@ size_t WaveletTree<BitVector>::message(OutputIterator out) const {
       }
       runLength += fixedIntegerCodeTranslation(leadingOnes, m_W);
     }
+#else     
+    do {
+      bit = node->m_bitVector[i];
+
+      if(bit) {
+        i = bitsSeen[node]++;
+        assert(node->m_right);
+        node = node->m_right;
+      } else {
+        i = i - bitsSeen[node];
+        assert(node->m_left);
+        node = node->m_left;
+      }
+    } while(!node->m_hasSymbol);
+    runLength = node->m_symbol;
 #endif
 
 #endif //OPTIMIZED_INTEGER_CODE
@@ -1433,9 +1520,9 @@ WaveletTree<BitVector>::createHuffmanShape(const uint64 *runFreqs)
   return heap.deleteMin().first;
 }
 
-template <typename BitVector>
-template <typename BVectors>
-void WaveletTree<BitVector>::collectCodes(BVectors& codes, TreeNode<BitVector> *root)
+template <typename BitVector> template <typename BVectors>
+void WaveletTree<BitVector>::
+collectCodes(BVectors& codes, TreeNode<BitVector> *root)
 {
   BitVector vec;
   collectCodes(codes, vec, root);
@@ -1461,33 +1548,132 @@ WaveletTree<BitVector>::collectCodes(BVectors& codes, BitVector& vec,
   }
 }
 
+
+template <typename BitVector>
+uint64 WaveletTree<BitVector>::bitsForIntegers(
+    uint32 w, uint32 depthForFixedCodes,
+    const std::vector<std::pair<uint64, uint32> >& integerFrequencies,
+    std::vector<std::pair<uint64, uint32> >& codeLengths,
+    uint64 totalFreq) {
+  if(integerFrequencies.size() < depthForFixedCodes)
+    return 0;
+  
+  if(depthForFixedCodes == 0) {
+    // Just calculate how many bits we need
+    uint64 total = 0;
+    for(size_t i = 0; i < integerFrequencies.size(); ++i) {
+      const std::pair<uint64, uint32>& p = integerFrequencies[i];
+      total += p.first * lengthOfFixedCode(p.second, w);
+    }
+    return total;
+  }
+
+  
+  std::vector<bool> removed(integerFrequencies.size(), false);
+  std::map<uint64, uint32> notRemoved;
+  uint64 minFreq = 0;
+
+  // Try to guess which integers would deserve Huffman-code
+  for(size_t i = 0; i < integerFrequencies.size(); ++i) {
+    const std::pair<uint64, uint32>& p = integerFrequencies[i];
+    double optimalLength = log(totalFreq/static_cast<double>(p.first));
+    if(p.first*optimalLength +64 < 1.1*p.first*lengthOfFixedCode(p.second, w)){
+      removed[i] = true;
+      codeLengths.push_back(p);
+      if(minFreq == 0 || minFreq > p.first) {
+        minFreq = p.first;
+      }
+    } else {
+      notRemoved[p.first] = i;
+    }
+  }
+  // We need at least 'depthForFixedCodes' integers to Huffman tree
+  if(depthForFixedCodes > codeLengths.size()) {
+    std::map<uint64, uint32>::const_reverse_iterator it = notRemoved.rbegin();
+    for(int i = 0; i< (int)(depthForFixedCodes-codeLengths.size()); ++i, ++it){
+      removed[it->second] = true;
+      codeLengths.push_back(integerFrequencies[it->second]);
+      if(minFreq == 0 || minFreq > it->first) {
+        minFreq = it->first;
+      }
+    }
+    // Add pair representing the fixed code tree
+    codeLengths.push_back(std::make_pair(minFreq, 0));
+    std::sort(codeLengths.begin(), codeLengths.end());
+  } else {
+    codeLengths.push_back(std::make_pair(minFreq, 0));
+  }
+  //And calculate Huffman code lengths
+  utils::calculateCodeLengths(codeLengths, 0, true);
+  std::sort(codeLengths.begin(), codeLengths.end());
+
+  //Insert Node representing fixed codes to it's right place
+  int j = codeLengths.size() - 1;
+  while(codeLengths[j].second != 0) --j;
+  while(j > 0) {
+    if(codeLengths[j-1].first >= depthForFixedCodes) {
+      std::swap(codeLengths[j].second, codeLengths[j-1].second);
+      --j;
+    } else {
+      break;
+    }
+  }
+
+  uint32 realDepth = codeLengths[j].second;
+  // Finally calculate bits needed when using this semi-fixed code
+  std::map<uint32, uint32> huffmanLengths;
+  for(size_t i = 0; i < codeLengths.size(); ++i)
+    huffmanLengths[codeLengths[i].second] = codeLengths[i].first;
+
+  uint64 total = 0;
+  for(size_t i = 0; i < integerFrequencies.size(); ++i) {
+    const std::pair<uint64, uint32>& p = integerFrequencies[i];
+    if(removed[i]) {
+      total += p.first * huffmanLengths[p.second];
+    } else {
+      total += p.first * (realDepth+lengthOfFixedCode(p.second, w));
+    }
+  }
+  return total;
+}
+
+
 template <typename BitVector>
 uint32 WaveletTree<BitVector>::findParametersForSemiFixedCodes(
     std::vector<std::pair<uint64, uint32> >& integerFrequencies,
-    size_t totalFrequencies) {
+    uint64 totalFrequencies) {
+  assert(integerFrequencies.size() > 0);
+  std::sort(integerFrequencies.begin(), integerFrequencies.end());
 
-    std::sort(integerFrequencies.rbegin(), integerFrequencies.rend());
+  std::vector<std::pair<uint64, uint32> > codeLengths;
 
-    size_t rejectedSum = 0;
-    const size_t common = 10;
-    while(true) {
-      if(integerFrequencies.back().first > common ||
-         integerFrequencies.size() <= 1) break;
-      rejectedSum += integerFrequencies.back().first;
-      integerFrequencies.pop_back();
+  uint32 bestW = 0;
+  uint64 leastBits = bitsForIntegers(bestW, 0, integerFrequencies,
+                                     codeLengths, totalFrequencies);
+
+  for(size_t w = 1; w < 16; ++w) {
+    uint64 bits = bitsForIntegers(w, 0, integerFrequencies, codeLengths,
+                                  totalFrequencies);
+    if(bits < leastBits) {
+      bestW = w;
     }
-    std::reverse(integerFrequencies.begin(), integerFrequencies.end());
-    // '0' Is used for the symbols which have semifixed code
-    if(rejectedSum > 0) {
-      integerFrequencies.push_back(std::make_pair(rejectedSum, 0));
-      int i = integerFrequencies.size() - 2;
-      while(i >= 0 && rejectedSum < integerFrequencies[i].first) {
-        std::swap(integerFrequencies[i], integerFrequencies[i+1]);
-        --i;
+  }
+
+  for(uint32 w = 0; w < 16; ++w) {
+    for(uint32 depth = 1; depth <= 3; ++depth) {
+      std::vector<std::pair<uint64, uint32> > tmpLengths;
+      uint64 bits = bitsForIntegers(w, depth, integerFrequencies,
+                                    tmpLengths, totalFrequencies);
+      if(bits == 0) break;
+      if(bits < leastBits) {
+        codeLengths = tmpLengths;
+        leastBits = bits;
+        bestW = w;
       }
     }
-
-    return m_W;
+  }
+  integerFrequencies = codeLengths;
+  return bestW;
 }
 
 

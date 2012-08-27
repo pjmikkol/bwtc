@@ -245,13 +245,15 @@ struct HuTuckerNode {
 };
 
 int nextTerminal(const std::vector<HuTuckerNode*>& v, int i) {
-  while(i < v.size() && (!v[i] || v[i]->left)) ++i;
-  if (i == v.size()) --i;
+  int s = v.size();
+  while(i < s && (!v[i] || v[i]->left)) ++i;
+  if (i == s) --i;
   return i;
 }
 
 int nextValid(const std::vector<HuTuckerNode*>& v, int i) {
-  while(i < v.size() && !v[i]) ++i;
+  int s = v.size(); 
+  while(i < s && !v[i]) ++i;
   return i;
 }
 
@@ -289,8 +291,9 @@ void collectLengthsAndDestroyTree(HuTuckerNode* node, uint32 d,
 }
 } // namespace
 
-void calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
-                              uint64 *freqs, const std::vector<uint32>& names)
+void calculateHuTuckerLengths(
+    std::vector<std::pair<uint64, uint32> >& codeLengths,
+    uint64 *freqs, const std::vector<uint32>& names)
 {
   if(names.size() == 1) {
     codeLengths.push_back(std::make_pair(1,names[0]));
@@ -306,7 +309,7 @@ void calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengt
     nodes.push_back(new HuTuckerNode(0, 0, freqs[i], names[i]));
   }
   size_t removed = 0;
-  int im1 = 0, curr = 0;
+  size_t im1 = 0, curr = 0;
   // first pass to combine nodes at the beginning:
   if(nodes[0]->weight <= nodes[2]->weight) {
     HuTuckerNode* n = new HuTuckerNode(
@@ -346,7 +349,7 @@ void calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengt
     }
   }
 
-  int deleted = removed;
+  size_t deleted = removed;
   while(removed < names.size()-1) {
     if(deleted >= nodes.size()/2) {
       int i = 0;
@@ -362,7 +365,7 @@ void calculateHuTuckerLengths(std::vector<std::pair<uint64, uint32> >& codeLengt
     uint64 minWeight = nodes[first]->weight + nodes[second]->weight;
     int minLeft = first, minRight = second;
 
-    while(first + 1 < nodes.size()) {
+    while(first + 1 < (int)nodes.size()) {
       uint64 minSum;
       std::pair<int, int> lr = findMinSum(nodes, first, second, minSum);
       if(minSum < minWeight) {
@@ -424,7 +427,9 @@ void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
     codeLengths[0].first = 1;
     return;
   }
-  
+  bool allocate = !freqs;
+  if(allocate) freqs = new uint64[codeLengths.size()];
+
   if(!sorted) std::sort(codeLengths.begin(), codeLengths.end());
   const size_t n = codeLengths.size();
   for(size_t i = 0; i < n; ++i) {
@@ -464,6 +469,7 @@ void calculateCodeLengths(std::vector<std::pair<uint64, uint32> >& codeLengths,
   for(size_t i = 0; i < n; ++i) {
     codeLengths[i].first = freqs[i];    
   }
+  if(allocate) delete [] freqs;
 }
 
 void writePackedInteger(uint64 packed_integer, byte *to) {

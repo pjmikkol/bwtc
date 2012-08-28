@@ -1,6 +1,6 @@
 /**
  * @file compress.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -120,7 +120,8 @@ int main(int argc, char** argv) {
         ("input-file", po::value<std::string>(&input_name),
          "file to compress, defaults to stdin")
         ("output-file", po::value<std::string>(&output_name),"target file")
-        ("bwt", po::value<char>(&bwtAlgo)->default_value('a')->notifier(&validateBWTchoice),
+        ("bwt", po::value<char>(&bwtAlgo)->default_value('a')->
+         notifier(&validateBWTchoice),
          "BWT-algorithm to use:\n"
          "  d -- Yuta Mori's libdivsufsort\n"
          "  s -- Yuta Mori's sais\n"
@@ -136,9 +137,11 @@ int main(int argc, char** argv) {
          "  H -- Huffman coding with run-length encoding\n"
          "  M -- Remembering 16 previous bits (Wavelet tree)\n"
          "  m -- Remembering 8 previous bits (Wavelet tree)\n"
-         "  b -- Finite State Machine with unbiased and equal predictors in each state (Wavelet tree)\n"
+         "  b -- Finite State Machine with unbiased and equal predictors "
+         "in each state (Wavelet tree)\n"
          "  B -- Slightly optimised version of above (Wavelet tree)\n"
-         "  u -- Simple predictor with 4 states. These are used in FSM's states (Wavelet tree)")
+         "  u -- Simple predictor with 4 states. These are used in "
+         "FSM's states (Wavelet tree)")
         ;
 
     /* Allow input and output files given in user friendly form,
@@ -160,7 +163,6 @@ int main(int argc, char** argv) {
 
     stdout = varmap.count("stdout") != 0;
     stdin  = varmap.count("stdin") != 0;
-    // TODO: Check that the block-size is OK
   } /* try-block */
   catch(std::exception& e) {
     std::cerr << "error: " << e.what() << std::endl;

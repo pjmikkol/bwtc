@@ -1,6 +1,6 @@
 /**
  * @file Compressor.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -71,9 +71,10 @@ size_t Compressor::compress(size_t threads) {
 
   size_t compressedSize = writeGlobalHeader();
 
-  // More care should be paid for choosing the correct limits
+  /* Precompressor uses (1/3)n bytes of additional memory for the block
+   * of size n. */
   size_t pbBlockSize = static_cast<size_t>(m_options.memLimit*0.72);
-  size_t bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*0.18),
+  size_t bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*0.05),
                                  static_cast<size_t>(0x80000000 - 2));
 
   if(m_precompressor.options().size() == 0) pbBlockSize = bwtBlockSize;
@@ -86,6 +87,16 @@ size_t Compressor::compress(size_t threads) {
       delete pb;
       break;
     }
+    /* BWT uses roughly 4n additional bytes of additional memory but
+     * we have to also account the memory used for the rest of the data.
+     * Based on the experiments the limits used here are somewhat conservative.
+     */
+    if(pbBlockSize != bwtBlockSize) {
+      double scale = (1.0 - 0.75*pb->size()/pb->originalSize())/4.0;
+      bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*scale),
+                              static_cast<size_t>(0x80000000 - 2));
+    }
+    
     pb->sliceIntoBlocks(bwtBlockSize);
     ++preBlocks;
     bwtBlocks += pb->slices();

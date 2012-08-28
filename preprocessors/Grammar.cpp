@@ -1,6 +1,6 @@
 /**
- * @file Grammar.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @File Grammar.cpp
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *

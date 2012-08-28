@@ -1,7 +1,7 @@
 /**
  * @file BitCoders.cpp
  * @author http://code.google.com/p/dcs-bwt-compressor/ Original implementations 
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *

@@ -1,6 +1,6 @@
 /**
  * @file RawStreamTest.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
  *
  * @section LICENSE

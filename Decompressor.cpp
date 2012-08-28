@@ -1,6 +1,6 @@
 /**
  * @file Decompressor.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -90,7 +90,6 @@ size_t Decompressor::decompress(size_t threads) {
     delete pb;
   }
   delete ibwt;
-
   return decompressedSize;
 }
 

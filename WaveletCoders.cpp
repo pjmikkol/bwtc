@@ -79,7 +79,6 @@ transformAndEncode(BWTBlock& block, BWTManager& bwtm, OutStream* out) {
   std::vector<uint32> characterFrequencies(256, 0);
   bwtm.doTransform(block, &characterFrequencies[0]);
 
-  //TODO: find Integer coding
   m_destination.connect(out);
   writeBlockHeader(block, characterFrequencies, out);
   encodeData(block.begin(), characterFrequencies, out);

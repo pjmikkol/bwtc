@@ -83,25 +83,54 @@ void test(size_t length, size_t reps, const char* prep, size_t mem,
     decompressor.decompress(1);
 
     BOOST_CHECK_EQUAL(orig.size(), decomp.size());
-    for(size_t i = 0; i < orig.size(); ++i)
-      BOOST_CHECK_EQUAL(orig[i], decomp[i]);
+    for(size_t i = 0; i < orig.size(); ++i) {
+      if(orig[i] != decomp[i]) {
+        BOOST_CHECK_EQUAL(orig[i], decomp[i]);
+        break;
+      }
+    }
   }
 }
 
 
 BOOST_AUTO_TEST_SUITE(WithWaveletCoders)
 
-BOOST_AUTO_TEST_CASE(SingleStartingPointSingleBlockNoPreprocessing) {
+BOOST_AUTO_TEST_CASE(SingleStartingPointSingleBlockNoPreprocessingNoRep) {
+  test(100, 0, "", 10000, 'B', 'd', 1);
+  test(1000, 0, "", 100000, 'B', 'd', 1);
+  test(10000, 0, "", 1000000, 'B', 'd', 1);
+  test(100000, 0, "", 10000000, 'B', 'd', 1);
+}
+
+BOOST_AUTO_TEST_CASE(SingleStartingPointSingleBlockNoPreprocessinRep2) {
+  test(100, 2, "", 10000, 'B', 's', 1);
+  test(1000, 2, "", 100000, 'B', 's', 1);
+  test(10000, 2, "", 1000000, 'B', 's', 1);
+  test(100000, 2, "", 10000000, 'B', 's', 1);
+}
+
+BOOST_AUTO_TEST_CASE(SingleStartingPointSingleBlockNoPreprocessinRep50) {
+  test(100, 50, "", 10000, 'B', 'd', 1);
+  test(1000, 50, "", 100000, 'B', 'd', 1);
+  test(10000, 50, "", 1000000, 'B', 'd', 1);
+  test(100000, 50, "", 10000000, 'B', 'd', 1);
+}
+
+BOOST_AUTO_TEST_CASE(SingleStartingPointMultBlockNoPreprocessingNoRep) {
   test(100, 0, "", 1000, 'B', 'd', 1);
   test(1000, 0, "", 10000, 'B', 'd', 1);
   test(10000, 0, "", 100000, 'B', 'd', 1);
   test(100000, 0, "", 1000000, 'B', 'd', 1);
+}
 
-  test(100, 2, "", 1000, 'B', 's', 1);
-  test(1000, 2, "", 10000, 'B', 's', 1);
-  test(10000, 2, "", 100000, 'B', 's', 1);
-  test(100000, 2, "", 1000000, 'B', 's', 1);
+BOOST_AUTO_TEST_CASE(SingleStartingPointMultBlockNoPreprocessinRep2) {
+  test(100, 2, "", 100, 'B', 's', 1);
+  test(1000, 2, "", 1000, 'B', 's', 1);
+  test(10000, 2, "", 10000, 'B', 's', 1);
+  test(100000, 2, "", 100000, 'B', 's', 1);
+}
 
+BOOST_AUTO_TEST_CASE(SingleStartingPointMultBlockNoPreprocessinRep50) {
   test(100, 50, "", 1000, 'B', 'd', 1);
   test(1000, 50, "", 10000, 'B', 'd', 1);
   test(10000, 50, "", 100000, 'B', 'd', 1);

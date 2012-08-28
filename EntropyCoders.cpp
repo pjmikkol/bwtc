@@ -1,5 +1,5 @@
 /**
- * @file EntropCoders.cpp
+ * @file EntropyCoders.cpp
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
  *
  * @section LICENSE

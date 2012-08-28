@@ -1,6 +1,6 @@
 /**
  * @file InverseBWT.hpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -47,7 +47,8 @@ class InverseBWTransform {
   virtual ~InverseBWTransform() {}
   virtual uint64 maxBlockSize(uint64 memory_budget) const = 0;
 
-  virtual void doTransform(byte *bwt, uint32 n, const std::vector<uint32>& LFpow) = 0;
+  virtual void doTransform(byte *bwt, uint32 n,
+                           const std::vector<uint32>& LFpow) = 0;
 
   void doTransform(BWTBlock& block);
 

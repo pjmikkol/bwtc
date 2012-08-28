@@ -1,6 +1,6 @@
 /**
  * @file Postprocessor.hpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -53,12 +53,6 @@ class Postprocessor {
   void uncompress(const byte* from, size_t length, std::vector<byte>& to);
   size_t uncompress(const byte* data, size_t length, OutStream* to) const;
  
-  static size_t uncompressCommonPairs(std::vector<byte> *from, size_t length);
-  static size_t uncompressLongRuns(std::vector<byte> *from, size_t length);
-  static size_t uncompressSequences(std::vector<byte> *from, size_t length);
-  static size_t uncompressPairsAndRuns(std::vector<byte> *compressed,
-                                       size_t length);
-
  private:
   // Almost half of the array is unused but that area of memory
   // is never touched

@@ -1,6 +1,6 @@
 /**
  * @file PairReplacer.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -37,15 +37,15 @@
 namespace bwtc {
 
 PairReplacer::PairReplacer(Grammar& grammar)
-    : m_grammar(grammar), m_prev(0), m_numOfReplacements(0), m_numOfFreedSymbols(0),
-      m_numOfNewSpecials(0), m_commonByte(0), m_analysationStarted(false),
-      m_verbose(false)
+    : m_grammar(grammar), m_prev(0), m_numOfReplacements(0),
+      m_numOfFreedSymbols(0), m_numOfNewSpecials(0), m_commonByte(0),
+      m_analysationStarted(false), m_verbose(false)
 {}
 
 PairReplacer::PairReplacer(Grammar& grammar, bool verbose)
-    : m_grammar(grammar), m_prev(0), m_numOfReplacements(0), m_numOfFreedSymbols(0),
-      m_numOfNewSpecials(0), m_commonByte(0), m_analysationStarted(false),
-      m_verbose(verbose)
+    : m_grammar(grammar), m_prev(0), m_numOfReplacements(0),
+      m_numOfFreedSymbols(0), m_numOfNewSpecials(0), m_commonByte(0),
+      m_analysationStarted(false), m_verbose(verbose)
 {}
 
 PairReplacer::~PairReplacer() {}

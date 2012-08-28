@@ -1,7 +1,7 @@
 /**
  * @file preprocess.cpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *

@@ -1,6 +1,6 @@
 /**
  * @file TestStreams.hpp
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *
@@ -40,7 +40,7 @@ class TestStream : public InStream, public OutStream {
   TestStream(std::vector<byte>& data)
       :  m_data(data), m_currByte(0), m_currBit(0) {}
 
-  void reset() { m_currBit = m_currByte = 0;  }
+  void reset() { m_currBit = m_currByte = 0; }
 
   ~TestStream() {}
  
@@ -69,6 +69,7 @@ class TestStream : public InStream, public OutStream {
     }
     m_data.resize((end - begin) + m_currByte);
     std::copy(begin, end, &m_data[m_currByte]);
+    m_currByte = m_data.size();
   }
 
   long int getPos() {

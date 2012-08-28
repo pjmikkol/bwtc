@@ -1,7 +1,7 @@
 /**
  * @file HuffmanCoders.cpp
  * @author Dominik Kempa <dominik.kempa@cs.helsinki.fi>
- * @author Pekka Mikkola <pjmikkol@cs.helsinki.fi>
+ * @author Pekka Mikkola <pmikkol@gmail.com>
  *
  * @section LICENSE
  *

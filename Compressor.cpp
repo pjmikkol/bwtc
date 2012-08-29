@@ -72,10 +72,11 @@ size_t Compressor::compress(size_t threads) {
   size_t compressedSize = writeGlobalHeader();
 
   /* Precompressor uses (1/3)n bytes of additional memory for the block
-   * of size n. */
-  size_t pbBlockSize = static_cast<size_t>(m_options.memLimit*0.72);
-  size_t bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*0.05),
-                                 static_cast<size_t>(0x80000000 - 2));
+   * of size n so we can handle 0.75*memLim sized block at once (0.74 should be
+   * enough to be on the safe side). */
+  size_t pbBlockSize = static_cast<size_t>(m_options.memLimit*0.74);
+  size_t bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*0.185),
+                                 static_cast<size_t>(0x7fffffff - 1));
 
   if(m_precompressor.options().size() == 0) pbBlockSize = bwtBlockSize;
   
@@ -92,9 +93,8 @@ size_t Compressor::compress(size_t threads) {
      * Based on the experiments the limits used here are somewhat conservative.
      */
     if(pbBlockSize != bwtBlockSize) {
-      double scale = (1.0 - 0.75*pb->size()/pb->originalSize())/4.0;
-      bwtBlockSize = std::min(static_cast<size_t>(m_options.memLimit*scale),
-                              static_cast<size_t>(0x80000000 - 2));
+      size_t s = (m_options.memLimit - pb->size())/4.5;
+      bwtBlockSize = std::min(s,static_cast<size_t>(0x7fffffff - 1));
     }
     
     pb->sliceIntoBlocks(bwtBlockSize);

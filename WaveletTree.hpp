@@ -1577,7 +1577,9 @@ uint64 WaveletTree<BitVector>::bitsForIntegers(
   for(size_t i = 0; i < integerFrequencies.size(); ++i) {
     const std::pair<uint64, uint32>& p = integerFrequencies[i];
     double optimalLength = log(totalFreq/static_cast<double>(p.first));
-    if(p.first*optimalLength +64 < 1.1*p.first*lengthOfFixedCode(p.second, w)){
+    double price = p.first*(depthForFixedCodes+lengthOfFixedCode(p.second, w));
+    // 64 and 10 seems to work quite well
+    if(p.first*optimalLength + 64 < price && p.first >= 10){
       removed[i] = true;
       codeLengths.push_back(p);
       if(minFreq == 0 || minFreq > p.first) {
@@ -1587,6 +1589,7 @@ uint64 WaveletTree<BitVector>::bitsForIntegers(
       notRemoved[p.first] = i;
     }
   }
+
   // We need at least 'depthForFixedCodes' integers to Huffman tree
   if(depthForFixedCodes > codeLengths.size()) {
     std::map<uint64, uint32>::const_reverse_iterator it = notRemoved.rbegin();

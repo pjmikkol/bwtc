@@ -37,7 +37,8 @@
 namespace bwtc {
 
 ProbabilityModel* giveModelForIntegerCodes() {
-  return new FSM<2, UnbiasedPredictor<100, 5, kHalfProbability> >();
+  //return new UnbiasedPredictor<100, 5, kHalfProbability>();
+  return new FSM<3, UnbiasedPredictor<100, 5, kHalfProbability> >();
 }
 
 ProbabilityModel* giveModelForGaps() {
